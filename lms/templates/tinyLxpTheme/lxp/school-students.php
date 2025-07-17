@@ -1,26 +1,38 @@
 <?php
-$school_post = lxp_get_user_school_post();
-$school_students = lxp_get_school_students($school_post->ID);
-$teachers = lxp_get_school_teachers($school_post->ID);
+    $school_post = lxp_get_user_school_post();
+    $teachers = lxp_get_school_teachers($school_post->ID);
 
-$students = array();
-$is_teacher_assignment_needed = false;
-if (isset($_GET['teacher_id']) && $_GET['teacher_id'] != 0) {
-    $teacher_id = $_GET['teacher_id'];
-    $students = lxp_get_school_teacher_students($school_post->ID, $teacher_id);
-} else {
-    // filter out students who are not assigned to any teacher
-    $students = array_filter($school_students, function ($student) {
-        return !get_post_meta($student->ID, 'lxp_teacher_id', true);
-    });
-    // if all students are already assigned to teachers then show all students
-    if (count($students) == 0) {
-        $students = $school_students;
+    $students = array();
+    $is_teacher_assignment_needed = false;
+    if (isset($_GET['teacher_id']) && $_GET['teacher_id'] != 0) {
+        $teacher_id = $_GET['teacher_id'];
+        // $students = lxp_get_school_teacher_students($school_post->ID, $teacher_id);
+        if (isset($_GET['inactive']) && $_GET['inactive'] == 'true') {
+            $students = lxp_get_school_teacher_students_inactive($school_post->ID, $teacher_id);
+        } else {
+            $students = lxp_get_school_teacher_students_active($school_post->ID, $teacher_id);
+        }
     } else {
-        $is_teacher_assignment_needed = true;
+        //$school_students = lxp_get_school_students($school_post->ID);
+        if (isset($_GET['inactive']) && $_GET['inactive'] == 'true') {
+            $school_students = lxp_get_school_students_inactive($school_post->ID);
+        } else {
+            $school_students = lxp_get_school_students_active($school_post->ID);
+        }
+        // filter out students who are not assigned to any teacher
+        $students = array_filter($school_students, function ($student) {
+            return !get_post_meta($student->ID, 'lxp_teacher_id', true);
+        });
+        // if all students are already assigned to teachers then show all students
+        if (count($students) == 0) {
+            $students = $school_students;
+        } else {
+            $is_teacher_assignment_needed = true;
+        }
     }
-}
 
+    $district_post = get_post(get_post_meta($school_post->ID, 'lxp_school_district_id', true));
+    $district_type = get_post_meta($district_post->ID, 'lxp_district_type', true);
 ?>
 
 <!DOCTYPE html>
@@ -37,7 +49,7 @@ if (isset($_GET['teacher_id']) && $_GET['teacher_id'] != 0) {
     <link rel="stylesheet" href="<?php echo $treks_src; ?>/style/addNewTeacherModal.css" />
     <link rel="stylesheet" href="<?php echo $treks_src; ?>/style/schoolDashboard.css" />
     <link rel="stylesheet" href="<?php echo $treks_src; ?>/style/schoolAdminStudents.css" />
-    
+
     <link href="<?php echo $treks_src; ?>/style/treksstyle.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
         integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous" />
@@ -115,19 +127,34 @@ if (isset($_GET['teacher_id']) && $_GET['teacher_id'] != 0) {
                         <div class="col-md-4">
                             <?php if (isset($_GET['teacher_id']) && $_GET['teacher_id'] > 0) { ?>
                                 <div>
-                                    <button id="studentModalBtn" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#studentModal" class="primary-btn">
-                                        Add New Student
-                                    </button>
-                                    <label for="import-student" class="primary-btn add-heading">
-                                        Import Students (CSV)
-                                    </label >
-                                    <input type="file" id="import-student" hidden />
+                                <?php 
+                                    if (isset($district_type) && $district_type == 'edlink') {
+                                        $model_id = 'edlinkStudentModal';
+                                        $add_btn = 'edlinkStudentModalBtn';
+                                    } else {
+                                        $model_id = 'studentModal';
+                                        $add_btn = 'studentModalBtn';
+                                    }
+                                ?>
+                                <button id="<?php echo $add_btn; ?>" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#<?php echo $model_id; ?>" class="primary-btn">
+                                    Add New Student
+                                </button>
+                                <?php
+                                    if (empty($district_type) || $district_type != 'edlink') {
+                                ?>
+                                        <label for="import-student" class="primary-btn add-heading">
+                                            Import Students (CSV)
+                                        </label >
+                                        <input type="file" id="import-student" hidden />
+                                <?php        
+                                    }
+                                ?>
                                 </div>
-                           <?php } else { ?>
+                        <?php } else { ?>
                                 <div class="alert alert-info" role="alert" style="margin-top: 10px;">
                                     Please select a `Teacher` to add or import `Students`.
                                 </div>
-                           <?php } ?>
+                        <?php } ?>
                 
                         </div>
                     </div>
@@ -135,47 +162,17 @@ if (isset($_GET['teacher_id']) && $_GET['teacher_id'] != 0) {
 
                 <!-- Table Section -->
                 <section class="recent-treks-section-div table-school-section">
+                    <!-- bootstrap Active and Inactive tabs -->
+                    <ul class="nav nav-tabs mb-3" id="settingsTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link<?php echo !isset($_GET['inactive']) ? ' active':''; ?>" id="active-tab" data-bs-toggle="tab" href="#active" role="tab" aria-controls="active" aria-selected="true">Active</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link<?php echo isset($_GET['inactive']) ? ' active' : ''; ?>" id="inactive-tab" data-bs-toggle="tab" href="#inactive" role="tab" aria-controls="inactive" aria-selected="false">Inactive</a>
+                        </li>
+                    </ul>
 
                     <div class="students-table">
-                        <!-- 
-                        <div class="school-box">
-                            <div class="showing-row-box">
-                                <p class="showing-row-text">Showing 1 - 5 of 25</p>
-                                <div class="row-box">
-                                    <p class="showing-row-text">Rows per page</p>
-                                    <div class="show-page">
-                                        <button class="show-page-button" type="button" id="dropdownMenu2"
-                                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <span class="showing-row-text">5</span>
-                                        </button>
-                                        <img id="dropdownMenu2" data-bs-toggle="dropdown" aria-haspopup="true"
-                                            aria-expanded="false" src="<?php echo $treks_src; ?>/assets/img//show-down-page.svg" alt="logo" />
-                                        <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
-                                            <button class="dropdown-item dropdown-class">
-                                                <p class="page-row-para">1</p>
-                                            </button>
-                                            <button class="dropdown-item dropdown-class" type="button">
-                                                <p class="page-row-para">2</p>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row-box">
-                                <p class="showing-row-text">First</p>
-                                <img class="previous-slide-img" src="<?php // echo $treks_src; ?>/assets/img/previous-arrow.svg" alt="logo" />
-                                <div class="slides-boxes">
-                                    <div class="slide-box"><span class="showing-row-text slide-num">1</span></div>
-                                    <div class="slide-box"><span class="showing-row-text slide-num slide-num2">2</span>
-                                    </div>
-                                    <div class="slide-box"><span class="showing-row-text slide-num slide-num2">3</span>
-                                    </div>
-                                </div>
-                                <img class="last-slide-img" src="<?php // echo $treks_src; ?>/assets/img/last-slide.svg" alt="logo" />
-                                <p class="showing-row-text">Last</p>
-                            </div>
-                        </div>
-                        -->
                         <table class="table">
                             <thead>
                                 <tr>
@@ -264,12 +261,25 @@ if (isset($_GET['teacher_id']) && $_GET['teacher_id'] != 0) {
                                                     <img src="<?php echo $treks_src; ?>/assets/img/dots.svg" alt="logo" />
                                                 </button>
                                                 <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
-                                                    <button class="dropdown-item" type="button" onclick="onStudentEdit(<?php echo $student->ID; ?>)">
+                                                    <?php
+                                                        if (isset($district_type) && $district_type == 'edlink') {
+                                                    ?>
+                                                            <button class="dropdown-item" type="button" onclick="onEdlinkStudentEdit(<?php echo $student->ID; ?>)">
+                                                            <img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo" />
+                                                            Edit</button>
+                                                    <?php
+                                                        } else {
+                                                    ?>
+                                                            <button class="dropdown-item" type="button" onclick="onStudentEdit(<?php echo $student->ID; ?>)">
+                                                            <img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo" />
+                                                            Edit</button>
+                                                    <?php            
+                                                        }
+                                                    ?>
+                                                    <button class="dropdown-item" type="button" onclick="onSettingsClick(<?php echo $student->ID; ?>, 'student')">
                                                         <img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo" />
-                                                        Edit</button>
-                                                    <!-- <button class="dropdown-item" type="button">
-                                                        <img src="<?php // echo $treks_src; ?>/assets/img/delete.svg" alt="logo" />
-                                                        Delete</button> -->
+                                                        Settings
+                                                    </button>
                                                 </div>
                                             </div>
                                         </td>
@@ -277,26 +287,6 @@ if (isset($_GET['teacher_id']) && $_GET['teacher_id'] != 0) {
                                 <?php } ?>
                             </tbody>
                         </table>
-                        <!-- 
-                        <div class="school-box">
-                            <div class="showing-row-box">
-                                <p class="showing-row-text">Showing 1 - 5 of 25</p>
-                            </div>
-                            <div class="row-box">
-                                <p class="showing-row-text">First</p>
-                                <img class="previous-slide-img" src="<?php echo $treks_src; ?>/assets/img/previous-arrow.svg" alt="logo" />
-                                <div class="slides-boxes">
-                                    <div class="slide-box"><span class="showing-row-text slide-num">1</span></div>
-                                    <div class="slide-box"><span class="showing-row-text slide-num slide-num2">2</span>
-                                    </div>
-                                    <div class="slide-box"><span class="showing-row-text slide-num slide-num2">3</span>
-                                    </div>
-                                </div>
-                                <img class="last-slide-img" src="<?php echo $treks_src; ?>/assets/img/last-slide.svg" alt="logo" />
-                                <p class="showing-row-text">Last</p>
-                            </div>
-                        </div>
-                         -->
                     </div>
                 </section>
             </section>
@@ -311,11 +301,17 @@ if (isset($_GET['teacher_id']) && $_GET['teacher_id'] != 0) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
         crossorigin="anonymous"></script>
-    
     <?php
+        include $livePath.'/lxp/admin-settings-modal.php';
         $args['school_post'] = $school_post;
         $args['teachers'] = $teachers;
-        include $livePath.'/lxp/school-student-modal.php';
+        if (isset($district_type) && $district_type == 'edlink') {
+            $args['role'] = 'school';
+            $args['district_post'] = $district_post;
+            include $livePath.'/lxp/edlink/student-modal.php';
+        } else {
+            include $livePath.'/lxp/school-student-modal.php';
+        }
     ?>
 
     <script>
@@ -329,6 +325,31 @@ if (isset($_GET['teacher_id']) && $_GET['teacher_id'] != 0) {
                 } else {
                     window.location.href = '<?php echo get_permalink(); ?>';
                 }
+            });
+            // Get the tabs
+            let activeTab = document.querySelector('#active-tab');
+            let inactiveTab = document.querySelector('#inactive-tab');
+            // Add event listener for 'shown.bs.tab' event
+            activeTab.addEventListener('shown.bs.tab', function (e) {
+                // Create a URLSearchParams object
+                let params = new URLSearchParams(window.location.search);
+                // Remove 'inactive' parameter
+                params.delete('inactive');
+                // Create the new URL
+                let newUrl = window.location.pathname + '?' + params.toString();
+                // Reload the page with the new URL
+                window.location.href = newUrl;
+            });
+
+            inactiveTab.addEventListener('shown.bs.tab', function (e) {
+                // Create a URLSearchParams object
+                let params = new URLSearchParams(window.location.search);
+                // Add 'inactive' parameter
+                params.set('inactive', 'true');
+                // Create the new URL
+                let newUrl = window.location.pathname + '?' + params.toString();
+                // Reload the page with the new URL
+                window.location.href = newUrl;
             });
         });
     </script>

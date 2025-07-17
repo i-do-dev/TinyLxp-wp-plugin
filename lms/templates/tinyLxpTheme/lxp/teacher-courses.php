@@ -1,5 +1,5 @@
 <?php
-if (!isset($_GET['filter'])) {
+if ( !isset($_GET['filter']) ) {
     $filterDefaultParams = array('filter' => 'all', 'sort' => 'asc');
     wp_redirect( get_permalink($post->ID) . '?' . build_query($filterDefaultParams) );
     die();
@@ -11,35 +11,36 @@ $teacher_post = lxp_get_teacher_post( get_userdata(get_current_user_id())->ID );
 $restricted_courses = get_post_meta($teacher_post->ID, 'restricted_courses');
 $restricted_courses = is_array($restricted_courses) && count($restricted_courses) > 0 ? $restricted_courses : array(0);
 
-$treks_filtered = array();
+$courses_filtered = array();
 $courses_saved = get_post_meta($teacher_post->ID, 'courses_saved');
 
 // filter $courses_saved to only include treks that are not in $restricted_courses
-$courses_saved = array_filter($courses_saved, function ($trek) use ($restricted_courses) { return !in_array($trek, $restricted_courses); });
+$courses_saved = array_filter($courses_saved, function ($course) use ($restricted_courses) { return !in_array($course, $restricted_courses); });
 
 if ($_GET['filter'] == 'saved') {
-    $treks_filtered = lxp_get_teacher_saved_courses($teacher_post->ID, $courses_saved, '', urldecode($_GET['sort']), '');
+    $courses_filtered = lxp_get_teacher_saved_courses($teacher_post->ID, $courses_saved, '', urldecode($_GET['sort']), '');
 } else if ($_GET['filter'] == 'recent'){
-    $lxp_visited_treks = get_post_meta($teacher_post->ID, 'lxp_visited_courses');
-    $lxp_visited_treks = array_diff($lxp_visited_treks, $restricted_courses);
-    $lxp_visited_treks = array_diff($lxp_visited_treks, $courses_saved);
+    $lxp_visited_courses = get_post_meta($teacher_post->ID, 'lxp_visited_courses');
+    $lxp_visited_courses = array_diff($lxp_visited_courses, $restricted_courses);
+    $lxp_visited_courses = array_diff($lxp_visited_courses, $courses_saved);
     
-    $lxp_visited_treks_to_show = is_array($lxp_visited_treks) && count($lxp_visited_treks) > 0 ? array_reverse($lxp_visited_treks) : array();
-    $lxp_visited_treks_to_show = array_filter($lxp_visited_treks_to_show, function ($trek) use ($restricted_courses) { return !in_array($trek, $restricted_courses); });
+    $lxp_visited_courses_to_show = is_array($lxp_visited_courses) && count($lxp_visited_courses) > 0 ? array_reverse($lxp_visited_courses) : array();
 
-    $recent_query_args = array( 'post_type' => TL_TREK_CPT , 
+    $lxp_visited_courses_to_show = array_filter($lxp_visited_courses_to_show, function ($trek) use ($restricted_courses) { return !in_array($trek, $restricted_courses); });
+    $recent_query_args = array( 'post_type' => LP_COURSE_CPT , 
                                 'posts_per_page'   => -1,
                                 'post_status' => array( 'publish' ),
-                                'post__in' => $lxp_visited_treks_to_show, 
+                                'post__in' => $lxp_visited_courses_to_show, 
                                 'orderby' => 'post__in' );
     
     $recent_query = new WP_Query( $recent_query_args );    
-    $treks_filtered = count($lxp_visited_treks_to_show) > 0 ? $recent_query->get_posts() : array();
+    $courses_filtered = count($lxp_visited_courses_to_show) > 0 ? $recent_query->get_posts() : array();
 }
 
 $args = array(
     'posts_per_page'   => -1,
-    'post_type'        => TL_TREK_CPT,
+    // 'post_type'        => TL_COURSE_CPT,
+    'post_type'        => LP_COURSE_CPT,
     'orderby'        => 'meta_value_num',
     'order' => 'asc'
 );
@@ -50,13 +51,13 @@ if(!($sortVal === '' || $sortVal === 'none')) {
     $args['order'] = $sortVal;
 }
 
-if ( get_userdata(get_current_user_id())->user_email === "guest@rpatreks.com" ) {
-    $args = array(
-        'include' => '15',
-        'post_type'        => 'tl_course',
-        'order' => 'post__in'
-    );
-}
+// if ( get_userdata(get_current_user_id())->user_email === "guest@rpatreks.com" ) {
+//     $args = array(
+//         'include' => '15',
+//         'post_type'        => TL_COURSE_CPT,
+//         'order' => 'post__in'
+//     );
+// }
 
 if (count($restricted_courses) > 0) {
     $args['post__not_in'] = $restricted_courses;
@@ -87,26 +88,34 @@ while (have_posts()) : the_post();
         .treks-card-link {
             text-decoration: none !important;
         }
-        /* .treks-card-saved with icon element in it in top right absolute position */
-      .treks-card-saved {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 35px;
-        height: 38px;
-        z-index: 2;
-        margin-top: 10px;
-        margin-right: 8px;
-      }
-      .treks-card-saved-back {
+        /* .course-saved-ribbon with icon element in it in top right absolute position */
+      .course-dropdown-dots {
         position: absolute;
         top: 0;
         right: 0;
         width: 20px;
+        height: 28px;
+        z-index: 2;
+        margin-top: 6px;
+      }
+      .course-dropdown-dots:hover .dropdown-menu {
+        display: block;
+      }
+      .course-saved-ribbon {
+        position: absolute;
+        top: 0;
+        width: 20px;
+        height: 28px;
+        z-index: 2;
+      }
+      .course-saved-ribbon-back {
+        position: absolute;
+        top: 0;
+        width: 20px;
         height: 20px;
         z-index: 1;
-        margin-top: 15px;
-        margin-right: 15px;
+        margin-top: 8px;
+        margin-left: 10px;
         background-color: #ffffff;
       }
 
@@ -120,6 +129,13 @@ while (have_posts()) : the_post();
       .btn-outline-primary {
         --bs-btn-color: #0b5d7a !important;
       }
+      .dot {
+        width: 6px;
+        height: 6px;
+        background-color: #757575;
+        border-radius: 50%;
+        margin: 2px 0;
+    }
     </style>
 </head>
 
@@ -229,28 +245,46 @@ while (have_posts()) : the_post();
                             <!-- each cards  -->
                             <?php
                             if ($_GET['filter'] == 'saved' || $_GET['filter'] == 'recent') {
-                                foreach($treks_filtered as $trek) {
+                                foreach($courses_filtered as $course) {
                             ?>
-                                <a href="<?php echo get_post_permalink($trek->ID); ?>" class="treks-card-link">
+                                <a href="<?php echo get_post_permalink($course->ID); ?>" class="treks-card-link">
                                     <div class="recent-treks-card-body treks-card">
-                                        <?php if (in_array($trek->ID, $courses_saved)) { ?>
-                                            <div class="treks-card-saved"><img width="35" height="35" src="<?php echo $treks_src; ?>/assets/img/trek-save-filled-icon.svg" alt="svg" /></div>
-                                            <div class="treks-card-saved-back"></div>
+                                        <?php if (in_array($course->ID, $courses_saved)) { ?>
+                                            <div class="course-saved-ribbon">
+                                                
+                                                <img width="35" height="35" src="<?php echo $treks_src; ?>/assets/img/trek-save-filled-icon.svg" alt="svg" />
+                                            </div>
+                                            <div class="course-saved-ribbon-back"></div>
                                         <?php } ?>
-                                        <div>
-                                                <?php
-                                                    if(get_the_post_thumbnail($trek->ID, "medium", array( 'class' => 'rounded' ))){
-                                                        echo get_the_post_thumbnail($trek->ID, "medium", array( 'class' => 'rounded' ));
-                                                    } else {
-                                                        ?>
-                                                        <img width="300" height="180" src="<?php echo $treks_src; ?>/assets/img/tr_main.jpg" class="rounded wp-post-image" />
-                                                        <?php
-                                                    }
-                                                    // if else case for image of course
-                                                ?>
+                                        <div class="course-dropdown-dots">
+                                            <div class="dropdown">
+                                                <i id="dropdownMenu<?php echo $course->ID ?>" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    <div class="dot"></div>
+                                                    <div class="dot"></div>
+                                                    <div class="dot"></div>
+                                                </i>
+                                                <div class="dropdown-menu" aria-labelledby="dropdownMenu<?php echo $course->ID ?>">
+                                                    <button class="dropdown-item" type="button" onclick="set_course_saved('<?php echo $course->ID ?>','<?php echo (in_array($course->ID, $courses_saved)); ?>')">
+                                                        <img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo"> Save/Unsave
+                                                    </button>
+                                                    
+                                                </div>
+                                            </div>
                                         </div>
+                                        <?php
+                                            if(get_the_post_thumbnail($course->ID, "medium", array( 'class' => 'rounded' ))){
+                                                echo get_the_post_thumbnail($course->ID, "medium", array( 'class' => 'rounded',
+                                                'style' => 'width:300px;' ));
+                                            } else {
+                                                ?>
+                                                <img width="300" height="180" src="<?php echo $treks_src; ?>/assets/img/tr_main.jpg" class="rounded wp-post-image" />
+                                                <?php
+                                            }
+                                            // if else case for image of course
+                                        ?>
+                                        
                                         <div>
-                                        <h3><?php echo get_the_title($trek->ID); ?></h3>
+                                        <h3><?php echo get_the_title($course->ID); ?></h3>
                                         <!-- <span>Due date: May 17, 2023</span> -->
                                         </div>
                                     </div>
@@ -258,30 +292,43 @@ while (have_posts()) : the_post();
                             <?php
                                 }
                             } else {
+                                foreach($courses as $course) {
                             ?>
-                            <?php
-                                foreach($courses as $trek) {
-                            ?>
-                                <a href="<?php echo get_post_permalink($trek->ID); ?>" class="treks-card-link">
+                                <a href="<?php echo get_post_permalink($course->ID); ?>" class="treks-card-link">
                                     <div class="recent-treks-card-body treks-card">
-                                        <?php if (in_array($trek->ID, $courses_saved)) { ?>
-                                            <div class="treks-card-saved"><img width="35" height="35" src="<?php echo $treks_src; ?>/assets/img/trek-save-filled-icon.svg" alt="svg" /></div>
-                                            <div class="treks-card-saved-back"></div>
-                                        <?php } ?>
-                                            <div>
-                                                <?php
-                                                    if(get_the_post_thumbnail($trek->ID, "medium", array( 'class' => 'rounded' ))){
-                                                        echo get_the_post_thumbnail($trek->ID, "medium", array( 'class' => 'rounded' ));
-                                                    } else {
-                                                        ?>
-                                                        <img width="300" height="180" src="<?php echo $treks_src; ?>/assets/img/tr_main.jpg" class="rounded wp-post-image" />
-                                                        <?php
-                                                    }
-                                                    // if else case for image of course
-                                                ?>
+                                        <?php if (in_array($course->ID, $courses_saved)) { ?>
+                                            <div class="course-saved-ribbon">
+                                                <img width="35" height="35" src="<?php echo $treks_src; ?>/assets/img/trek-save-filled-icon.svg" alt="svg" />
                                             </div>
+                                            <div class="course-saved-ribbon-back"></div>
+                                        <?php } ?>
+                                        <div class="course-dropdown-dots">
+                                            <div class="dropdown">
+                                                <i id="dropdownMenu<?php echo $course->ID ?>" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    <div class="dot"></div>
+                                                    <div class="dot"></div>
+                                                    <div class="dot"></div>
+                                                </i>
+                                                <div class="dropdown-menu" aria-labelledby="dropdownMenu<?php echo $course->ID ?>">
+                                                    <button class="dropdown-item" type="button" onclick="set_course_saved('<?php echo $course->ID ?>','<?php echo (in_array($course->ID, $courses_saved)); ?>')">
+                                                        <img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo"> Save/Unsave
+                                                    </button>
+                                                    
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <?php 
+                                            if (get_the_post_thumbnail($course->ID, "medium", array( 'class' => 'rounded' ))) {
+                                                echo get_the_post_thumbnail($course->ID, "medium", array( 'class' => 'rounded',
+                                                'style' => 'width:300px;' ));
+                                            } else {
+                                                ?>
+                                                <img width="300" height="180" src="<?php echo $treks_src; ?>/assets/img/tr_main.jpg" class="rounded wp-post-image" />
+                                                <?php
+                                            }
+                                        ?>
                                         <div>
-                                        <h3><?php echo get_the_title($trek->ID); ?></h3>
+                                        <h3><?php echo get_the_title($course->ID); ?></h3>
                                         <!-- <span>Due date: May 17, 2023</span> -->
                                         </div>
                                     </div>
@@ -330,6 +377,28 @@ while (have_posts()) : the_post();
                 window.location = window.filterUrl + "?" + jQuery.param(urlQueryParams);
             });
         })
+    </script>
+    <script type="text/javascript">
+        host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+        apiUrl = host + '/wp-json/lms/v1/';
+
+        function set_course_saved(course_id, is_saved_val) {
+            event.preventDefault(); // Prevents default form action
+            const is_saved = is_saved_val ? 1 : 0;
+            let teacher_post_id = <?php echo $teacher_post->ID; ?>;
+            let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+            let apiUrl = host + '/wp-json/lms/v1/';
+
+            $.ajax({
+            method: "POST",
+            url: apiUrl + "teacher/courses/saved",
+            data: { course_id, is_saved, teacher_post_id }
+            }).done(function( response ) {
+            if (response.success) {
+                window.location.reload();
+            }
+            });
+        }
     </script>
 </body>
 

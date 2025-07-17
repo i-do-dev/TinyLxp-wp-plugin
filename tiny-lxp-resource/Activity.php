@@ -72,16 +72,14 @@ class Activity
             
             if ($tiny_lxp_content_url) {
 
-            $page = <<< EOD
-<html>
-<head>
-<title>1EdTech Tiny LXP message</title>
-</head>
-<body>
-<iframe style="border: none; overflow: scroll;" width="100%" height="100%" src="$tiny_lxp_content_url" allowfullscreen="true"></iframe>
-</body>
-</html>
-EOD;
+            $page = '<html>
+                        <head>
+                            <title>1EdTech Tiny LXP message</title>
+                        </head>
+                        <body>
+                            <iframe style="border: none; overflow: scroll;" width="100%" height="100%" src="'.$tiny_lxp_content_url.'" allowfullscreen="true"></iframe>
+                        </body>
+                    </html>';
             echo $page;
             exit;
             } else {

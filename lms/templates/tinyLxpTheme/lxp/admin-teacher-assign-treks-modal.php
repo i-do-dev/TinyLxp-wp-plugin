@@ -2,13 +2,13 @@
 global $treks_src;
 $args = array(
     'posts_per_page'   => -1,
-    'post_type'        => 'tl_course',    
+    'post_type'        => LP_COURSE_CPT,
     'order' => 'asc'
 );
-$treks = get_posts($args);
+$courses = get_posts($args);
 ?>
 
-<style style="text/css">
+<style>
     .teacher_input_box {
         padding: 0 0 30px !important;
     }
@@ -46,13 +46,13 @@ $treks = get_posts($args);
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($treks as $trek) { ?>
+                                    <?php foreach ($courses as $course) { ?>
                                         <tr>
-                                            <td><input type="checkbox" name="treks[]" value="<?php echo $trek->ID; ?>"></td>
+                                            <td><input type="checkbox" name="treks[]" value="<?php echo $course->ID; ?>"></td>
                                             <td>
                                                 <img width="30" height="30" src="<?php echo $treks_src; ?>/assets/img/tr_main.jpg" class="rounded wp-post-image" /> 
                                                 
-                                                &nbsp <?php echo $trek->post_title; ?></td>
+                                                &nbsp <?php echo $course->post_title; ?></td>
                                         </tr>
                                     <?php } ?>
                                 </tbody>
@@ -116,7 +116,7 @@ $treks = get_posts($args);
         });
     });
 
-    function onTeacherAssignCoursesClick(teacher_post_id) {
+    function onTeacherRestrictCoursesClick(teacher_post_id) {
         jQuery("#teacher_post_id").val(teacher_post_id);
 
         let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;

@@ -1,15 +1,7 @@
-<style style="text/css">
-    .feedback_input_box {
-        margin-top: 10px;
-    }
-    .feedback-btn {
-        display: inline-block;
-    }
-</style>
-
 <?php
 $assignment = $args['assignment'];
-$slide = $args['slide'];
+// $sub_content_id use in teacher-video-grade-single and use here if isset()
+$slide = (isset($_GET['subContentId']) ?  $sub_content_id : ( isset($_GET['slide']) && !isset($_GET['subContentId']) ? $_GET['slide'] : ( isset($_GET['ivInteraction']) ? $_GET['ivInteraction'] : '1' ) ) );
 $student = $args['student'];
 $assignment_submission_id = $args['assignment_submission_id'];
 $feedback = get_post_meta($assignment_submission_id, "slide_{$slide}_feedback", true);
@@ -64,6 +56,8 @@ $feedback = get_post_meta($assignment_submission_id, "slide_{$slide}_feedback", 
         window.feedbackModalObj = feedbackModalObj;
 
         jQuery("#addFeedbackModal").on('click', function() {
+            var subcontentId = $(this).data('subcontentid');
+            $("input[name=slide]").val(subcontentId);
             feedbackModalObj.show();
         });
         

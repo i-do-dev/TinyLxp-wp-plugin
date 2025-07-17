@@ -21,16 +21,19 @@
         </div>
         <div class="modal-body">
             <div class="students-breadcrumb">
-                <div class="interdependence-user">
-                    <img src="<?php echo $treks_src; ?>/assets/img/tr_main.jpg" alt="user" class="inter-user-img" />
-                    <h3 class="inter-user-name" id="student-progress-trek-title"></h3>
+                <div class="interdependence-user" id="student-course-thumbnail">
                 </div>
                 <img src="<?php echo $treks_src; ?>/assets/img/bc_arrow_right.svg" alt="user" class="students-breadcrumb-arrow" />
                 <div class="interdependence-tab">
                     <div class="inter-tab-polygon">
-                        <h4 id="student-progress-trek-segment-char"></h4>
+                        <h4 id="student-progress-lesson-segment-char">S</h4>
                     </div>
-                    <h3 class="inter-tab-polygon-name" id="student-progress-trek-segment"></h3>
+                    <h3 class="inter-tab-polygon-name" id="student-section-title"></h3>
+                    <img src="<?php echo $treks_src; ?>/assets/img/bc_arrow_right.svg" alt="user" class="students-breadcrumb-arrow" />
+                    <div class="inter-tab-polygon">
+                        <h4 id="student-progress-lesson-char">L</h4>
+                    </div>
+                    <h3 class="inter-tab-polygon-name" id="student-lesson-title"></h3>
                 </div>
             </div>
 
@@ -69,56 +72,6 @@
                 </tr>
                 </thead>
                 <tbody>
-<!--                     
-                <tr>
-                    <td>
-                    <div class="table-user">
-                        <img src="<?php echo $treks_src; ?>/assets/img/header_avatar.svg" alt="user" />
-                        <div class="user-about">
-                        <h5>Jane Cooper</h5>
-                        <p>5th grade</p>
-                        </div>
-                    </div>
-                    </td>
-                    <td>
-                    <div class="table-status">Completed</div>
-                    </td>
-                    <td>10 /10</td>
-                    <td>80</td>
-                </tr>
-                <tr>
-                    <td>
-                    <div class="table-user">
-                        <img src="<?php echo $treks_src; ?>/assets/img/header_avatar.svg" alt="user" />
-                        <div class="user-about">
-                        <h5>Jane Cooper</h5>
-                        <p>5th grade</p>
-                        </div>
-                    </div>
-                    </td>
-                    <td>
-                    <div class="table-status">Completed</div>
-                    </td>
-                    <td>10 /10</td>
-                    <td>80</td>
-                </tr>
-                <tr>
-                    <td>
-                    <div class="table-user">
-                        <img src="<?php echo $treks_src; ?>/assets/img/header_avatar.svg" alt="user" />
-                        <div class="user-about">
-                        <h5>Jane Cooper</h5>
-                        <p>5th grade</p>
-                        </div>
-                    </div>
-                    </td>
-                    <td>
-                    <div class="table-status">Completed</div>
-                    </td>
-                    <td>10 /10</td>
-                    <td>80</td>
-                </tr>
- -->
                 </tbody>
             </table>
             </div>

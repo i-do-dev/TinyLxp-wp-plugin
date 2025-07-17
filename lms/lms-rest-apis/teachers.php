@@ -12,6 +12,24 @@ class Rest_Lxp_Teacher
 			return false;
 		}
 
+		// /teacher/settings/update
+		register_rest_route('lms/v1', '/teacher/settings/update', array(
+			array(
+				'methods' => WP_REST_Server::ALLMETHODS,
+				'callback' => array('Rest_Lxp_Teacher', 'update_settings'),
+				'permission_callback' => '__return_true'
+			)
+		));
+
+		// /teacher/settings
+		register_rest_route('lms/v1', '/teacher/settings', array(
+			array(
+				'methods' => WP_REST_Server::ALLMETHODS,
+				'callback' => array('Rest_Lxp_Teacher', 'get_settings'),
+				'permission_callback' => '__return_true'
+			)
+		));
+
 		register_rest_route('lms/v1', '/teacher/students', array(
 			array(
 				'methods' => WP_REST_Server::EDITABLE,
@@ -36,13 +54,13 @@ class Rest_Lxp_Teacher
 			)
 		));
 
-		register_rest_route('lms/v1', '/teacher/treks/saved', array(
-			array(
-				'methods' => WP_REST_Server::EDITABLE,
-				'callback' => array('Rest_Lxp_Teacher', 'treks_saved'),
-				'permission_callback' => '__return_true'
-			)
-		));
+		// register_rest_route('lms/v1', '/teacher/treks/saved', array(
+		// 	array(
+		// 		'methods' => WP_REST_Server::EDITABLE,
+		// 		'callback' => array('Rest_Lxp_Teacher', 'treks_saved'),
+		// 		'permission_callback' => '__return_true'
+		// 	)
+		// ));
 
 		register_rest_route('lms/v1', '/teachers', array(
 			array(
@@ -66,30 +84,30 @@ class Rest_Lxp_Teacher
 				'callback' => array('Rest_Lxp_Teacher', 'create'),
 				'permission_callback' => '__return_true',
 				'args' => array(
-					'user_email' => array(
+					'lxp_user_email' => array(
 					   'required' => true,
 					   'type' => 'string',
 					   'description' => 'user email name',  
 					   'format' => 'email',
 					   'validate_callback' => function($param, $request, $key) {
-							if (strlen(trim($request->get_param('user_email'))) == 0) {
+							if (strlen(trim($request->get_param('lxp_user_email'))) == 0) {
 								return false;
 							}
 							
-							$user_by_email = get_user_by("email", trim($request->get_param('user_email')));
-							$user_by_login = get_user_by("login", trim($request->get_param('user_email')));
-							if ( $user_by_email && intval($request->get_param('teacher_post_id')) > 0 && $user_by_email->data->user_email !== trim($request->get_param('user_email_default')) ) {
+							$user_by_email = get_user_by("email", trim($request->get_param('lxp_user_email')));
+							$user_by_login = get_user_by("login", trim($request->get_param('lxp_user_email')));
+							if ( $user_by_email && intval($request->get_param('teacher_post_id')) > 0 && $user_by_email->data->user_email !== trim($request->get_param('lxp_user_email_default')) ) {
 								return false;
 							} else if ($request->get_param('teacher_post_id') == 0) {
 								return ( !($user_by_email || $user_by_login) ? true : false );
-							} if ( trim($request->get_param('user_email')) == '' ) {
+							} if ( trim($request->get_param('lxp_user_email')) == '' ) {
 								return false;
 							} else {
 								return true;
 							}
 						}
 				  	),
-					'first_name' => array(
+					'lxp_first_name' => array(
 						'required' => true,
 						'type' => 'string',
 						'description' => 'user first name',
@@ -97,7 +115,7 @@ class Rest_Lxp_Teacher
 							return strlen( $param ) > 1;
 						}
 					),
-					'last_name' => array(
+					'lxp_last_name' => array(
 						'required' => true,
 						'type' => 'string',
 						'description' => 'user last name',
@@ -105,7 +123,7 @@ class Rest_Lxp_Teacher
 							return strlen( $param ) > 1;
 						}
 					),
-					'user_password' => array(
+					'lxp_user_password' => array(
 						'required' => true,
 						'type' => 'string',
 						'description' => 'user login password',
@@ -130,6 +148,33 @@ class Rest_Lxp_Teacher
 			),
 		));
 		
+
+		register_rest_route('lms/v1', '/edlink/teachers/save', array(
+			array(
+				'methods' => WP_REST_Server::EDITABLE,
+				'callback' => array('Rest_Lxp_Teacher', 'edlink_create'),
+				'permission_callback' => '__return_true',
+				'args' => array(
+					'edlink_teachers' => array(
+					   'required' => true,
+					   'type' => 'array',
+					   'description' => 'user email name',  
+					   'format' => 'email',
+					   'validate_callback' => function($param, $request, $key) {							
+							return (!empty($param)) ? true : false;
+						}
+				  	),					
+					'edlink_teacher_school_id' => array(
+						'required' => true,
+						'type' => 'integer',
+						'description' => 'user school id',
+						'validate_callback' => function($param, $request, $key) {
+							return strlen( $param ) > 0;
+						}
+					)
+			   )
+			),
+		));
 		register_rest_route('lms/v1', '/update/teacher', array(
 			array(
 				'methods' => WP_REST_Server::EDITABLE,
@@ -174,6 +219,21 @@ class Rest_Lxp_Teacher
 				'permission_callback' => '__return_true'
 			)
 		));
+	}
+
+	public static function update_settings($request) {
+		$entity_post_id = intval($request->get_param('entity_post_id'));		
+		$active = $request->get_param('active');
+		update_post_meta($entity_post_id, 'settings_active', $active);
+		return wp_send_json_success( "Settings Saved!" );
+	}
+
+	public static function get_settings($request) {
+		$entity_post_id = intval($request->get_param('entity_post_id'));
+		// get 'settings_active' post metadata and return it as 'active' attribute in response
+		$active = get_post_meta($entity_post_id, 'settings_active', true);
+		$active = $active && $active === 'false' ? false : true;
+		return wp_send_json_success( ["active" => $active] );
 	}
 
 	public static function lxp_get_school_students($school_id)
@@ -224,26 +284,26 @@ class Rest_Lxp_Teacher
 		return wp_send_json_success(get_post_meta($teacher_post_id, 'restricted_courses'));
 	}
 
-	public static function treks_saved($request) {
-		$teacher_post_id = intval($request->get_param('teacher_post_id'));
-		$is_saved = boolval($request->get_param('is_saved'));
-		$course_id = intval($request->get_param('course_id'));
-		// add/delete teacher 'courses_saved' post metadata
-		if ($is_saved) {
-			add_post_meta($teacher_post_id, 'courses_saved', $course_id);
-		} else {
-			delete_post_meta($teacher_post_id, 'courses_saved', $course_id);
-		}
+	// public static function treks_saved($request) {
+	// 	$teacher_post_id = intval($request->get_param('teacher_post_id'));
+	// 	$is_saved = boolval($request->get_param('is_saved'));
+	// 	$course_id = intval($request->get_param('course_id'));
+	// 	// add/delete teacher 'courses_saved' post metadata
+	// 	if ($is_saved) {
+	// 		add_post_meta($teacher_post_id, 'courses_saved', $course_id);
+	// 	} else {
+	// 		delete_post_meta($teacher_post_id, 'courses_saved', $course_id);
+	// 	}
 
-		return wp_send_json_success(get_post_meta($teacher_post_id, 'courses_saved'));
-	}
+	// 	return wp_send_json_success(get_post_meta($teacher_post_id, 'courses_saved'));
+	// }
 
 	public static function create($request) {		
 		
 		// ============= Teacher Post =================================
 		$school_admin_id = $request->get_param('school_admin_id');
 		$teacher_post_id = intval($request->get_param('teacher_post_id'));
-		$teacher_name = wp_strip_all_tags(trim($request->get_param('last_name')) . ', ' . trim($request->get_param('first_name')));
+		$teacher_name = wp_strip_all_tags(trim($request->get_param('lxp_last_name')) . ', ' . trim($request->get_param('lxp_first_name')));
 		$teacher_description = trim($request->get_param('about')) ? trim($request->get_param('about')) : '';
 		
 		$shool_post_arg = array(
@@ -338,16 +398,16 @@ class Rest_Lxp_Teacher
 		
 		// ========== Teacher Admin ===========
 		$teacher_admin_data = array(
-			'user_login' => trim($request->get_param('user_email')),
-			'user_email' => trim($request->get_param('user_email')),
-			'first_name' => trim($request->get_param('first_name')),
-			'last_name' => trim($request->get_param('last_name')),
+			'user_login' => trim($request->get_param('lxp_user_email')),
+			'user_email' => trim($request->get_param('lxp_user_email')),
+			'first_name' => trim($request->get_param('lxp_first_name')),
+			'last_name' => trim($request->get_param('lxp_last_name')),
 			'display_name' =>  wp_strip_all_tags($teacher_name),
 			'role' => 'lxp_teacher'
 		);
 		
-		if (trim($request->get_param('user_password'))) {
-			$teacher_admin_data['user_pass'] = trim($request->get_param('user_password'));
+		if (trim($request->get_param('lxp_user_password'))) {
+			$teacher_admin_data['user_pass'] = trim($request->get_param('lxp_user_password'));
 		}
 
 		$lxp_teacher_admin_id = get_post_meta($teacher_post_id, 'lxp_teacher_admin_id', true);
@@ -355,8 +415,8 @@ class Rest_Lxp_Teacher
 			$teacher_admin_data["ID"] = $lxp_teacher_admin_id;
 		}
 		$teacher_admin_id  = wp_insert_user($teacher_admin_data);
-		if (trim($request->get_param('user_password'))) {
-			wp_set_password( trim($request->get_param('user_password')), $teacher_admin_id );
+		if (trim($request->get_param('lxp_user_password'))) {
+			wp_set_password( trim($request->get_param('lxp_user_password')), $teacher_admin_id );
 		}
 
 		if (!boolval($lxp_teacher_admin_id) && $teacher_admin_id) {
@@ -370,6 +430,83 @@ class Rest_Lxp_Teacher
 				update_post_meta($teacher_post_id, 'lxp_teacher_school_id', trim($request->get_param('teacher_school_id')));
 			} else {
 				add_post_meta($teacher_post_id, 'lxp_teacher_school_id', trim($request->get_param('teacher_school_id')), true);
+			}
+		}
+
+        return wp_send_json_success("Teacher Saved!");
+    }
+
+	public static function edlink_create($request) {
+		
+		// ============= Teacher Post =================================
+		$school_admin_id = $request->get_param('edlink_school_admin_id');
+		$teacher_post_id = intval($request->get_param('edlink_teacher_post_id'));		
+		$edlink_teachers = $request->get_param('edlink_teachers');
+
+		foreach ($edlink_teachers as $user) {
+			$user = explode("|", $user);
+			$first_name = trim($user[0]);
+			$last_name = trim($user[1]);
+			$email = trim($user[2]);
+
+			$teacher_name = $first_name.', '.$last_name;
+			$teacher_description = trim($request->get_param('about')) ? trim($request->get_param('about')) : $teacher_name;
+
+			$shool_post_arg = array(
+				'post_title'    => wp_strip_all_tags($teacher_name),
+				'post_content'  => $teacher_description,
+				'post_status'   => 'publish',
+				'post_author'   => $school_admin_id,
+				'post_type'   => TL_TEACHER_CPT
+			);
+			
+			if (intval($teacher_post_id) > 0 && trim($request->get_param('about'))) {
+				$shool_post_arg['ID'] = "$teacher_post_id";
+			}
+			// Insert / Update
+			$teacher_post_id = wp_insert_post($shool_post_arg);
+			if(get_post_meta($teacher_post_id, 'grades', json_encode($request->get_param('grades'))) && trim($request->get_param('about'))) {
+				update_post_meta($teacher_post_id, 'grades', json_encode($request->get_param('grades')));
+			} else {
+				add_post_meta($teacher_post_id, 'grades', json_encode($request->get_param('grades')), true);
+			}			
+
+			$teacher_admin_data = array(
+				'user_login' => $email,
+				'user_email' => $email,
+				'first_name' => $first_name,
+				'last_name' => $last_name,
+				'display_name' =>  wp_strip_all_tags($teacher_name),
+				'role' => 'lxp_teacher'
+			);
+			
+			$teacher_admin_data['user_pass'] = $email;
+
+			$lxp_teacher_admin_id = get_post_meta($teacher_post_id, 'lxp_teacher_admin_id', true);
+			if ($lxp_teacher_admin_id && trim($request->get_param('about'))) {
+				$teacher_admin_data["ID"] = $lxp_teacher_admin_id;
+				global $wpdb;
+				$result = $wpdb->update(
+					$wpdb->users,
+					array('user_login' => $email),
+					array('ID' => $lxp_teacher_admin_id)
+				);
+			}
+			$teacher_admin_id  = wp_insert_user($teacher_admin_data);			
+			wp_set_password($email, $teacher_admin_id);
+
+			if (!boolval($lxp_teacher_admin_id) && $teacher_admin_id) {
+				if(get_post_meta($teacher_post_id, 'lxp_teacher_admin_id', $teacher_admin_id) && trim($request->get_param('about'))) {
+					update_post_meta($teacher_post_id, 'lxp_teacher_admin_id', $teacher_admin_id);
+				} else {
+					add_post_meta($teacher_post_id, 'lxp_teacher_admin_id', $teacher_admin_id, true);
+				}
+				
+				if(get_post_meta($teacher_post_id, 'lxp_teacher_school_id', true) && trim($request->get_param('about'))) {
+					update_post_meta($teacher_post_id, 'lxp_teacher_school_id', trim($request->get_param('edlink_teacher_school_id')));
+				} else {
+					add_post_meta($teacher_post_id, 'lxp_teacher_school_id', trim($request->get_param('edlink_teacher_school_id')), true);
+				}
 			}
 		}
 
@@ -485,13 +622,13 @@ class Rest_Lxp_Teacher
 		$posts = $school_query->get_posts();
 		return $posts;
 	}
-	
+
 	public static function courses_saved($request) {
 		$teacher_post_id = intval($request->get_param('teacher_post_id'));
-		$is_saved = boolval($request->get_param('is_saved'));
+		$is_saved = $request->get_param('is_saved');
 		$course_id = intval($request->get_param('course_id'));
 		// add/delete treacher 'courses_saved' post metadata
-		if ($is_saved) {
+		if ($is_saved == 0) {
 			add_post_meta($teacher_post_id, 'courses_saved', $course_id);
 		} else {
 			delete_post_meta($teacher_post_id, 'courses_saved', $course_id);

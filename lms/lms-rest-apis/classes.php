@@ -147,13 +147,13 @@ class Rest_Lxp_Class
 		
 	}
 
-	public static function create($request) {
-
+	public static function create($request) {		
 		// ============= Class Post =================================
 		$class_teacher_id = $request->get_param('class_teacher_id');
 		$class_post_id = intval($request->get_param('class_post_id'));
 		$class_name = trim($request->get_param('class_name'));
 		$class_description = trim($request->get_param('class_description'));
+		$edlink_class_sec_id = trim($request->get_param('edlink_class_sec_id'));
 		
 		$class_post_arg = array(
 			'post_title'    => wp_strip_all_tags($class_name),
@@ -168,18 +168,20 @@ class Rest_Lxp_Class
 		
 		// Insert / Update
 		$class_post_id = wp_insert_post($class_post_arg);
-		if(get_post_meta($class_post_id, 'lxp_class_teacher_id', true)) {
-			update_post_meta($class_post_id, 'grade', $request->get_param('grade'));
-		} else {
-			add_post_meta($class_post_id, 'grade', $request->get_param('grade'), true);
-		}
+		$grade = $request->get_param('grade') && $request->get_param('grade') != '0' ? $request->get_param('grade') : '';
+		update_post_meta($class_post_id, 'grade', $grade);
 
 		if(get_post_meta($class_post_id, 'lxp_class_teacher_id', true)) {
 			update_post_meta($class_post_id, 'lxp_class_teacher_id', $class_teacher_id);
 		} else {
 			add_post_meta($class_post_id, 'lxp_class_teacher_id', $class_teacher_id, true);
 		}
-		
+
+		if(get_post_meta($class_post_id, 'edlink_class_sec_id', true)) {
+			update_post_meta($class_post_id, 'edlink_class_sec_id', $edlink_class_sec_id);
+		} else {
+			add_post_meta($class_post_id, 'edlink_class_sec_id', $edlink_class_sec_id, true);
+		}
 		delete_post_meta($class_post_id, 'lxp_student_ids');
 		$student_ids = $request->get_param('student_ids');
 		foreach ($student_ids as $student_id) {
@@ -213,13 +215,22 @@ class Rest_Lxp_Class
     public static function get_students($request) {
 		$class_id = $request->get_param('class_id');
 		$lxp_student_ids = get_post_meta($class_id, 'lxp_student_ids');
-		$students = array_map(function($student_id) { 
-			$post = get_post($student_id); 
-			$user = get_userdata(get_post_meta($student_id, 'lxp_student_admin_id', true))->data;
+		// fetch student posts using WP_Query which includes ids form $lxp_student_ids
+		$students = new WP_Query(array(
+			'post_type' => TL_STUDENT_CPT,
+			'post__in' => $lxp_student_ids,
+			'posts_per_page' => -1,
+			'orderby' => 'title',
+			'order' => 'ASC'
+		));
+		$student_posts = $students->posts;
+		$student_posts_result = array_map(function($post) { 
+			$user_data = get_userdata(get_post_meta($post->ID, 'lxp_student_admin_id', true))->data;
+			$user = ["ID" => $user_data->ID, "display_name" => $user_data->display_name, "user_email" => $user_data->user_email, "user_login" => $user_data->user_login];
 			return array('post' => $post, 'user' => $user);
-		} , $lxp_student_ids);
+		} , $student_posts);
 
-		return wp_send_json_success(array("students" => $students));
+		return wp_send_json_success(array("students" => $student_posts_result));
 	}
 
     public static function get_one($request) {
@@ -230,6 +241,7 @@ class Rest_Lxp_Class
 		$class->lxp_student_ids = get_post_meta($class_id, 'lxp_student_ids');
 		$class->schedule = json_decode(get_post_meta($class_id, 'schedule', true));
 		$class->lxp_class_type = get_post_meta($class_id, 'lxp_class_type', true);
+		$class->edlink_class_sec_id = get_post_meta($class_id, 'edlink_class_sec_id', true);
 		return wp_send_json_success(array("class" => $class));
 	}
 

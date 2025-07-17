@@ -263,8 +263,7 @@ function create_custom_pages_on_theme_activation() {
             wp_insert_post($page);
         }
     }
-    // Embaded tiny-lxp plugin into theme
-    // plugins_url().'/tiny-lxp/tiny-lxp-platform.php';
+    
     function run_activate_plugin( $plugin ) {
         $plugin = trim( $plugin );
         $current = get_option( 'active_plugins' );
@@ -290,25 +289,6 @@ function create_custom_pages_on_theme_activation() {
 
 // Hook into the after_switch_theme action
 add_action('after_switch_theme', 'create_custom_pages_on_theme_activation');
-
-// This function will change the pages created by tiny-lxp theme.
-function my_theme_activation_function() {
-
-    // $plugin_to_deactivate = 'TinyLxp-wp-plugin/tiny-lxp-platform.php';
-
-    // Get the list of active plugins
-    // $active_plugins = get_option('active_plugins');
-
-    // Find and remove the plugin from the active plugins array
-    // $plugin_key = array_search($plugin_to_deactivate, $active_plugins);
-    // if ($plugin_key !== false) {
-    //     unset($active_plugins[$plugin_key]);
-    // }
-    // Update the active plugins option
-    // update_option('active_plugins', $active_plugins);
-
-}
-add_action('switch_theme', 'my_theme_activation_function');
 
 /**
  * Make WordPress 5 (Gutenberg) editor support Bootstrap CSS.

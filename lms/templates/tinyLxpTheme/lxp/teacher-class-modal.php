@@ -1,8 +1,8 @@
 <?php
     global $treks_src;
-    global $args;
     $students = $args['students'];
     $teacher_post = $args['teacher_post'];
+    $edlink_access_token = (isset($_GET['district_id']) && isset($_GET['district_id']) > 0) ? get_post_meta($_GET['district_id'], 'lxp_edlink_provider_access_token', true) : '';
 ?>
 
 <div class="modal fade classes-modal" id="classModal" tabindex="-1" aria-labelledby="classModalLabel" aria-hidden="true">
@@ -10,7 +10,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-header-title">
-                    <h2 class="modal-title" id="classModalLabel"><span id="class-action-heading">New</span> Class & Other Group</h2>
+                    <h2 class="modal-title" id="classModalLabel"><span id="class-action-heading">New</span> Class &  Groups</h2>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"
                     aria-label="Close"></button>
@@ -28,7 +28,7 @@
                     <div class="personal_box">
                         <!-- Left Class box -->
                         <div class="class-information">
-                            <p class="personal-text">Class & Other Group information</p>
+                            <p class="personal-text">Class & Group information</p>
                             <div class="search_box">
                                 <label class="trek-label">Name</label>
                                 <input type="text" class="form-control period-select" value="" id="class_name" name="class_name" />
@@ -109,7 +109,7 @@
 
                         <!-- Right Class box -->
                         <div class="class-information class-information">
-                            <p class="personal-text">Classes & Other Group</p>
+                            <p class="personal-text">Class & Group</p>
                             <!-- Select Grade -->
                             <div class="search_box">
                                 <label class="trek-label">Grade</label>
@@ -186,7 +186,7 @@
                                         <td>
                                             <div class="form-check">
                                                 <input class="form-check-input" type="radio" value="other_group" id="other_group_radio" name="type">
-                                                <label class="form-check-label" for="other_group">Other Group</label>
+                                                <label class="form-check-label" for="other_group">Group</label>
                                             </div>
                                         </td>
                                     </tr>

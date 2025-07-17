@@ -38,7 +38,7 @@ $post   = get_post($_GET['course_id']);
                 // Start the loop.
                 $args = array(
                     'posts_per_page'   => -1,
-                    'post_type'        => 'tl_lesson',
+                    'post_type'        => TL_LESSON_CPT,
                     'meta_query' => array(
                         array(
                             'key'   => 'tl_course_id',

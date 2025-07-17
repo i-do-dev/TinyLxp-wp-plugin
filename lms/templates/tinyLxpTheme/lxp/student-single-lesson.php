@@ -23,7 +23,7 @@ $lessonCourseId = get_post_meta($post->ID, 'tl_course_id', true);
 $courseTitle = "";
 $coursePermaLink="";
 $args = array(
-	'post_type' => TL_TREK_CPT,
+	'post_type' => TL_COURSE_CPT,
 	'orderby'    => 'ID',
 	'post_status' => 'publish,draft',
 	'order'    => 'DESC',
@@ -48,6 +48,14 @@ if (isset($_GET["assignment_id"])) {
 
 $toolUrl = $toolUrl . $queryParam;
 $assignment = isset($_GET['assignment_id']) ? lxp_get_assignment($_GET['assignment_id']) : null;
+$lxp_lesson_post = get_post(get_post_meta($assignment->ID, 'lxp_lesson_id', true));
+$section_name = $wpdb->get_var($wpdb->prepare(
+	"SELECT s.section_name
+	FROM {$wpdb->prefix}learnpress_sections s
+	INNER JOIN {$wpdb->prefix}learnpress_section_items si ON s.section_id = si.section_id
+	WHERE si.item_id = %d",
+	$lxp_lesson_post->ID
+));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -116,6 +124,10 @@ $assignment = isset($_GET['assignment_id']) ? lxp_get_assignment($_GET['assignme
 				<div class="practice_flx">
 					<img src="<?php echo $treks_src; ?>/assets/img/bc_arrow_right.svg" />
 					<p class="practice_text"><a  style = "color: #979797 !important;text-decoration: none !important;" href="<?php echo $coursePermaLink ?> "  target="_self"><?php echo $courseTitle ?></a></p>
+				</div>
+				<div class="practice_flx">
+					<img src="<?php echo $treks_src; ?>/assets/img/bc_arrow_right.svg" />
+					<p class="practice_text"><a  style = "color: #979797 !important;text-decoration: none !important;" href="<?php echo $coursePermaLink ?> "  target="_self"><?php echo $section_name ?></a></p>
 				</div>
 				<div class="practice_flx">
 					<img src="<?php echo $treks_src; ?>/assets/img/bc_arrow_right.svg" />

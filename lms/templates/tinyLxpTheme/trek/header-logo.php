@@ -3,7 +3,7 @@
     $custom_logo_id = get_theme_mod( 'custom_logo' );
     $logo_url = wp_get_attachment_image_src( $custom_logo_id , 'full' );
 ?>
-<a class="navbar-brand" href="<?php echo site_url("dashboard"); ?>">
+<a class="navbar-brand" href="<?php echo site_url("dashboard"); ?>/">
     <div class="header-logo-search">
         <!-- logo -->
         <?php if(has_custom_logo()) { ?>

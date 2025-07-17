@@ -1,19 +1,22 @@
 <?php
-global $treks_src;
-global $userdata;
+    global $treks_src;
+    global $userdata;
 
-$teacher_post = lxp_get_teacher_post($userdata->data->ID);
-$teacher_school_id = get_post_meta($teacher_post->ID, 'lxp_teacher_school_id', true);
-$school_post = get_post($teacher_school_id);
-$students = lxp_get_school_students($teacher_school_id);
-$students = array_filter($students, function($student) use ($teacher_post) {
-    return get_post_meta($student->ID, 'lxp_teacher_id', true) == $teacher_post->ID;
-});
-//$classes = lxp_get_teacher_classes($teacher_post->ID);
-$default_classes = lxp_get_teacher_default_classes($teacher_post->ID);
-$classes = lxp_get_teacher_group_by_type($teacher_post->ID, 'classes');
-$other_groups = lxp_get_teacher_group_by_type($teacher_post->ID, 'other_group');
-$classes = array_merge($default_classes, $classes);
+    $teacher_post = lxp_get_teacher_post($userdata->data->ID);
+    $teacher_school_id = get_post_meta($teacher_post->ID, 'lxp_teacher_school_id', true);
+    $school_post = get_post($teacher_school_id);
+    $students = lxp_get_school_students($teacher_school_id);
+    $students = array_filter($students, function($student) use ($teacher_post) {
+        return get_post_meta($student->ID, 'lxp_teacher_id', true) == $teacher_post->ID;
+    });
+    //$classes = lxp_get_teacher_classes($teacher_post->ID);
+    $default_classes = lxp_get_teacher_default_classes($teacher_post->ID);
+    $classes = lxp_get_teacher_group_by_type($teacher_post->ID, 'classes');
+    $other_groups = lxp_get_teacher_group_by_type($teacher_post->ID, 'other_group');
+    $classes = array_merge($default_classes, $classes);
+    // edlink district stting
+    $district_post = get_post(get_post_meta($school_post->ID, 'lxp_school_district_id', true));
+    $district_type = get_post_meta($district_post->ID, 'lxp_district_type', true);
 ?>
 
 <!DOCTYPE html>
@@ -110,8 +113,8 @@ $classes = array_merge($default_classes, $classes);
 
             <div class="heading-right">
                 <a href="<?php echo site_url("students"); ?>" type="button" class="btn btn-outline-secondary btn-lg">Students</a>
-                <a href="<?php echo site_url("classes"); ?>" type="button" class="btn btn-secondary btn-lg">Classes & Groups</a>
-                <a href="<?php echo site_url("groups"); ?>" type="button" class="btn btn-outline-secondary btn-lg"> Groups</a>
+                <a href="<?php echo site_url("classes"); ?>" type="button" class="btn btn-secondary btn-lg">Classes</a>
+                <a href="<?php echo site_url("groups"); ?>" type="button" class="btn btn-outline-secondary btn-lg">Groups</a>
             </div>
         </div>
 
@@ -239,7 +242,7 @@ $classes = array_merge($default_classes, $classes);
                                 <tr>
                                     <th class="">
                                         <div class="th1">
-                                            Groups
+                                            Class Group
                                             <img src="<?php echo $treks_src; ?>/assets/img/showing.svg" alt="logo" />
                                         </div>
                                     </th>
@@ -339,7 +342,13 @@ $classes = array_merge($default_classes, $classes);
     <?php
         $args['students'] = $students;
         $args['teacher_post'] = $teacher_post;
-        include $livePath.'/lxp/teacher-class-modal.php';
+        if (isset($district_type) && $district_type == 'edlink') {
+            $args['school_post'] = $school_post;
+            $args['district_post'] = $district_post;
+            include $livePath.'/lxp/admin-class-modal.php';
+        } else {
+            include $livePath.'/lxp/teacher-class-modal.php';
+        }
     ?>
 </body>
 

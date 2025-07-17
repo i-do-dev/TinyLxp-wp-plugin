@@ -39,38 +39,25 @@ class Rest_Lxp_Course
 	}
 
 	public static function get_lxp_sections($request) {
-		$course_id = $request->get_param('course_id');		
-		$lxp_sections = get_post_meta($course_id, "lxp_sections", true);
-  		$lxp_sections = $lxp_sections ? json_decode($lxp_sections) : [];
+		$course_id = $request->get_param('course_id');
+		global $wpdb;
+		$section_query = "SELECT section_id, section_name FROM $wpdb->prefix" . "learnpress_sections WHERE section_course_id = ".$course_id;
+		$results = $wpdb->get_results($section_query);
+  		$lxp_sections = $results ? $results : [];
   		return wp_send_json_success(array("lxp_sections" => $lxp_sections));
 	}
 
 	public static function get_lxp_course_section_lessons($request) {		
-		$course_id = $request->get_param('course_id');	
 		$lxp_sections = $request->get_param('lxp_sections');
-		$lxp_lessons = [];
 		if ( is_array($lxp_sections) ) {
-			foreach ($lxp_sections as $lxp_section) {
-				$lesson_query = new WP_Query( array(
-	                'posts_per_page'   => -1,
-	                'orderby' => 'ID',
-	                'order'   => 'ASC',
-	                'post_type' => TL_LESSON_CPT,
-	                'meta_query' => [
-	                    [
-	                      'key' => 'lti_content_title', 
-	                      'value' => $lxp_section
-	                    ],
-	                    [
-	                      'key' => 'tl_course_id', 
-	                      'value' => $course_id,
-	                      'compare' => '='
-	                    ]
-	                  ]
-	            ) );
-	            if (($lesson_query->have_posts())) {
-	            	$lxp_lessons[$lxp_section] = $lesson_query->get_posts();
-	            }
+			$lxp_lessons = [];
+			global $wpdb;
+			$lesson_query_string = "SELECT p.ID, p.post_title 
+									FROM {$wpdb->prefix}posts AS p
+									INNER JOIN {$wpdb->prefix}learnpress_section_items AS si ON p.ID = si.item_id
+									WHERE si.section_id IN (%d)";
+			foreach ($lxp_sections as $section_id) {
+				$lxp_lessons[$section_id] = $wpdb->get_results($wpdb->prepare($lesson_query_string, $section_id));
 			}
 		}
 		return wp_send_json_success(array("lxp_lessons" => $lxp_lessons));

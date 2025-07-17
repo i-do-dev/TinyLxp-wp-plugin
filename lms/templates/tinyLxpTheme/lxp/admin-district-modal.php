@@ -8,105 +8,93 @@
 <div class="modal fade modal-lg" id="districtModal" tabindex="-1" aria-labelledby="districtModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-
             <div class="modal-header">
                 <div class="modal-header-title">
                     <h2 class="modal-title" id="exampleModalLabel"><span class="district-action">New</span> District</h2>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        <div class="modal-body">
-            <form class="row g-3" id="districtForm">
-            <input type="hidden" name="site_admin_id" id="site_admin_id" value="<?php echo get_current_user_id(); ?>">
-            <input type="hidden" name="district_post_id" id="district_post_id" value="0">
-
-            <div class="input_section">
-                <div class="personal_box">
-                    <p class="personal-text">District</p>
-                    <!-- <div class="info_box">
-                        <img class="action_logo" src="<?php // echo $treks_src; ?>/assets/img/import.svg" alt="logo" />
-                        <p class="personal-text import-text">Import info</p>
-                    </div> -->
-                </div>
-                <div class="input_box brief_input_box">
-                    <div class="label_box brief_label_box id_label_box">
-                        <label class="label">District name</label>
-                        <input class="brief_info id_info form-control" type="text" id="inputDistrictName" name="district_name" placeholder="Enter district’s name here" />
+            <div class="modal-body">
+                <form class="row g-3" id="districtForm">
+                    <input type="hidden" name="site_admin_id" id="site_admin_id" value="<?php echo get_current_user_id(); ?>">
+                    <input type="hidden" name="district_post_id" id="district_post_id" value="0">
+                    <div class="input_section">
+                        <div class="personal_box">
+                            <p class="personal-text">District</p>
+                            <!-- <div class="info_box">
+                                <img class="action_logo" src="<?php // echo $treks_src; ?>/assets/img/import.svg" alt="logo" />
+                                <p class="personal-text import-text">Import info</p>
+                            </div> -->
+                        </div>
+                        <div class="input_box brief_input_box">
+                            <div class="label_box brief_label_box id_label_box">
+                                <label class="label">District name</label>
+                                <input class="brief_info id_info form-control" type="text" id="inputDistrictName" name="district_name" placeholder="Enter district’s name here" />
+                            </div>
+                        </div>
+                        <div class="input_box brief_input_box">
+                            <div class="label_box brief_label_box">
+                                <label class="label">About</label>
+                                <input class="brief_info form-control" type="text" id="inputAbout" name="district_about" placeholder="Enter a brief description here" />
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="input_box brief_input_box">
-                    <div class="label_box brief_label_box">
-                        <label class="label">About</label>
-                        <input class="brief_info form-control" type="text" id="inputAbout" name="district_about" placeholder="Enter a brief description here" />
+                    <div class="horizontal_line"></div>
+                    <div class="input_section" style="margin-bottom: 25px;">
+                        <p class="personal-text">Administrator</p>
                     </div>
-                </div>
-            </div>
-            <div class="horizontal_line"></div>
-            <div class="input_section" style="margin-bottom: 25px;">
-                <p class="personal-text">Administrator</p>
-            </div>
-            
-            <div class="personal_box user-profile-box" style="display:none;">
-                <img src="<?php echo $treks_src; ?>/assets/img/user-profile.svg" alt="logo" />
-                <div class="info_box">
-                    <img class="action_logo" src="<?php echo $treks_src; ?>/assets/img/upload.svg" alt="logo" />
-                    <input type="file" name="profile_picture" id="profile_picture">
-                    <p class="personal-text import-text">Upload</p>
-                </div>
-                <div class="info_box">
-                    <img class="action_logo" src="<?php echo $treks_src; ?>/assets/img/delete-circled-outline.svg"
-                        alt="logo" />
-                    <p class="personal-text import-text remove_text">Remove</p>
-                </div>
-            </div>
-            
-            <div class="input_section district_input_box">
-                <div class="input_box">
-                    <div class="label_box">
-                        <label class="label">First name</label>
-                        <input class="form-control" type="text" id="inputFirstName" name="first_name" placeholder="Enter teacher’s first name here" />
+                    
+                    <div class="personal_box user-profile-box" style="display:none;">
+                        <img src="<?php echo $treks_src; ?>/assets/img/user-profile.svg" alt="logo" />
+                        <div class="info_box">
+                            <img class="action_logo" src="<?php echo $treks_src; ?>/assets/img/upload.svg" alt="logo" />
+                            <input type="file" name="profile_picture" id="profile_picture">
+                            <p class="personal-text import-text">Upload</p>
+                        </div>
+                        <div class="info_box">
+                            <img class="action_logo" src="<?php echo $treks_src; ?>/assets/img/delete-circled-outline.svg"
+                                alt="logo" />
+                            <p class="personal-text import-text remove_text">Remove</p>
+                        </div>
                     </div>
-                </div>
-                <div class="input_box">
-                    <div class="label_box">
-                        <label class="label">Last name</label>
-                        <input class="form-control" type="text" id="inputLastName" name="last_name" placeholder="Enter teacher’s last name here" />
+                    
+                    <div class="input_section district_input_box">
+                        <div class="input_box">
+                            <div class="label_box">
+                                <label class="label">First name</label>
+                                <input class="form-control" type="text" id="inputFirstName" name="first_name" placeholder="Enter teacher’s first name here" />
+                            </div>
+                        </div>
+                        <div class="input_box">
+                            <div class="label_box">
+                                <label class="label">Last name</label>
+                                <input class="form-control" type="text" id="inputLastName" name="last_name" placeholder="Enter teacher’s last name here" />
+                            </div>
+                        </div>
+                        <div class="input_box">
+                            <div class="label_box">
+                                <label class="label">Email</label>
+                                <input class="form-control" type="email" id="inputEmail" name="user_email" placeholder="johndoe@gmail.com" />
+                                <input type="hidden" id="inputEmailDefault" name="user_email_default" />
+                            </div>
+                        </div>
+                        <div class="input_box">
+                            <div class="label_box">
+                                <label class="label">Password</label>
+                                <input class="form-control" type="password" id="inputPassword" name="user_password" placeholder="***" />
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="input_box">
-                    <div class="label_box">
-                        <label class="label">Email</label>
-                        <input class="form-control" type="email" id="inputEmail" name="user_email" placeholder="johndoe@gmail.com" />
-                        <input type="hidden" id="inputEmailDefault" name="user_email_default" />
-                    </div>
-                </div>
-                <div class="input_box">
-                    <div class="label_box">
-                        <label class="label">Password</label>
-                        <input class="form-control" type="password" id="inputPassword" name="user_password" placeholder="***" />
-                    </div>
-                </div>
-                
-                <!-- <div class="input_box brief_input_box">
-                    <div class="label_box brief_label_box id_label_box">
-                        <label class="label">ID</label>
-                        <input class="brief_info id_info" type="password" name="password"
-                            placeholder="0000" />
-                    </div>
-                </div>
-                -->
                 </form>
-            </div>
-            
+            </div>                
             <div class="input_section">
                 <div class="btn_box">
                     <button class="btn" type="button" data-bs-dismiss="modal" aria-label="Close">Cancel</button>
                     <button class="btn" id="saveDistrictBtn"><span class="district-action">Add</span></button>
                 </div>
             </div>
-
         </div>
-    </div>
+    </div>    
 </div>
 
 <script type="text/javascript">
@@ -144,6 +132,7 @@
             }).done(function( response ) {
                 jQuery('#districtForm .form-control').removeClass('is-invalid');
                 districtModalObj.hide();
+                window.location.reload();
             }).fail(function (response) {
                 jQuery('#districtForm .form-control').removeClass('is-invalid');
                 if (response.responseJSON !== undefined) {
@@ -166,7 +155,7 @@
             jQuery('#inputEmailDefault').val("");
             jQuery('#inputPassword').val("");
             jQuery('.district-action').text("Add");
-            window.location.reload();
+            jQuery('#districtForm .form-control').removeClass('is-invalid');
         });
     });
     

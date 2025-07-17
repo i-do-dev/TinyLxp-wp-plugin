@@ -1,6 +1,7 @@
 <?php
-global $treks_src;
-$teachers = $args["teachers"];
+    global $treks_src;
+    $teachers = $args["teachers"];
+    $district_type = $args["district_type"];
 ?>
 <div id="teacher-tab-content" class="tab-pane fade" role="tabpanel">
     <div class="add-teacher-box" style="width: 43%">
@@ -11,14 +12,28 @@ $teachers = $args["teachers"];
                 <p class="filter-heading">Filter</p>
             </div>
         </div> -->
-        <button class="add-heading" type="button" type="button" data-bs-toggle="modal"
-            data-bs-target="#teacherModal" class="primary-btn">
+        <?php 
+            if (isset($district_type) && $district_type == 'edlink') {
+                $model_id = 'edlinkTeacherModal';
+                $add_btn = 'addEdlinkTeachers';
+            } else {
+                $model_id = 'teacherModal';
+                $add_btn = 'addTeachers';
+            }
+        ?>
+        <button id="<?php echo $add_btn; ?>" class="add-heading" type="button" type="button" data-bs-toggle="modal" data-bs-target="#<?php echo $model_id; ?>" class="primary-btn">
             Add New Teacher
         </button>
-        <label for="import-teacher" class="primary-btn add-heading">
-            Import Teachers (CSV)
-        </label >
-        <input type="file" id="import-teacher" hidden />
+        <?php
+            if (empty($district_type) || $district_type != 'edlink') {
+        ?>
+                <label for="import-teacher" class="primary-btn add-heading">
+                    Import Teachers (CSV)
+                </label >
+                <input type="file" id="import-teacher" hidden />
+        <?php        
+            }
+        ?>
     </div>
     <div class="students-table">
         <table class="table">
@@ -117,9 +132,21 @@ $teachers = $args["teachers"];
                                     <img src="<?php echo $treks_src; ?>/assets/img/dots.svg" alt="logo" />
                                 </button>
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
-                                    <button class="dropdown-item" type="button" onclick="onTeacherEdit(<?php echo $teacher->ID; ?>)">
+                                <?php
+                                    if (isset($district_type) && $district_type == 'edlink') {
+                                ?>
+                                        <button class="dropdown-item" type="button" onclick="onEdlinkTeacherEdit(<?php echo $teacher->ID; ?>)">
                                         <img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo" />
                                         Edit</button>
+                                <?php
+                                    } else {
+                                ?>
+                                        <button class="dropdown-item" type="button" onclick="onTeacherEdit(<?php echo $teacher->ID; ?>)">
+                                        <img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo" />
+                                        Edit</button>
+                                <?php            
+                                    }
+                                ?>
                                     <!-- <button class="dropdown-item" type="button">
                                         <img src="<?php // echo $treks_src; ?>/assets/img/delete.svg" alt="logo" />
                                         Delete</button> -->

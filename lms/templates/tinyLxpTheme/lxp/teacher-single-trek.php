@@ -14,7 +14,7 @@ if (!in_array($post->ID, $treks_assigned)) {
 $courseId =  isset($_GET['courseid']) ? $_GET['courseid'] : get_post_meta($post->ID, 'tl_course_id', true);
 $args = array(
 	'posts_per_page'   => -1,
-	'post_type'        => 'tl_lesson',
+	'post_type'        => TL_LESSON_CPT,
 	'meta_query' => array(
 		array(
 			'key'   => 'tl_course_id',
@@ -440,7 +440,7 @@ $trek_sections = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}trek_sections 
                 <div class="trk-assign-section-div">
                   <p>Assigned to &nbsp;</p>
                   <?php 
-                    $assignments = lxp_get_trek_segment_assignment($post->ID,  $trek_section->id, $teacher_post->ID); 
+                    $assignments = lxp_get_course_segment_assignment($post->ID,  $trek_section->id, $teacher_post->ID); 
                     $all_assignments_students_ids = array_map(function($assignment) { return get_post_meta($assignment->ID, 'lxp_student_ids'); }, $assignments);
                     $all_students_ids = array();
                     foreach ($all_assignments_students_ids as $students_ids) { foreach ($students_ids as $student_id) { array_push($all_students_ids, $student_id); } }

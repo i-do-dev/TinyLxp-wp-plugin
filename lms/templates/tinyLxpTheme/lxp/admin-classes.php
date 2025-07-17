@@ -6,6 +6,22 @@ global $treks_src;
 $lxp_client_admin_users = get_users(array('role' => 'lxp_client_admin'));
 $lxp_client_admin_user_ids = array_map(function ($user) { return $user->ID; },  $lxp_client_admin_users);
 // get post TL_DISTRICT_CPT based on multiple 'lxp_district_admin' meta values
+$district_type_condition = (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') ? array(
+    'key' => 'lxp_district_type',
+    'value' => 'edlink',
+    'compare' => '='
+) : array(
+    'relation' => 'OR',
+    array(
+        'key' => 'lxp_district_type',
+        'compare' => 'NOT EXISTS'
+    ),
+    array(
+        'key' => 'lxp_district_type',
+        'value' => 'edlink',
+        'compare' => '!='
+    )
+);
 $district_posts = get_posts(array(
   'post_type' => 'tl_district',
   'meta_query' => array(
@@ -13,7 +29,8 @@ $district_posts = get_posts(array(
       'key' => 'lxp_district_admin',
       'value' => $lxp_client_admin_user_ids,
       'compare' => 'IN'
-    )
+    ),
+    $district_type_condition
   )
 ));
 
@@ -41,6 +58,8 @@ $default_classes = $teacher_post ? lxp_get_teacher_default_classes($teacher_post
 $classes = $teacher_post ? lxp_get_teacher_group_by_type($teacher_post->ID, 'classes') : [];
 $other_groups = $teacher_post ? lxp_get_teacher_group_by_type($teacher_post->ID, 'other_group') : [];
 $classes = array_merge($default_classes, $classes);
+// Get the Edlink API Settings
+$edlink_options = get_option('edlink_options');
 ?>
 
 <!DOCTYPE html>
@@ -137,8 +156,8 @@ $classes = array_merge($default_classes, $classes);
 
             <div class="heading-right">
                 <!-- <a href="<?php //echo site_url("students"); ?>" type="button" class="btn btn-outline-secondary btn-lg">Students</a>
-                <a href="<?php //echo site_url("classes"); ?>" type="button" class="btn btn-secondary btn-lg">Classes & Other Group</a> -->
-                <!-- <a href="<?php //echo site_url("groups"); ?>" type="button" class="btn btn-outline-secondary btn-lg">Manage Small Groups</a> -->
+                <a href="<?php //echo site_url("classes"); ?>" type="button" class="btn btn-secondary btn-lg">Classes & Groups</a> -->
+                <!-- <a href="<?php //echo site_url("groups"); ?>" type="button" class="btn btn-outline-secondary btn-lg">Manage Groups</a> -->
             </div>
         </div>
 
@@ -149,7 +168,31 @@ $classes = array_merge($default_classes, $classes);
                     <div class="row" style="width: 100%;">
                         <div class="col-md-9">
                             <form class="row">
-                                <div class="col-md-4">
+                            <?php 
+                                if (isset($edlink_options['edlink_application_id']) && $edlink_options['edlink_application_id'] != '' && isset($edlink_options['edlink_application_secrets']) && $edlink_options['edlink_application_secrets'] != '' && isset($edlink_options['edlink_sso_enable']) && $edlink_options['edlink_sso_enable'] == 1
+                                ) {
+                            ?>
+                                    <div class="col-md-2">
+                                        <label for="district_type" class="form-label">Integration</label>
+                                        <select id="district_type" name="district_type" class="form-select" onChange="javascript:onChangeDistrictType();">
+                                            <?php 
+                                                if (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') {
+                                            ?>
+                                                    <option value="tinylxp">TinyLxp</option>
+                                                    <option value="edlink" selected="selected">Edlink</option>
+                                            <?php        
+
+                                                } else {
+                                            ?>
+                                                    <option value="tinylxp">TinyLxp</option>
+                                                    <option value="edlink">Edlink</option>
+                                            <?php
+                                                }
+                                            ?>
+                                        </select>                    
+                                    </div>
+                            <?php } ?>
+                            <div class="col-md-3">
                                     <label for="district-drop-down" class="form-label">District</label>
                                     <select class="form-select" id="district-drop-down" name="district_id">
                                         <option value="0">Choose...</option>
@@ -167,7 +210,7 @@ $classes = array_merge($default_classes, $classes);
                                         <?php } ?>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="district-drop-down" class="form-label">Teacher</label>
                                     <select class="form-select" id="teacher-drop-down" name="teacher_id">
                                         <option value="0">Choose...</option>
@@ -282,7 +325,7 @@ $classes = array_merge($default_classes, $classes);
                     </div>
                 </section>
 
-                <!-- Other Groups Section -->
+                <!-- Groups Section -->
                 <section class="recent-treks-section-div table-school-section">
 
                     <div class="students-table">
@@ -392,6 +435,7 @@ $classes = array_merge($default_classes, $classes);
         if(isset($_GET['teacher_id'])) {
             $args['students'] = $students;
             $args['teacher_post'] = $teacher_post;
+            $args['school_post'] = $school_post;
             include $livePath.'/lxp/admin-class-modal.php';
         } else {
     ?>
@@ -400,14 +444,14 @@ $classes = array_merge($default_classes, $classes);
                 <div class="modal-content">
                     <div class="modal-header">
                         <div class="modal-header-title">
-                            <h2 class="modal-title" id="classModalLabel"><span id="class-action-heading">New</span> Class & Other Group</h2>
+                            <h2 class="modal-title" id="classModalLabel"><span id="class-action-heading">New</span> Class &  Groups</h2>
                         </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"
                             aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                            Please select <strong>Teacher</strong> to add/edit a Classe & Other Group</strong>
+                            Please select <strong>Teacher</strong> to add/edit a Classe & Group</strong>
                         </div>
                     </div>
                 </div>
@@ -460,6 +504,13 @@ $classes = array_merge($default_classes, $classes);
                 window.location = url.href;
             });
         });
+
+        function onChangeDistrictType() {
+            var district_type = jQuery("#district_type option:selected").val();
+            let newUrl = window.location.pathname + '?district_type=' + district_type;
+            // Reload the page with the new URL
+            window.location.href = newUrl;
+        }
     </script>
 </body>
 

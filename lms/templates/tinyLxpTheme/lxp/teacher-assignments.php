@@ -5,14 +5,14 @@ global $treks_src;
 $courseId =  isset($_GET['courseid']) ? $_GET['courseid'] : get_post_meta($post->ID, 'tl_course_id', true);
 $args = array(
 	'posts_per_page'   => 3,
-	'post_type'        => TL_TREK_CPT,
+	'post_type'        => LP_COURSE_CPT,
   'order' => 'asc',
 );
 
 if ( get_userdata(get_current_user_id())->user_email === "guest@rpatreks.com" ) {
   $args = array(
     'include' => '15',
-    'post_type'        => TL_TREK_CPT,
+    'post_type'        => LP_COURSE_CPT,
     'order' => 'post__in'
   );
 }
@@ -22,7 +22,7 @@ while (have_posts()) : the_post();
 
 $teacher_post = lxp_get_teacher_post( get_userdata(get_current_user_id())->ID );
 if (is_null($teacher_post)) {
-  die("Teacher is not associated with any school. contact admin. <a href='". wp_logout_url("login") ."'>Logout</a>");
+  die("Teacher is not associated with any school. contact admin. <a href='". wp_logout_url("login") ."/'>Logout</a>");
 }
 $assignments = lxp_get_teacher_assignments($teacher_post->ID);
 ?>
@@ -69,6 +69,9 @@ $assignments = lxp_get_teacher_assignments($teacher_post->ID);
       .bg-orange {
           background: #de6c03 !important;
       }
+      .bg-blue {
+          background: #1fa5d4 !important;
+      }
     </style>
 </head>
 
@@ -109,37 +112,6 @@ $assignments = lxp_get_teacher_assignments($teacher_post->ID);
       <?php include $livePath.'/trek/navigation.php'; ?>
     </nav>
 
-    <!-- Reminders: section-->
-<!--     <section class="reminder-section">
-      <div class="reminder-section-div">
-        
-        <div class="reminder-title reminder-detail">
-          <img src="<?php // echo $treks_src; ?>/assets/img/rm_calendar.svg" />
-          <span>Reminders:</span>
-        </div>
-        
-        <div class="reminder-detail reminder-vli">
-          <span>Physical Properties Thu 9:00 AM</span>
-        </div>
-        
-        <div class="reminder-detail reminder-vli">
-          <span>Forces & Experimental Design Fri 10:00 AM</span>
-        </div>
-        
-        <div class="reminder-detail">
-          <span>Physics Fri 1:00 PM</span>
-        </div>
-        
-        <div class="reminder-detail">
-          <span>Mathematics Mon 11:00 AM</span>
-        </div>
-        
-        <div class="reminder-arrow">
-          <img src="<?php echo $treks_src; ?>/assets/img/rm_arrow down.svg" />
-        </div>
-      </div>
-    </section>
- -->
     <!--Pending Assignments  -->
     <section class="pending-assignments-section">
       <div class="pending-assignments-section-div">
@@ -166,7 +138,7 @@ $assignments = lxp_get_teacher_assignments($teacher_post->ID);
                       </li>
                   </ul>
                   
-                  <a href="<?php echo site_url("assignment??course=0&section=0") ?>" title="Add Assignment" class='btn btn-success' style="color:#FFFFFF;" role='button'> Add Assignment
+                  <a href="<?php echo site_url("assignment/?course=0&section=0") ?>" title="Add Assignment" class='btn btn-success' style="color:#FFFFFF;" role='button'> Add Assignment
                   </a>
                   <div>                    
                     <img src="<?php echo $treks_src; ?>/assets/img/calendar<?php echo $post->post_name === "calendar" ? "-selected" : ""; ?>.svg" />
@@ -185,54 +157,6 @@ $assignments = lxp_get_teacher_assignments($teacher_post->ID);
         
       </div>
     </section>
-
-    <!-- Calendar &  Activities Completed Overall -->
-    <!-- 
-    <section class="clen-act-section">
-      <div class="clen-act-section-div">
-        <div class="calendar-portion">
-          <div class="calendar-portion-header section-div-header">
-            <h2>Pending Assignments</h2>
-            <div>
-              <a href="#">See All</a>
-            </div>
-          </div>
-        </div>
-        <div class="activities-portion">
-          <div class="activities-portion-header section-div-header">
-            <h2>Activities Completed Overall</h2>
-          </div>
-
-          <div class="activities-portion-prap">
-            <p>This is the status of all the activities you have assigned.</p>
-
-            <div class="activities-portion-progress">
-               
-                <div class="portion-progress-div">
-                  <div class="recall-progress-bar"></div>
-                  <p>Recall</p>
-                </div>
-
-                <div class="portion-progress-div">
-                  <div class="pa-progress-bar"></div>
-                  <p>Practice A</p>
-                </div>
-
-                <div class="portion-progress-div">
-                  <div class="pb-progress-bar"></div>
-                  <p>Practice B</p>
-                </div>
-
-                <div class="portion-progress-div">
-                  <div class="apply-progress-bar"></div>
-                  <p>Apply</p>
-                </div>
-              </div>
-          </div>
-        </div>
-      </div>
-    </section>
-     -->
   </section>
   <?php include $livePath.'/lxp/assignment-stats-modal.php'; ?>
 
@@ -260,11 +184,12 @@ $assignments = lxp_get_teacher_assignments($teacher_post->ID);
       }
     });
 
-    function fetch_assignment_stats(assignment_id, trek, segment, statuses, start, end) {
+    function fetch_assignment_stats(assignment_id, course_thumbnail, course_title, section_title, lesson_title, statuses, start, end) {
 
-      jQuery('#student-progress-trek-title').text(trek);
-      jQuery('#student-progress-trek-segment').text(segment);
-      jQuery('#student-progress-trek-segment-char').text('L');
+      jQuery('#student-course-thumbnail').html(`<img width="40" height="40" style="border-radius: 5px;" src="`+course_thumbnail+`"><h3 class="inter-user-name" id="student-course-title"></h3>`);
+      jQuery('#student-course-title').text(course_title);
+      jQuery('#student-section-title').text(section_title);
+      jQuery('#student-lesson-title').text(lesson_title);
 
       // starting date and time
       let start_date = new Date(start);
@@ -313,6 +238,9 @@ $assignments = lxp_get_teacher_assignments($teacher_post->ID);
         case 'Completed':
           statusClass = 'bg-green';
           break;
+        case 'Graded':
+          statusClass = 'bg-blue';
+          break;
       }
       return `
           <tr>
@@ -320,16 +248,16 @@ $assignments = lxp_get_teacher_assignments($teacher_post->ID);
               <div class="table-user">
                   <img src="<?php echo $treks_src; ?>/assets/img/profile-icon.png" alt="user" />
                   <div class="user-about">
-                  <h5><a class='student-progress-link' href='<?php echo site_url("grade-assignment"); ?>?assignment=` + assignment_id + `&student=` + student.ID + `'>` + student.name + `</a></h5>
+                  <h5><a class='student-progress-link' href='<?php echo site_url("grade-assignment"); ?>/?assignment=` + assignment_id + `&student=` + student.ID + `'>` + student.name + `</a></h5>
                   </div>
               </div>
               </td>
               <td>
               <div class="table-status ` + statusClass + `">` + (student.status === 'Completed' ? 'Submitted' : student.status) + `</div>
               </td>
-              <td><a class='student-progress-link' href='<?php echo site_url("grade-assignment"); ?>?assignment=` + assignment_id + `&student=` + student.ID + `'>` + student.progress + `</a></td>
+              <td><a class='student-progress-link' href='<?php echo site_url("grade-assignment"); ?>/?assignment=` + assignment_id + `&student=` + student.ID + `'>` + student.progress + `</a></td>
               <td>` + student.score + `</td>
-              <td><a href='<?php echo site_url("grade-assignment"); ?>?assignment=` + assignment_id + `&student=` + student.ID + `'><img src="<?php echo $treks_src; ?>/assets/img/review-icon.svg" alt="svg" width="30" /></a></td>
+              <td><a href='<?php echo site_url("grade-assignment"); ?>/?assignment=` + assignment_id + `&student=` + student.ID + `'><img src="<?php echo $treks_src; ?>/assets/img/review-icon.svg" alt="svg" width="30" /></a></td>
           </tr>
       `;
     }

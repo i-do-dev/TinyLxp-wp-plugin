@@ -5,6 +5,24 @@ global $treks_src;
 $lxp_client_admin_users = get_users(array('role' => 'lxp_client_admin'));
 $lxp_client_admin_user_ids = array_map(function ($user) { return $user->ID; },  $lxp_client_admin_users);
 // get post TL_DISTRICT_CPT based on multiple 'lxp_district_admin' meta values
+
+$district_type_condition = (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') ? array(
+    'key' => 'lxp_district_type',
+    'value' => 'edlink',
+    'compare' => '='
+) : array(
+    'relation' => 'OR',
+    array(
+        'key' => 'lxp_district_type',
+        'compare' => 'NOT EXISTS'
+    ),
+    array(
+        'key' => 'lxp_district_type',
+        'value' => 'edlink',
+        'compare' => '!='
+    )
+);
+
 $district_posts = get_posts(array(
   'post_type' => 'tl_district',
   'meta_query' => array(
@@ -12,7 +30,8 @@ $district_posts = get_posts(array(
       'key' => 'lxp_district_admin',
       'value' => $lxp_client_admin_user_ids,
       'compare' => 'IN'
-    )
+    ),
+    $district_type_condition
   )
 ));
 
@@ -27,11 +46,24 @@ $teacher_school_id = $teacher_post ? get_post_meta($teacher_post->ID, 'lxp_teach
 $school_post = $teacher_school_id > 0 ? get_post($teacher_school_id) : null;
 $students = [];
 if(isset($_GET['school_id']) && isset($_GET['teacher_id'])) {
-    $students = lxp_get_school_teacher_students($teacher_school_id, $teacher_post->ID);
+    // $students = lxp_get_school_teacher_students($teacher_school_id, $teacher_post->ID);
+    if (isset($_GET['inactive']) && $_GET['inactive'] == 'true') {
+        $students = lxp_get_school_teacher_students_inactive($teacher_school_id, $teacher_post->ID, true);
+    } else {
+        $students = lxp_get_school_teacher_students_active($teacher_school_id, $teacher_post->ID);
+    }
 } else if(isset($_GET['school_id'])) {
-    $students = lxp_get_school_students($_GET['school_id']);
+    // $students = lxp_get_school_students($_GET['school_id']);
+    if (isset($_GET['inactive']) && $_GET['inactive'] == 'true') {
+        $students = lxp_get_school_students_inactive($_GET['school_id'], true);
+    } else {
+        $students = lxp_get_school_students_active($_GET['school_id']);
+    }
     $school_post = get_post($_GET['school_id']);
 }
+
+// Get the Edlink API Settings
+$edlink_options = get_option('edlink_options');
 ?>
 
 <!DOCTYPE html>
@@ -158,7 +190,31 @@ if(isset($_GET['school_id']) && isset($_GET['teacher_id'])) {
                     <div class="row">
                         <div class="col-md-7">
                             <form class="row">
-                                <div class="col-md-4">
+                                <?php 
+                                    if (isset($edlink_options['edlink_application_id']) && $edlink_options['edlink_application_id'] != '' && isset($edlink_options['edlink_application_secrets']) && $edlink_options['edlink_application_secrets'] != '' && isset($edlink_options['edlink_sso_enable']) && $edlink_options['edlink_sso_enable'] == 1
+                                    ) {
+                                ?>
+                                        <div class="col-md-2">
+                                            <label for="district_type" class="form-label">Integration</label>
+                                            <select id="district_type" name="district_type" class="form-select" onChange="javascript:onChangeDistrictType();">
+                                                <?php 
+                                                    if (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') {
+                                                ?>
+                                                        <option value="tinylxp">TinyLxp</option>
+                                                        <option value="edlink" selected="selected">Edlink</option>
+                                                <?php        
+
+                                                    } else {
+                                                ?>
+                                                        <option value="tinylxp">TinyLxp</option>
+                                                        <option value="edlink">Edlink</option>
+                                                <?php
+                                                    }
+                                                ?>
+                                            </select>                    
+                                        </div>
+                                <?php } ?>
+                                <div class="col-md-3">
                                     <label for="district-drop-down" class="form-label">District</label>
                                     <select class="form-select" id="district-drop-down" name="district_id">
                                         <option value="0">Choose...</option>
@@ -176,7 +232,7 @@ if(isset($_GET['school_id']) && isset($_GET['teacher_id'])) {
                                         <?php } ?>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="district-drop-down" class="form-label">Teacher</label>
                                     <select class="form-select" id="teacher-drop-down" name="teacher_id">
                                         <option value="0">Choose...</option>
@@ -188,14 +244,29 @@ if(isset($_GET['school_id']) && isset($_GET['teacher_id'])) {
                             </form>
                         </div>
                         <div class="col-md-5">
+                            <?php 
+                                if (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') {                                    
+                                    $model_id = 'edlinkStudentModal';
+                                    $add_btn = 'edlinkStudentModalBtn';
+                                } else {
+                                    $model_id = 'studentModal';
+                                    $add_btn = 'studentModalBtn';
+                                }
+                            ?>
                             <div>
-                                <button id="studentModalBtn" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#studentModal" class="primary-btn">
+                                <button id="<?php echo $add_btn; ?>" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#<?php echo $model_id; ?>" class="primary-btn">
                                     Add New Student
                                 </button>
-                                <label for="import-student" class="primary-btn add-heading">
-                                    Import Students (CSV)
-                                </label >
-                                <input type="file" id="import-student" hidden />
+                                <?php 
+                                    if (!isset($_GET['district_type']) || $_GET['district_type'] != 'edlink') {
+                                ?>
+                                        <label for="import-student" class="primary-btn add-heading">
+                                            Import Students (CSV)
+                                        </label >
+                                        <input type="file" id="import-student" hidden />
+                                <?php    
+                                    }
+                                ?>
                             </div>
                         </div>
                     </div>
@@ -203,6 +274,16 @@ if(isset($_GET['school_id']) && isset($_GET['teacher_id'])) {
 
                 <!-- Table Section -->
                 <section class="recent-treks-section-div table-school-section">
+
+                    <!-- bootstrap Active and Inactive tabs -->
+                    <ul class="nav nav-tabs mb-3" id="settingsTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link<?php echo !isset($_GET['inactive']) ? ' active':''; ?>" id="active-tab" data-bs-toggle="tab" href="#active" role="tab" aria-controls="active" aria-selected="true">Active</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link<?php echo isset($_GET['inactive']) ? ' active' : ''; ?>" id="inactive-tab" data-bs-toggle="tab" href="#inactive" role="tab" aria-controls="inactive" aria-selected="false">Inactive</a>
+                        </li>
+                    </ul>
 
                     <div class="students-table">
                         <!-- 
@@ -332,13 +413,27 @@ if(isset($_GET['school_id']) && isset($_GET['teacher_id'])) {
                                                     data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                     <img src="<?php echo $treks_src; ?>/assets/img/dots.svg" alt="logo" />
                                                 </button>
-                                                <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
-                                                    <button class="dropdown-item" type="button" onclick="onStudentEdit(<?php echo $student->ID; ?>)">
-                                                        <img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo" />
-                                                        Edit</button>
+                                                <div class="dropdown-menu" aria-labelledby="dropdownMenu2">                                                    
+                                                    <?php 
+                                                        if (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') {
+                                                    ?>
+                                                        <button class="dropdown-item" type="button" onclick="onEdlinkStudentEdit(<?php echo $student->ID; ?>)">
+                                                    <?php        
+                                                        } else {
+                                                    ?>
+                                                        <button class="dropdown-item" type="button" onclick="onStudentEdit(<?php echo $student->ID; ?>)">
+                                                    <?php        
+                                                        }
+                                                    ?>
+                                                    <img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo" />
+                                                    Edit</button>
                                                     <!-- <button class="dropdown-item" type="button">
                                                         <img src="<?php // echo $treks_src; ?>/assets/img/delete.svg" alt="logo" />
                                                         Delete</button> -->
+                                                    <button class="dropdown-item" type="button" onclick="onSettingsClick(<?php echo $student->ID; ?>, 'student')">
+                                                        <img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo" />
+                                                        Settings
+                                                    </button>
                                                 </div>
                                             </div>
                                         </td>
@@ -382,39 +477,41 @@ if(isset($_GET['school_id']) && isset($_GET['teacher_id'])) {
         crossorigin="anonymous"></script>
     
     <?php 
+        include $livePath.'/lxp/admin-settings-modal.php';
         //if(isset($_GET['teacher_id'])) {
         if( $school_post ) {
             $args['school_post'] = $school_post;
             $args['teachers'] = $district_schools_teachers;
             include $livePath.'/lxp/admin-student-modal.php';
-        }
+            include $livePath.'/lxp/edlink/student-modal.php';
+        } else {
 
-        if( !isset($_GET['teacher_id']) ) {
+        //if( !isset($_GET['teacher_id']) ) {
     ?>
-        <div class="modal fade students-modal" id="studentModalAlert" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <div class="modal-header-title">
-                            <h2 class="modal-title" id="studentModalLabel"><span class="student-action">New</span> Student</h2>
+        <div class="modal fade students-modal" id="<?php echo (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') ? 'edlinkStudentModal' : 'studentModal'; ?>" tabindex="-1" aria-labelledby="<?php echo (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') ? 'edlinkTeacherModalLabel' : 'teacherModalLabel'; ?>" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="modal-header-title">
+                                <h2 class="modal-title" id="studentModalLabel"><span class="teacher-action-head">New</span> Student</h2>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
                         </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- Bootstrap alert with text: Please select District and School to add new student. -->
-                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                            Please select <strong>District, School</strong> and <strong>Teacher </strong> to add/edit a student.
+                        <div class="modal-body">
+                            <!-- Bootstrap alert with text: Please select District and School to add new teacher. -->
+                            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                                Please select <strong>Teacher</strong> to add/edit a student.</strong>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
         
         <script type="text/javascript">
             jQuery(document).ready(function() {
                 jQuery("#import-student").on("change", function(e) {
-                    $('#studentModalAlert').modal('show');
+                    $('#studentModal').modal('show');
                     jQuery("#import-student").val("");
                 });
             });
@@ -502,12 +599,40 @@ if(isset($_GET['school_id']) && isset($_GET['teacher_id'])) {
                 window.location = url.href;
             });
 
-            $('#studentModalBtn').click(function() {
-                if ($('#school-drop-down').val() == '0') {
-                    $('#studentModalAlert').modal('show');
-                }
+            // Get the tabs
+            let activeTab = document.querySelector('#active-tab');
+            let inactiveTab = document.querySelector('#inactive-tab');
+
+            // Add event listener for 'shown.bs.tab' event
+            activeTab.addEventListener('shown.bs.tab', function (e) {
+                // Create a URLSearchParams object
+                let params = new URLSearchParams(window.location.search);
+                // Remove 'inactive' parameter
+                params.delete('inactive');
+                // Create the new URL
+                let newUrl = window.location.pathname + '?' + params.toString();
+                // Reload the page with the new URL
+                window.location.href = newUrl;
+            });
+
+            inactiveTab.addEventListener('shown.bs.tab', function (e) {
+                // Create a URLSearchParams object
+                let params = new URLSearchParams(window.location.search);
+                // Add 'inactive' parameter
+                params.set('inactive', 'true');
+                // Create the new URL
+                let newUrl = window.location.pathname + '?' + params.toString();
+                // Reload the page with the new URL
+                window.location.href = newUrl;
             });
         });
+
+        function onChangeDistrictType() {
+            var district_type = jQuery("#district_type option:selected").val();
+            let newUrl = window.location.pathname + '?district_type=' + district_type;
+            // Reload the page with the new URL
+            window.location.href = newUrl;
+        }
     </script>
 </body>
 

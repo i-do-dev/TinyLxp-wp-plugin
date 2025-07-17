@@ -2,7 +2,7 @@
     global $treks_src; global $trek_post;
     $args = array(
         'posts_per_page'   => -1,
-        'post_type'        => TL_TREK_CPT,
+        'post_type'        => TL_COURSE_CPT,
         'orderby'        => 'meta_value_num',
         'order' => 'asc'
     );
@@ -10,11 +10,12 @@
     if ( isset($_GET['course']) && $_GET['course'] == 0 && isset($_GET['section']) && $_GET['section'] == 0 ) {
         $trek_post = $course[0];
     }
+    $previous_url = wp_get_referer();
 ?>
 <section class="welcome-section assignment-section">
     <div id="back-btn">
         <?php if ($trek_post) { ?>
-                <button class="back-btn" id="go_back" onclick="go_back('<?php echo site_url('trek/'.$trek_post->post_name); ?>')">
+                <button class="back-btn" id="go_back" onclick="go_back('<?php echo esc_url($previous_url); ?>')">
                     <img src="<?php echo $treks_src; ?>/assets/img/back.svg" alt="logo" />
                     <p class="back-btn-text">Back</p>
                 </button>

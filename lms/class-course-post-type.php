@@ -16,7 +16,7 @@
    /**
     * @var string
     */
-   protected $_post_type = TL_COURSE_CPT;
+   protected $_post_type = 'tl_course';
 
    /**
     * Get Instance
@@ -40,17 +40,21 @@
     * Register course post type.
     */
    public function args_register_post_type() : array {
-
-      $located = locate_template( 'single-tl_course.php' );
-      if(empty($located)){
-         add_filter( 'single_template', function ( $page_template, $type ) {
-            global $post;
-            if ( $post->post_type == "tl_course" ) {
-               $page_template = dirname( __FILE__ ) . '/templates/tinyLxpTheme/single-tl_course.php';
-            }
-            return $page_template;
-         },20, 2);
-      }
+      add_rewrite_rule(
+         '^tl/course/([^/]+)/?$',
+         'index.php?post_type=lp_course&name=$matches[1]',
+         'top'
+      );
+      // $located = locate_template( 'single-tl_course.php' );
+      // if(empty($located)){
+      //    add_filter( 'single_template', function ( $page_template, $type ) {
+      //       global $post;
+      //       if ( $post->post_type == TL_COURSE_CPT || $post->post_type == TL_COURSE_CPT ) {
+      //          $page_template = dirname( __FILE__ ) . '/templates/tinyLxpTheme/single-tl_course.php';
+      //       }
+      //       return $page_template;
+      //    },20, 2);
+      // }
 		global $wpdb;
 		$wpdb->query("CREATE TABLE IF NOT EXISTS ".$wpdb->prefix."tiny_lms_grades(
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -72,26 +76,26 @@
          'edit_item'          => __( 'Edit Course', 'tinylms' ),
          'update_item'        => __( 'Update Course', 'tinylms' ),
          'search_items'       => __( 'Search LXP Courses', 'tinylms' ),
-         'not_found'          => sprintf( __( 'You haven\'t had any courses yet. Click <a href="%s">Add new</a> to start', 'tinylms' ), admin_url( 'post-new.php?post_type=tl_course' ) ),
+         'not_found'          => sprintf( __( 'You haven\'t had any courses yet. Click <a href="%s">Add new</a> to start', 'tinylms' ), admin_url( 'post-new.php?post_type=lp_course' ) ),
          'not_found_in_trash' => __( 'No course found in Trash', 'tinylms' ),
       );
       
       $args = array(
          'labels'             => $labels,
-         'public'             => true,
+         'public'             => false,
          'query_var'          => true,
-         'publicly_queryable' => true,
-         'show_ui'            => true,
+         'publicly_queryable' => false,
+         'show_ui'            => false,
          'has_archive'        => true,
-         'show_in_menu'       => true,
-         'show_in_admin_bar'  => true,
-         'show_in_nav_menus'  => true,
+         'show_in_menu'       => false,
+         'show_in_admin_bar'  => false,
+         'show_in_nav_menus'  => false,
          'rewrite'            => array(
             'slug'       => 'tl/courses',
             'with_front' => false
          ),
          'show_in_rest'       => true,
-         'rest_base'          => 'tl_courses',
+         'rest_base'          => 'lp_courses',
          'supports' => array('title', 'editor', 'author', 'thumbnail'),
          'capability_type' => 'post',
          'capabilities' => array(
@@ -106,7 +110,7 @@
          )
       );
 
-      $this->register_texonomy();
+      // $this->register_texonomy();
       add_theme_support('post-thumbnails');
       return $args;
    }
@@ -128,11 +132,11 @@
          'hierarchical'          => false,
          'labels'                => $labels,
          'show_ui'               => true,
-         'show_admin_column'     => true,
+         'show_admin_column'     => false,
          'query_var'             => true,
-         'rewrite'               => array( 'slug' => 'tl_course_tag' ),
+         'rewrite'               => array( 'slug' => 'lp_course_tag' ),
          'show_in_rest'          => true,
-         'rest_base'             => 'tl_course_tag',
+         'rest_base'             => 'lp_course_tag',
          'rest_controller_class' => 'WP_REST_Terms_Controller',
          'capabilities' => array(
             'manage_terms'	=>	'manage_tag_lxp_course',
@@ -143,24 +147,26 @@
        );
 
        register_taxonomy( 
-         'tl_course_tag', //taxonomy 
-         $this->_post_type, //post-type
+         'lp_course_tag', //taxonomy 
+         TL_COURSE_CPT, //post-type
         $args);
 
-        register_taxonomy( 'tl_course_category', $this->_post_type, array(
+        register_taxonomy( 'lp_course_category', TL_COURSE_CPT, array(
+
             "hierarchical" => true,
             "label" => "Categories",
             "singular_label" => "Category",
             'query_var' => true,
-            'public' => true,
+            'public' => false,
             'has_archive' => true,
-            'show_ui' => true,
+            'show_ui' => false,
             '_builtin' => true,
             'show_in_nav_menus' => true,
             'show_admin_column'     => true,
-            'rewrite' => array( 'slug' => 'tl_course_category', 'with_front' => false ),
+            'rewrite' => array( 'slug' => 'lp_course_category', 'with_front' => false ),
+
             'show_in_rest'          => true,
-            'rest_base'             => 'tl_course_category',
+            'rest_base'             => 'lp_course_category',
             'rest_controller_class' => 'WP_REST_Terms_Controller',
             'menu_icon'             => 'dashicons-location',
             'capabilities' => array(
@@ -181,7 +187,7 @@
          'course-options-class',      // Unique ID
          esc_html__( 'Course Options', 'course-options' ),    // Title
          array(self::instance(), 'options_metabox_html'),   // Callback function
-         $this->_post_type,         // Admin page (or post type)
+         TL_COURSE_CPT,         // Admin page (or post type)
          'side',         // Context
          'default',         // Priority
          'show_in_rest' => true,
@@ -201,7 +207,7 @@
    public function options_metabox_html($post = null) {
       $args = array(
          'posts_per_page'   => -1,
-         'post_type'        => 'tl_lesson',
+         'post_type'        => LP_LESSON_CPT,
          'meta_query' => array(
             array(
                'key'   => 'tl_course_id',
@@ -211,7 +217,7 @@
       );
       $result = get_posts( $args );
       ?>
-      <a href="<?php echo admin_url().'post-new.php?post_type='.TL_LESSON_CPT.'&courseid='. get_the_ID() ?>" class="button "><span class="dashicons dashicons-plus" style="margin-top: 6px"></span>&nbsp;Add New Lessons</a>
+      <a href="<?php echo admin_url().'post-new.php?post_type='.LP_LESSON_CPT.'&courseid='. get_the_ID() ?>" class="button "><span class="dashicons dashicons-plus" style="margin-top: 6px"></span>&nbsp;Add New Lessons</a>
       <h3>Lessons</h3>
       <input type="hidden" name="course_removed_lessons" id="course_removed_lessons">
       <?php 
@@ -228,7 +234,7 @@
 
    public function save_tl_post($post_id = null)
    {
-      if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['post_type']) && 'tl_course' == $_POST['post_type']) {  
+      if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['post_type']) && TL_COURSE_CPT == $_POST['post_type']) {  
          $postIds = preg_split('@,@', $_POST['course_removed_lessons'], -1, PREG_SPLIT_NO_EMPTY);
          if($postIds){
             foreach($postIds as $postId){
@@ -247,25 +253,25 @@
    }
    
    function modify_list_row_actions( $actions, $post ) {
-      if ($post->post_type=='tl_course' && current_user_can( 'grades_lxp_course' ))
-          {
-              $actions['duplicate'] = '<a href="'. site_url().'/wp-admin/admin.php?page=grades&course_id='.$post->ID.'" title="" rel="permalink">GradeBook</a>';
-          }
-          return $actions;
+      if ($post->post_type== TL_COURSE_CPT && current_user_can( 'grades_lxp_course' ))
+         {
+            $actions['duplicate'] = '<a href="'. site_url().'/wp-admin/admin.php?page=grades&course_id='.$post->ID.'" title="" rel="permalink">GradeBook</a>';
+         }
+         return $actions;
    }
 
-   public  function grade_view() {
-      require_once plugin_dir_path(dirname(__FILE__)) . 'lms/templates/course/grades.php';
-   }
+   // public  function grade_view() {
+   //    require_once plugin_dir_path(dirname(__FILE__)) . 'lms/templates/course/grades.php';
+   // }
 
-   public  function grade_book_view() {
-      require_once plugin_dir_path(dirname(__FILE__)) . 'lms/templates/course/grade_book.php';
-   }
+   // public  function grade_book_view() {
+   //    require_once plugin_dir_path(dirname(__FILE__)) . 'lms/templates/course/grade_book.php';
+   // }
 
    public function register_views() {
-      add_menu_page('Customer Request View', 'Customer Requests', 'manage_options',  'grades',  array($this, 'grade_view' ), 'dashicons-tag', 6  );
-      add_menu_page('Customer Request View', 'Customer Requests', 'manage_options',  'gradebook',  array($this, 'grade_book_view' ), 'dashicons-tag', 6  );
-      remove_menu_page('grades');
-      remove_menu_page('gradebook');
+      // add_menu_page('Customer Request View', 'Customer Requests', 'manage_options',  'grades',  array($this, 'grade_view' ), 'dashicons-tag', 6  );
+      // add_menu_page('Customer Request View', 'Customer Requests', 'manage_options',  'gradebook',  array($this, 'grade_book_view' ), 'dashicons-tag', 6  );
+      // remove_menu_page('grades');
+      // remove_menu_page('gradebook');
      }
 }

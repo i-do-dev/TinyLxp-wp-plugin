@@ -73,10 +73,14 @@ class Rest_Lxp_Assignment_Submission
     public static function assignment_submission_grade_by_student($request) {
 
         $xapiData = $request->get_param('xapiData');
-        $h5pTypeParts = explode('/', $xapiData['context']['contextActivities']['category'][0]['id']);
-        $h5pTypeParts = $h5pTypeParts[count($h5pTypeParts) - 1];
-        $h5pType = explode('-', $h5pTypeParts)[0];
 
+        $h5pType = '';
+        if (isset($xapiData['context']['contextActivities']['category'])) {
+            $h5pTypeParts = explode('/', $xapiData['context']['contextActivities']['category'][0]['id']);
+            $h5pTypeParts = $h5pTypeParts[count($h5pTypeParts) - 1];
+            $h5pType = explode('-', $h5pTypeParts)[0];
+        }
+        // only course presentation activity will use below code -> ok
         if ($h5pType == 'H5P.Essay') {
             return wp_send_json_success("Grading Skipped for {$h5pType}!");
         }
@@ -109,6 +113,41 @@ class Rest_Lxp_Assignment_Submission
             $assignment_submission_posts = $assignment_submission_get_query->get_posts();
             if (count($assignment_submission_posts) > 0) {
                 $assignment_submission_id = $assignment_submission_posts[0]->ID;
+                // video activity case start
+                $activity_type = get_post_meta($assignment_id, 'assignment_type', true);
+                if ($activity_type == 'video_activity') {
+                    // get lti user id from xapi object
+                    $lti_user_id = $xapiData['actor']['account']['name'];
+                    $raw = isset($xapiData['result']['score']['raw']) ? $xapiData['result']['score']['raw'] : 0;
+                    $max = $xapiData['result']['score']['max'];
+                    $url_path = parse_url($xapiData['object']['id'], PHP_URL_PATH);
+                    preg_match('/\/h5p\/embed\/(\d+)/', $url_path, $matches);
+                    $lesson_id = get_post_meta($assignment_id, "lxp_lesson_id", true);
+                    update_post_meta($student_post->ID, 'lti_user_id', $lti_user_id);
+                    update_post_meta($lesson_id, "h5p_content_id", $matches[1]);
+                    //start change status here
+                    update_post_meta($assignment_submission_posts[0]->ID, "submission_id", '1');
+                    update_post_meta($assignment_submission_posts[0]->ID, "lti_user_id", $lti_user_id);
+                    update_post_meta($assignment_submission_id, "iv_subContentId_{$subContentId}_raw", $raw);
+                    update_post_meta($assignment_submission_id, "iv_subContentId_{$subContentId}_max", $max);
+                    // end change status here
+                    // update score start
+                    $all_meta = get_post_meta($assignment_submission_id);
+                    $raw = 0; $max = 0;
+                    foreach ($all_meta as $key => $value) {
+                        if (strpos($key, 'iv_') === 0 && substr($key, -4) === '_raw') {
+                            $raw += $value[0];
+                        } elseif (strpos($key, 'iv_') === 0 && substr($key, -4) === '_max') {
+                            $max += $value[0];
+                        }
+                    }
+                    update_post_meta($assignment_submission_id, "score_raw", $raw);
+                    update_post_meta($assignment_submission_id, "score_max", $max);
+                    update_post_meta($assignment_submission_id, "score_scaled", $raw/$max);
+                    // update score end
+                    return wp_send_json_success("IV Graded for subContentId {$subContentId}!");
+                }
+                // video activity case end
                 $result = $request->get_param('result');
                 if (is_array($result) && array_key_exists('score', $result)) {
                     $grade = $result['score']['raw'];
@@ -133,7 +172,8 @@ class Rest_Lxp_Assignment_Submission
     public static function assignment_submission_feedback_view($request) {
         $assignment_submission_id = $request->get_param('assignment_submission_id');
         $slide = $request->get_param('slide');
-        $feedback = get_post_meta($assignment_submission_id, "slide_{$slide}_feedback", true);
+        $feedback['feedback'] = get_post_meta($assignment_submission_id, "slide_{$slide}_feedback", true);
+        $feedback['grade_num'] = get_post_meta($assignment_submission_id, "slide_{$slide}_grade", true);
         return wp_send_json_success($feedback);
     }
 
@@ -191,7 +231,7 @@ class Rest_Lxp_Assignment_Submission
             if (count($assignment_submission_posts) > 0) {
                 $assignment_submission_post_arg['ID'] = $assignment_submission_posts[0]->ID;
             }
-
+            // var_dump($assignment_submission_post_arg); die;
             $assignment_submission_post_id = wp_insert_post($assignment_submission_post_arg);
             if ($assignment_submission_post_id) {
                 // add assignment submission post meta data for $assignmentId and $user_post
@@ -204,15 +244,14 @@ class Rest_Lxp_Assignment_Submission
                 update_post_meta($assignment_submission_post_id, 'lti_user_id', $ltiUserId);
                 update_post_meta($assignment_submission_post_id, 'submission_id', $submissionId);
 
-                // get array values for 'min', 'max', 'raw' and 'scaled' from 'score' array key of $request paramter 'result' and add as assignment submission post meta data
-                $score = $request->get_param('result')['score'];
-                update_post_meta($assignment_submission_post_id, 'score_min', $score['min']);
-                update_post_meta($assignment_submission_post_id, 'score_max', $score['max']);
-                update_post_meta($assignment_submission_post_id, 'score_raw', $score['raw']);
-                update_post_meta($assignment_submission_post_id, 'score_scaled', $score['scaled']);
                 $activity_type = get_post_meta($assignment_post->ID, 'assignment_type', true);
-                if ( $activity_type == 'video_activity' ) {
-                    self::grades_score_video_activity($assignmentId, $userId, $score['scaled']);
+                if ( $activity_type == 'slides_activity' ) {
+                    // get array values for 'min', 'max', 'raw' and 'scaled' from 'score' array key of $request paramter 'result' and add as assignment submission post meta data
+                    $score = $request->get_param('result')['score'];
+                    update_post_meta($assignment_submission_post_id, 'score_min', $score['min']);
+                    update_post_meta($assignment_submission_post_id, 'score_max', $score['max']);
+                    update_post_meta($assignment_submission_post_id, 'score_raw', $score['raw']);
+                    update_post_meta($assignment_submission_post_id, 'score_scaled', $score['scaled']);
                 }
 
                 // get 'completion' and 'duration' key values from 'result' $request parameter and add as assignment submission post meta data

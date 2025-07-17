@@ -45,17 +45,6 @@ class TL_Student_Post_Type extends TL_Post_Type
    public function args_register_post_type(): array
    {
 
-      // $located = locate_template('single-tl_trek.php');
-      // if (empty($located)) {
-      //    add_filter('single_template', function ($page_template, $type) {
-      //       global $post;
-      //       if ($post->post_type == TL_TREK_CPT) {
-      //          $page_template = dirname(__FILE__) . '/templates/trek/single-tl_trek.php';
-      //       }
-      //       return $page_template;
-      //    }, 20, 2);
-      // }
-
       $labels           =     array(
          'name'               => _x('LXP Student', 'Post Type General Name', 'tinylms'),
          'singular_name'      => _x('LXP Student', 'Post Type Singular Name', 'tinylms'),

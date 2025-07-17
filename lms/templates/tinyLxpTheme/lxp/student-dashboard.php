@@ -135,7 +135,7 @@ $statuses_count = array_reduce($assignments, function($carry, $assignment) use (
             <!-- each cards  -->
             <?php foreach ($courses as $course) { ?>
               <!-- card -->
-              <a href="<?php echo get_post_permalink($course->ID); ?>" class="treks-card-link">
+              <a href="<?php echo '../tl/course/'.get_post_field('post_name', $course->ID); ?>" class="treks-card-link">
                 <div class="recent-treks-card-body treks-card">
                   <div>                    
                     <?php

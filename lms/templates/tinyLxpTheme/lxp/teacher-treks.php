@@ -23,7 +23,7 @@ if ($_GET['filter'] == 'saved') {
     $lxp_visited_treks_to_show = is_array($lxp_visited_treks) && count($lxp_visited_treks) > 0 ? array_reverse($lxp_visited_treks) : array();
     // filter $lxp_visited_treks_to_show to only include treks that are in $treks_assigned
     $lxp_visited_treks_to_show = array_filter($lxp_visited_treks_to_show, function ($trek) use ($treks_assigned) { return in_array($trek, $treks_assigned); });
-    $recent_query_args = array( 'post_type' => TL_TREK_CPT , 'posts_per_page'   => -1, 'post_status' => array( 'publish' ), 'post__in' => $lxp_visited_treks_to_show, 'orderby' => 'post__in' );
+    $recent_query_args = array( 'post_type' => TL_COURSE_CPT , 'posts_per_page'   => -1, 'post_status' => array( 'publish' ), 'post__in' => $lxp_visited_treks_to_show, 'orderby' => 'post__in' );
     $searchVal = urldecode($_GET['search']);
     if(!($searchVal === '' || $searchVal === 'none')) {
         $recent_query_args['s'] = $searchVal;

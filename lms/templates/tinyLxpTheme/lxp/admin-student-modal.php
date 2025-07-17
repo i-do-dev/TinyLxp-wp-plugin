@@ -11,7 +11,7 @@ $teachers = $args['teachers'];
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-header-title">
-                    <h2 class="modal-title" id="studentModalLabel"><span class="student-action">New</span> Student</h2>
+                    <h2 class="modal-title" id="studentModalLabel"><span class="student-action-head">New</span> Student</h2>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"
                     aria-label="Close"></button>
@@ -49,40 +49,40 @@ $teachers = $args['teachers'];
                         <div class="input_box">
                             <div class="label_box">
                                 <label class="label">First name</label>
-                                <input class="form-control" type="text" name="first_name" id="first_name_student"
+                                <input class="form-control" type="text" name="lxp_first_name" id="lxp_first_name_student"
                                     placeholder="Enter student’s first name here" />
                             </div>
                         </div>
                         <div class="input_box">
                             <div class="label_box">
                                 <label class="label">Last name</label>
-                                <input class="form-control" type="text" name="last_name" id="last_name_student"
+                                <input class="form-control" type="text" name="lxp_last_name" id="lxp_last_name_student"
                                     placeholder="Enter student’s last name here" />
                             </div>
                         </div>
                         <div class="input_box">
                             <div class="label_box">
                                 <label class="label">Username</label>
-                                <input class="form-control" type="text" name="username" id="usernameStudent" placeholder="johndoe@gmail.com" />
-                                <input type="hidden" id="inputUsernameDefaultStudent" name="username_default" />
+                                <input class="form-control" type="text" name="lxp_username" id="lxp_usernameStudent" placeholder="johndoe@gmail.com" />
+                                <input type="hidden" id="inputUsernameDefaultStudent" name="lxp_username_default" />
                             </div>
                         </div>
                         <div class="input_box">
                             <div class="label_box">
                                 <label class="label">Password</label>
-                                <input class="form-control" type="password" name="user_password" id="passwordStudent" placeholder="***" />
+                                <input class="form-control" type="password" name="lxp_user_password" id="lxp_passwordStudent" placeholder="***" />
                             </div>
                         </div>
                         <div class="input_box">
                             <div class="label_box">
                                 <label class="label">ID</label>
-                                <input class="form-control" type="text" name="student_id" id="idStudent" placeholder="Student ID" />
+                                <input class="form-control" type="text" name="lxp_student_id" id="idStudent" placeholder="Student ID" />
                             </div>
                         </div>
                         <div class="input_box">
                             <div class="label_box">
                                 <label class="label">About</label>
-                                <input class="form-control" type="text" name="about" id="aboutStudent"
+                                <input class="form-control" type="text" name="lxp_about" id="lxp_aboutStudent"
                                     placeholder="Something about Student" />
                             </div>
                         </div>
@@ -210,9 +210,10 @@ $teachers = $args['teachers'];
 
 <script type="text/javascript">
 
-function onStudentEdit(student_id) {
-    jQuery("#student_post_id").val(student_id);
+function onStudentEdit(lxp_student_id) {
+    jQuery("#student_post_id").val(lxp_student_id);
     jQuery(".student-action").text("Update");
+    jQuery(".student-action-head").text("Update");
     
     let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
     let apiUrl = host + '/wp-json/lms/v1/';
@@ -221,17 +222,17 @@ function onStudentEdit(student_id) {
         method: "POST",
         enctype: 'multipart/form-data',
         url: apiUrl + "students",
-        data: {student_id}
+        data: {lxp_student_id}
     }).done(function( response ) {
         let student = response.data.student;
         let admin = response.data.admin.data;
         jQuery('#studentForm .form-control').removeClass('is-invalid');
-        jQuery('#studentModal #aboutStudent').val(student.post_content);
+        jQuery('#studentModal #lxp_aboutStudent').val(student.post_content);
         jQuery('#studentModal #idStudent').val(student.student_id);
         jQuery('#studentModal #teacher_id').val(student.teacher_id);
-        jQuery('#studentModal #first_name_student').val(admin.first_name);
-        jQuery('#studentModal #last_name_student').val(admin.last_name);
-        jQuery('#studentModal #usernameStudent').val(admin.user_login);
+        jQuery('#studentModal #lxp_first_name_student').val(admin.first_name);
+        jQuery('#studentModal #lxp_last_name_student').val(admin.last_name);
+        jQuery('#studentModal #lxp_usernameStudent').val(admin.user_login);
         jQuery('#studentModal #inputUsernameDefaultStudent').val(admin.user_login);
         
         if (student.grades) {
@@ -252,14 +253,20 @@ function onStudentEdit(student_id) {
         window.studentModalObj = studentModalObj;
 
         studentModal.addEventListener('hide.bs.modal', function (event) {
+            jQuery('#studentForm .form-control').removeClass('is-invalid');
+            jQuery('#teacher_id').removeClass('is-invalid');
+            jQuery("#teacher_id").val(0);
+            jQuery("#idStudent").val('');
             jQuery("#student_post_id").val(0);
-            jQuery('#studentModal #aboutStudent').val("");
-            jQuery('#studentModal #first_name_student').val("");
-            jQuery('#studentModal #last_name_student').val("");
-            jQuery('#studentModal #usernameStudent').val("");
+            jQuery('#studentModal #lxp_aboutStudent').val("");
+            jQuery('#studentModal #lxp_first_name_student').val("");
+            jQuery('#studentModal #lxp_last_name_student').val("");
+            jQuery('#studentModal #lxp_usernameStudent').val("");
             jQuery('#studentModal #inputUsernameDefaultStudent').val("");
-            jQuery('#studentModal #passwordStudent').val("");
-            window.location.reload();
+            jQuery('#studentModal #lxp_passwordStudent').val("");
+            jQuery('#studentModal input.grade-checkbox').prop('checked', false);
+            jQuery('.student-action').text("Add");
+            jQuery('.student-action-head').text("New");
         });
 
         let studentForm = jQuery("#studentForm");
@@ -277,6 +284,7 @@ function onStudentEdit(student_id) {
             }).done(function( response ) {
                 jQuery('#studentForm .form-control').removeClass('is-invalid');
                 studentModalObj.hide();
+                window.location.reload();
             }).fail(function (response) {
                 jQuery('#studentForm .form-control').removeClass('is-invalid');
                 if (response.responseJSON !== undefined) {

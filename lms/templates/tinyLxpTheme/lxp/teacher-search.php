@@ -4,35 +4,20 @@ global $treks_src;
 $teacher_post = lxp_get_teacher_post( get_userdata(get_current_user_id())->ID );
 $treks_filtered = array();
 $treks_saved = get_post_meta($teacher_post->ID, 'treks_saved');
-/* if ($_GET['filter'] == 'saved') {
-    $treks_filtered = lxp_get_teacher_saved_treks($teacher_post->ID, $treks_saved, urldecode($_GET['strand']), urldecode($_GET['sort']), urldecode($_GET['search']));
-} else if ($_GET['filter'] == 'recent'){
-    $lxp_visited_treks = get_post_meta($teacher_post->ID, 'lxp_visited_treks');
-    $lxp_visited_treks_to_show = is_array($lxp_visited_treks) && count($lxp_visited_treks) > 0 ? array_reverse($lxp_visited_treks) : array();
-    $recent_query_args = array( 'post_type' => TL_TREK_CPT , 'posts_per_page'   => -1, 'post_status' => array( 'publish' ), 'post__in' => $lxp_visited_treks_to_show, 'orderby' => 'post__in' );
-    $searchVal = urldecode($_GET['search']);
-    if(!($searchVal === '' || $searchVal === 'none')) {
-        $recent_query_args['s'] = $searchVal;
-    }
-    $recent_query = new WP_Query( $recent_query_args );
-    $treks_filtered = $recent_query->get_posts();
-    if(!(urldecode($_GET['strand']) === '' || urldecode($_GET['strand']) === 'none')) {
-        $treks_filtered = array_filter( $treks_filtered, function ($trek) { return in_array(urldecode($_GET['strand']), get_post_meta($trek->ID, 'strands')); });
-    }
-}
-$treks_filtered_ids = array_map(function ($trek) { return $trek->ID; }, $treks_filtered);
-*/
 
 $treks = array();
 if ( isset($_GET['q']) && strlen($_GET['q']) > 0 ) {
     $args = array(
         'posts_per_page'   => -1,
-        'post_type'        => 'tl_trek',
-        'meta_key'        => 'sort',
+        'post_type'        => TL_COURSE_CPT,
+        // 'meta_key'        => 'sort',
         'orderby'        => 'meta_value_num',
         'order' => 'asc'
     );
     $args['s'] = urldecode($_GET['q']);  
+    // $loop = new WP_Query( $args );
+    // echo $loop->request;
+    // die;
     $treks = get_posts($args);
     
     unset($args['s']);

@@ -5,6 +5,11 @@ $livePath = dirname( __FILE__ );
 lxp_login_check();
 $treks_src = content_url().'/plugins/TinyLxp-wp-plugin/lms/templates/tinyLxpTheme/treks-src/';
 $userdata = get_userdata(get_current_user_id());
+$userRole = count($userdata->roles) > 0 ? array_values($userdata->roles)[0] : '';
+if ($userRole != 'lxp_teacher') {
+    echo 'Not a valid User role';
+    die;
+}
 $trek_post = isset($_GET['course']) && isset($_GET['section']) ? get_post($_GET['course']) : null;
 ?>
 <!DOCTYPE html>

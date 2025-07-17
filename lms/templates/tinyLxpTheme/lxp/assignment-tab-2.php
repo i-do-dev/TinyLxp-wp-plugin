@@ -3,7 +3,7 @@ global $treks_src, $trek_post;
 
 $args = array(
     'posts_per_page'   => -1,
-    'post_type'        => 'tl_course',
+    'post_type'        => LP_COURSE_CPT,
     'order' => 'asc'
 );
 $courses = get_posts($args);
@@ -16,6 +16,7 @@ if ( isset($course_id) && $course_id == 0 && isset($_GET['section']) && $_GET['s
 $course_post = get_post($course_id);
 $select_course_title = !boolval($course_post) ? "Select a Course" : $course_post->post_title;
 $lxp_section = isset($_GET['section']) ? $_GET['section'] : '';
+// ?course=72&section=Index%3A%20Technical%20Evolution%20of%20Filmmaking
 $lessons = lxp_get_lessons_by_course($course_id);
 ?>
 <div class="tab-pane fade show" id="step-2-tab-pane" role="tabpanel" aria-labelledby="setp-2-tab" tabindex="1">
@@ -300,14 +301,14 @@ $lessons = lxp_get_lessons_by_course($course_id);
     }
 
     function lxp_sections_dd_html(lxp_section) {
-        let checked = ( window.lxp_section == lxp_section ) ? 'checked' : '';
+        let checked = ( window.lxp_section == lxp_section['section_id'] ) ? 'checked' : '';
         return `
         <button class="dropdown-item dropdown-item2 practice-button">
             <div class="time-date-box class-student-box">
-                <input class="form-check-input" type="checkbox" value="` + lxp_section + `" id="lxp_sections_` + lxp_section + `" ` + checked + ` name="lxp_sections[]" />
+                <input class="form-check-input" type="checkbox" value="` + lxp_section['section_id'] + `" id="lxp_sections_` + lxp_section['section_id'] + `" ` + checked + ` name="lxp_sections[]" />
                 <img src="<?php echo $treks_src; ?>/assets/img/interdependence-logo.svg" alt="logo" />
                 <div class="tags-body-detail">
-                    <p class="lxp-sections">` + lxp_section + `</p>
+                    <p class="lxp-sections">` + lxp_section['section_name'] + `</p>
                 </div>
             </div>
         </button>
@@ -367,17 +368,17 @@ $lessons = lxp_get_lessons_by_course($course_id);
     function lxp_lessons_dd_html(lxp_section, lxp_lessons) {
         var html = '';
         lxp_lessons.forEach(function(lxp_lesson) {
-            var lesson_id = jQuery("[title='lesson-view-box-"+lxp_lesson.ID+"']").attr('id');
-            var checked = ( lesson_id > 0 && lesson_id == lxp_lesson.ID ) ? 'checked' : '';
+            var lesson_id = jQuery("[title='lesson-view-box-"+lxp_lesson['ID']+"']").attr('id');
+            var checked = ( lesson_id > 0 && lesson_id == lxp_lesson['ID'] ) ? 'checked' : '';
             html += `
             <button class="dropdown-item dropdown-item2 practice-button">
                 <div class="time-date-box">
-                    <input class="form-check-input lesson-checkbox" type="checkbox" title="` + lxp_lesson.post_title + `" value="` + lxp_lesson.ID + `" id="lesson_id_` + lxp_lesson.ID + `" name="lesson_ids[]" ` + checked + ` section="`+lxp_section+`"/>                
+                    <input class="form-check-input lesson-checkbox" type="checkbox" title="` + lxp_lesson['post_title'] + `" value="` + lxp_lesson['ID'] + `" id="lesson_id_` + lxp_lesson['ID'] + `" name="lesson_ids[]" ` + checked + ` section="`+lxp_section+`"/>                
                     <div class="tags-body-polygon">
                         <span>L</span>
                     </div>
                     <div class="tags-body-detail">
-                        <p data-id="` + lxp_lesson.ID + `" id="lesson_body_id_` + lxp_lesson.ID + `" title="` + lxp_lesson.post_title + `" class="lesson-name">` + lxp_lesson.post_title + `</p>
+                        <p data-id="` + lxp_lesson['ID'] + `" id="lesson_body_id_` + lxp_lesson['ID'] + `" title="` + lxp_lesson['post_title'] + `" class="lesson-name">` + lxp_lesson['post_title'] + `</p>
                     </div>
                 </div>
             </button>
@@ -386,14 +387,14 @@ $lessons = lxp_get_lessons_by_course($course_id);
         return html;        
     }
 
-    function lxp_lessons_select_event_init() {        
+    function lxp_lessons_select_event_init() {
         jQuery("input[name='lesson_ids[]']").on('change', function(e) {
             handle_lxp_lessons_html_view();
-            onLxpLessonsCheckboxSelect();            
+            onLxpLessonsCheckboxSelect();
         });
     }     
 
-    function select_lxp_lessons(element) {        
+    function select_lxp_lessons(element) {
         if (element.checked) {
             jQuery("input[name='lesson_ids[]']").prop('checked', true);
         } else {
@@ -403,24 +404,24 @@ $lessons = lxp_get_lessons_by_course($course_id);
         onLxpLessonsCheckboxSelect();
     }
 
-    function handle_lxp_lessons_html_view() {        
-        jQuery("#lxp_lessons_view_container").html(
-            jQuery("input[name='lesson_ids[]']:checked").get()
-            .map( lesson_checked => lxp_lessons_view_html(window.lessons.filter(lesson => lesson.ID == jQuery(lesson_checked).val())[0]) )
-            .join("\n")
-        );
+    function handle_lxp_lessons_html_view() {
+        var selectedLessonsHtml = jQuery("input[name='lesson_ids[]']:checked").get()
+            .map( lesson_checked => lxp_lessons_view_html(lesson_checked.value) )
+            .join("\n");
+        jQuery("#lxp_lessons_view_container").html(selectedLessonsHtml);
     }
     
-    function lxp_lessons_view_html(lesson) {
-        var lxp_section = jQuery('#lesson_id_'+lesson.ID).attr('section');
+    function lxp_lessons_view_html(lesson_id) {
+        var lxp_section = jQuery('#lesson_id_'+lesson_id).attr('section');
+        var lxp_lesson_title = jQuery('#lesson_id_'+lesson_id).attr('title');
         return `
-        <div id="lesson-view_` + lesson.ID + `" lxpsection="`+lxp_section+`" class="`+lxp_section+`"><div id="` + lesson.ID + `" class="third-trek-box practice-a-trek-box" title="lesson-view-box-` + lesson.ID + `">
+        <div id="lesson-view_` + lesson_id + `" lxpsection="`+lxp_section+`" class="`+lxp_section+`"><div id="` + lesson_id + `" class="third-trek-box practice-a-trek-box" title="lesson-view-box-` + lesson_id + `">
             <div class="tags-body practice-a-poly-body">
                 <div class="tags-body-polygon">
                     <span>L</span>
                 </div>
                 <div class="tags-body-detail">
-                    <span>` + lesson.post_title + `</span>
+                    <span>` + lxp_lesson_title + `</span>
                 </div>
             </div>
         </div></div>`;

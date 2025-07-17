@@ -12,6 +12,24 @@ class Rest_Lxp_District
 			return false;
         }
 
+		// /district/settings/update
+		register_rest_route('lms/v1', '/district/settings/update', array(
+			array(
+				'methods' => WP_REST_Server::ALLMETHODS,
+				'callback' => array('Rest_Lxp_District', 'update_settings'),
+				'permission_callback' => '__return_true',
+			)
+		));
+
+		// /district/settings
+		register_rest_route('lms/v1', '/district/settings', array(
+			array(
+				'methods' => WP_REST_Server::ALLMETHODS,
+				'callback' => array('Rest_Lxp_District', 'get_settings'),
+				'permission_callback' => '__return_true',
+			)
+		));
+
         register_rest_route('lms/v1', '/districts', array(
 			array(
 				'methods' => WP_REST_Server::EDITABLE,
@@ -40,6 +58,10 @@ class Rest_Lxp_District
 						'description' => 'user login name',  
 						'format' => 'email',
 						'validate_callback' => function($param, $request, $key) {
+							if (!trim($request->get_param('user_email'))) {
+								return false;
+							}
+
 							$user_by_email = get_user_by("email", trim($request->get_param('user_email')));
 							$user_by_login = get_user_by("login", trim($request->get_param('user_email')));
 							if ( $user_by_email && intval($request->get_param('district_post_id')) > 0 && $user_by_email->data->user_email !== trim($request->get_param('user_email_default')) ) {
@@ -53,20 +75,12 @@ class Rest_Lxp_District
 							}
 						}
 					),
-					'district_about' => array(
-						'required' => false,
-						'type' => 'string',
-						'description' => 'user about description',
-						'validate_callback' => function($param, $request, $key) {
-							return strlen( $param ) > 1;
-						}
-					),
 					'first_name' => array(
 						'required' => true,
 						'type' => 'string',
 						'description' => 'user first name',
 						'validate_callback' => function($param, $request, $key) {
-							return strlen( $param ) > 1;
+							return strlen( $param ) > 0;
 						}
 					),
 					'last_name' => array(
@@ -74,7 +88,7 @@ class Rest_Lxp_District
 						'type' => 'string',
 						'description' => 'user last name',
 						'validate_callback' => function($param, $request, $key) {
-							return strlen( $param ) > 1;
+							return strlen( $param ) > 0;
 						}
 					),
 					'user_password' => array(
@@ -101,15 +115,94 @@ class Rest_Lxp_District
                 )
             )
         ));
+
+		register_rest_route('lms/v1', '/edlink/district/save', array(
+			array(
+				'methods' => WP_REST_Server::EDITABLE,
+				'callback' => array('Rest_Lxp_District', 'edlink_create'),
+				'permission_callback' => '__return_true',
+                'args' => array(
+                    'edlink_district_name' => array(
+						'required' => true,
+						'type' => 'string',
+						'description' => 'District name',
+						'validate_callback' => function($param, $request, $key) {
+							return strlen( $param ) > 1;
+						}
+					),
+                    'edlink_user_email' => array(
+						'required' => true,
+						'type' => 'string',
+						'description' => 'user login name',  
+						'format' => 'email',
+						'validate_callback' => function($param, $request, $key) {
+							if (!trim($request->get_param('edlink_user_email'))) {
+								return false;
+							}
+
+							$user_by_email = get_user_by("email", trim($request->get_param('edlink_user_email')));
+							$user_by_login = get_user_by("login", trim($request->get_param('edlink_user_email')));
+							if ( $user_by_email && intval($request->get_param('edlink_district_post_id')) > 0 && $user_by_email->data->user_email !== trim($request->get_param('edlink_user_email')) ) {
+								return false;
+							} else if ($request->get_param('edlink_district_post_id') == 0) {
+								return ( !($user_by_email || $user_by_login) ? true : false );
+							} if ( trim($request->get_param('edlink_user_email')) == '' ) {
+								return false;
+							} else {
+								return true;
+							}
+						}
+					),
+					'edlink_first_name' => array(
+						'required' => true,
+						'type' => 'string',
+						'description' => 'user first name',
+						'validate_callback' => function($param, $request, $key) {
+							return strlen( $param ) > 0;
+						}
+					),
+					'edlink_last_name' => array(
+						'required' => true,
+						'type' => 'string',
+						'description' => 'user last name',
+						'validate_callback' => function($param, $request, $key) {
+							return strlen( $param ) > 0;
+						}
+					),					
+					'edlink_district_post_id' => array(
+						'required' => true,
+						'type' => 'string',
+						'description' => 'post id',
+						'validate_callback' => function($param, $request, $key) {
+							return strlen( $param ) > 0;
+						}
+					)
+                )
+            )
+        ));
     }
 
-    public static function create($request) {		
+	public static function update_settings($request) {
+		$entity_post_id = intval($request->get_param('entity_post_id'));		
+		$active = $request->get_param('active');
+		update_post_meta($entity_post_id, 'settings_active', $active);
+		return wp_send_json_success( "Settings Saved!" );
+	}
 
+	public static function get_settings($request) {
+		$entity_post_id = intval($request->get_param('entity_post_id'));
+		// get 'settings_active' post metadata and return it as 'active' attribute in response
+		$active = get_post_meta($entity_post_id, 'settings_active', true);
+		$active = $active && $active === 'false' ? false : true;
+		return wp_send_json_success( ["active" => $active] );
+	}
+
+    public static function create($request) {
 		// ============= District Post =================================
 		$site_admin_id = $request->get_param('site_admin_id');
 		$district_post_id = intval($request->get_param('district_post_id'));
 		$district_name = trim($request->get_param('district_name'));
-		$district_description = trim($request->get_param('district_about'));
+		$district_description = $request->get_param('district_about') ? trim($request->get_param('district_about')) : '';
 		
 		$shool_post_arg = array(
 			'post_title'    => wp_strip_all_tags($district_name),
@@ -222,6 +315,105 @@ class Rest_Lxp_District
 		if (trim($request->get_param('user_password'))) {
 			wp_set_password( trim($request->get_param('user_password')), $district_admin_id );
 		}
+
+		if (!boolval($lxp_district_admin_id) && $district_admin_id) {
+			if(get_post_meta($district_post_id, 'lxp_district_admin', $district_admin_id)) {
+				update_post_meta($district_post_id, 'lxp_district_admin', $district_admin_id);
+			} else {
+				add_post_meta($district_post_id, 'lxp_district_admin', $district_admin_id, true);
+			}
+		}
+
+        return wp_send_json_success("District Saved!");
+    }
+
+	public static function edlink_create($request) {
+		// ============= District Post =================================
+		$site_admin_id = $request->get_param('edlink_site_admin_id');
+		$district_post_id = intval($request->get_param('edlink_district_post_id'));
+		$district_name = trim($request->get_param('edlink_district_name'));
+		$district_description = $request->get_param('edlink_district_about') ? trim($request->get_param('edlink_district_about')) : '';
+		$district_type = $request->get_param('district_type');
+		$edlink_provider_id = $request->get_param('edlink_provider_id');
+		$edlink_provider_name = $request->get_param('edlink_provider_name');
+		$edlink_provider_access_token = $request->get_param('edlink_provider_access_token');
+		$edlink_district_id = $request->get_param('edlink_district_id');
+		$post_name = $edlink_provider_name . '-' . $district_name;
+
+		$shool_post_arg = array(
+			'post_title'    => wp_strip_all_tags($district_name),
+			'post_name'    => wp_strip_all_tags(strtolower($post_name)),
+			'post_content'  => $district_description,
+			'post_status'   => 'publish',
+			'post_author'   => $site_admin_id,
+			'post_type'   => "tl_district"
+		);
+		if (intval($district_post_id) > 0) {
+			$shool_post_arg['ID'] = "$district_post_id";
+		}
+		// Insert / Update
+		$district_post_id = wp_insert_post($shool_post_arg);
+
+		// Save the Edlink meta data
+		if(get_post_meta($district_post_id, 'lxp_district_type', $district_type)) {
+			update_post_meta($district_post_id, 'lxp_district_type', $district_type);
+		} else {
+			add_post_meta($district_post_id, 'lxp_district_type', $district_type, true);
+		}
+
+		if(get_post_meta($district_post_id, 'lxp_edlink_provider_id', $edlink_provider_id)) {
+			update_post_meta($district_post_id, 'lxp_edlink_provider_id', $edlink_provider_id);
+		} else if ($edlink_provider_id != '') {
+			add_post_meta($district_post_id, 'lxp_edlink_provider_id', $edlink_provider_id, true);
+		}
+
+		if(get_post_meta($district_post_id, 'lxp_edlink_provider_name', $edlink_provider_name)) {
+			update_post_meta($district_post_id, 'lxp_edlink_provider_name', $edlink_provider_name);
+		} else if ($edlink_provider_name != '') {
+			add_post_meta($district_post_id, 'lxp_edlink_provider_name', $edlink_provider_name, true);
+		}
+
+		if(get_post_meta($district_post_id, 'lxp_edlink_provider_access_token', $edlink_provider_access_token)) {
+			update_post_meta($district_post_id, 'lxp_edlink_provider_access_token', $edlink_provider_access_token);
+		} else if ($edlink_provider_access_token != '') {
+			add_post_meta($district_post_id, 'lxp_edlink_provider_access_token', $edlink_provider_access_token, true);
+		}
+
+		if(get_post_meta($district_post_id, 'lxp_edlink_district_id', $edlink_district_id)) {
+			update_post_meta($district_post_id, 'lxp_edlink_district_id', $edlink_district_id);
+		} else if ($edlink_district_id != '') {
+			add_post_meta($district_post_id, 'lxp_edlink_district_id', $edlink_district_id, true);
+		}
+
+		// ========== District Admin ===========
+		$district_admin_data = array(
+			'user_login' => trim($request->get_param('edlink_user_email')),
+			'user_email' => trim($request->get_param('edlink_user_email')),
+			'first_name' => trim($request->get_param('edlink_first_name')),
+			'last_name' => trim($request->get_param('edlink_last_name')),
+			'display_name' => trim($request->get_param('edlink_first_name')) . ' ' . trim($request->get_param('edlink_last_name')),
+			'role' => 'lxp_client_admin'
+		);
+
+		//if (trim($request->get_param('user_password'))) {
+			$district_admin_data['user_pass'] = trim($request->get_param('edlink_user_email'));
+		//}
+
+		$lxp_district_admin_id = get_post_meta($district_post_id, 'lxp_district_admin', true);
+		if ($lxp_district_admin_id) {
+			$district_admin_data["ID"] = $lxp_district_admin_id;
+			global $wpdb;
+			$result = $wpdb->update(
+				$wpdb->users,
+				array('user_login' => trim($request->get_param('edlink_user_email'))),
+				array('ID' => $lxp_district_admin_id)
+			);
+		}
+		$district_admin_id  = wp_insert_user($district_admin_data);
+
+		// if (trim($request->get_param('user_password'))) {
+		 	wp_set_password( trim($request->get_param('edlink_user_email')), $district_admin_id );
+		// }
 
 		if (!boolval($lxp_district_admin_id) && $district_admin_id) {
 			if(get_post_meta($district_post_id, 'lxp_district_admin', $district_admin_id)) {

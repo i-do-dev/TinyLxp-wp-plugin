@@ -1,7 +1,5 @@
 <?php
   global $treks_src;
-  global $args;
-  $assignments = $args["assignments"];
   // filter $assignments based on "To Do", "In Progress" statuses and not having "Completed" status
   // $assignments = array_filter($assignments, function($assignment) {
   //   $student_stats = lxp_assignment_stats($assignment->ID);
@@ -51,7 +49,13 @@
           $class_post = get_post($class_id);
           // $class_post = get_post(get_post_meta($assignment->ID, 'class_id', true));
           $lxp_lesson_post = get_post(get_post_meta($assignment->ID, 'lxp_lesson_id', true));
-          // $course = get_post(get_post_meta($assignment->ID, 'course_id', true));
+          $section_name = $wpdb->get_var($wpdb->prepare(
+              "SELECT s.section_name
+              FROM {$wpdb->prefix}learnpress_sections s
+              INNER JOIN {$wpdb->prefix}learnpress_section_items si ON s.section_id = si.section_id
+              WHERE si.item_id = %d",
+              $lxp_lesson_post->ID
+          ));
           
           $student_stats = lxp_assignment_stats($assignment->ID);
           $statuses = array("To Do", "In Progress");
@@ -75,13 +79,13 @@
           if($students_graded != count($student_stats)) {
       ?>
         <tr>
-        <td><?php echo $class_post && $class_id > 0 ? $class_post->post_title : '---'; ?></td>
+        <td><?= $class_post && $class_id > 0 ? $class_post->post_title : '---'; ?></td>
           <td>
             <?php 
-              $title = str_replace("'", "`", $course->post_title);
+              $course_title = str_replace("'", "`", $course->post_title);
               $lxp_lesson_post->post_title = str_replace('"', "`", $lxp_lesson_post->post_title);
-              echo $title; 
-              $course_post_image = has_post_thumbnail( $course->ID ) ? get_the_post_thumbnail_url($course->ID) : $treks_src.'/assets/img/tr_main.jpg';                       
+              echo $course_title; 
+              $thumbnail = has_post_thumbnail( $course->ID ) ? get_the_post_thumbnail_url($course->ID) : $treks_src.'/assets/img/tr_main.jpg';
             ?>
           </td>
           <td>
@@ -90,7 +94,7 @@
                 <span>L</span>
               </div>
               <div>
-                <span><?php echo $lxp_lesson_post->post_title; ?></span>
+                <span><?= $lxp_lesson_post->post_title; ?></span>
               </div>
             </div>
           </td>
@@ -102,16 +106,16 @@
             ?>
           </td>
           <td>
-            <div class="student-stats-link"><a href="#" onclick="fetch_assignment_stats(<?php echo $assignment->ID; ?>, '<?php echo $title; ?>', '<?php echo $lxp_lesson_post->post_title; ?>', ['To Do', 'In Progress'], '<?php echo $start; ?>', '<?php echo $end; ?>')"><?php echo count($students_in_progress); ?>/<?php echo count($student_stats); ?></a></div>
+            <div class="student-stats-link"><a href="#" onclick="fetch_assignment_stats(<?= $assignment->ID; ?>, '<?= $thumbnail; ?>', '<?= $course_title; ?>', '<?= $section_name; ?>', '<?= $lxp_lesson_post->post_title; ?>', ['To Do', 'In Progress'], '<?= $start; ?>', '<?= $end; ?>')"><?= count($students_in_progress); ?>/<?= count($student_stats); ?></a></div>
           </td>
           <?php
             $student_stats = lxp_assignment_stats($assignment->ID);
           ?>
           <td>
-            <div class="student-stats-link"><a href="#" onclick="fetch_assignment_stats(<?php echo $assignment->ID; ?>, '<?php echo $title; ?>', '<?php echo $lxp_lesson_post->post_title; ?>', ['Completed'], '<?php echo $start; ?>', '<?php echo $end; ?>')"><?php echo count($students_completed); ?>/<?php echo count($student_stats); ?></a></div>
+            <div class="student-stats-link"><a href="#" onclick="fetch_assignment_stats(<?= $assignment->ID; ?>, '<?= $thumbnail; ?>', '<?= $course_title; ?>', '<?= $section_name; ?>', '<?= $lxp_lesson_post->post_title; ?>', ['Completed'], '<?= $start; ?>', '<?= $end; ?>')"><?= count($students_completed); ?>/<?= count($student_stats); ?></a></div>
           </td>
           <td>
-            <div class="student-stats-link"><a href="#" onclick="fetch_assignment_stats(<?php echo $assignment->ID; ?>, '<?php echo $title; ?>', '<?php echo $lxp_lesson_post->post_title; ?>', ['Graded'], '<?php echo $start; ?>', '<?php echo $end; ?>')"><?php echo $students_graded; ?>/<?php echo count($student_stats); ?></a></div>
+            <div class="student-stats-link"><a href="#" onclick="fetch_assignment_stats(<?= $assignment->ID; ?>, '<?= $thumbnail; ?>', '<?= $course_title; ?>', '<?= $section_name; ?>', '<?= $lxp_lesson_post->post_title; ?>', ['Graded'], '<?= $start; ?>', '<?= $end; ?>')"><?= $students_graded; ?>/<?= count($student_stats); ?></a></div>
           </td>
         </tr>  
       <?php } } }?>

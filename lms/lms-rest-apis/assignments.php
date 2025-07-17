@@ -51,6 +51,14 @@ class Rest_Lxp_Assignment
 				'permission_callback' => '__return_true'
 			)
 		));
+
+		register_rest_route('lms/v1', 'assignment/interactions', array(
+			array(
+				'methods' => WP_REST_Server::EDITABLE,
+				'callback' => array('Rest_Lxp_Assignment', 'get_interactions_by_assignment'),
+				'permission_callback' => '__return_true'
+			)
+		));
 		
 		register_rest_route('lms/v1', '/assignments/save', array(
 			array(
@@ -308,10 +316,9 @@ class Rest_Lxp_Assignment
 	public static function assignment_stats($request) {
 		$assignment_id = $request->get_param('assignment_id');
 		$students_ids = get_post_meta($assignment_id, 'lxp_student_ids');
-		$assignment_type = get_post_meta($assignment_id, 'assignment_type');
 		$q = new WP_Query( array( "post_type" => TL_STUDENT_CPT, 'posts_per_page'   => -1, "post__in" => $students_ids ) );
 		$students_posts = $q->get_posts();
-		$students = array_map(function ($student) use ($assignment_id, $assignment_type) {
+		$students = array_map(function ($student) use ($assignment_id) {
 			$attempted = self::lxp_user_assignment_attempted($assignment_id, $student->ID);
 			$submission = self::lxp_get_assignment_submissions($assignment_id, $student->ID);
 
@@ -326,12 +333,6 @@ class Rest_Lxp_Assignment
 			}
 			$lxp_student_admin_id = get_post_meta($student->ID, 'lxp_student_admin_id', true);
 			$userdata = get_userdata($lxp_student_admin_id);
-			if ( isset($assignment_type[0]) && $assignment_type[0] == 'video_activity') {
-				global $wpdb;
-				$lesson_id = get_post_meta($assignment_id, 'lxp_lesson_id', true);
-				$grade_data = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "tiny_lms_grades WHERE lesson_id = " . $lesson_id . " AND user_id= " . $lxp_student_admin_id);
-				$submission['score_scaled'] = isset($grade_data[0]) ? $grade_data[0]->score : false;
-			}
 
 			$progress = $submission && isset($submission['score_raw']) && ($submission['score_raw'] != '') ? $submission['score_raw'] .'/'. $submission['score_max'] : '---';
 			$score = $submission && $submission['score_scaled'] ? round(($submission['score_scaled'] * 100), 2) . '%' : '---';
@@ -352,12 +353,15 @@ class Rest_Lxp_Assignment
 		$assignment_submission_posts = $query->get_posts();
 	
 		if ($assignment_submission_posts) {
+			$lesson_id = get_post_meta($assignment_id, 'lxp_lesson_id', true);
 			$assignment_submission_post = $assignment_submission_posts[0];
 			$assignment_submission_post_data = array(
 				'ID' => $assignment_submission_post->ID,
 				'lxp_assignment_id' => get_post_meta($assignment_submission_post->ID, 'lxp_assignment_id', true),
 				'lxp_student_id' => get_post_meta($assignment_submission_post->ID, 'lxp_student_id', true),
 				'lti_user_id' => get_post_meta($assignment_submission_post->ID, 'lti_user_id', true),
+				'h5p_content_id' => get_post_meta($lesson_id, 'h5p_content_id', true),
+            	'activity_id' => get_post_meta($lesson_id, 'lti_custom_attr', true),
 				'submission_id' => get_post_meta($assignment_submission_post->ID, 'submission_id', true),
 				'score_min' => get_post_meta($assignment_submission_post->ID, 'score_min', true),
 				'score_max' => get_post_meta($assignment_submission_post->ID, 'score_max', true),
@@ -430,14 +434,14 @@ class Rest_Lxp_Assignment
 			$calendar_selection_info = json_decode(get_post_meta($assignment->ID, 'calendar_selection_info', true));
 			$lxp_lesson_post = get_post(get_post_meta($assignment->ID, 'lxp_lesson_id', true));
 			$course = get_post(get_post_meta($assignment->ID, 'course_id', true));
-			$args = array( 'posts_per_page' => -1, 'post_type' => TL_LESSON_CPT, 'meta_query' => array(array('key'   => 'tl_course_id', 'value' =>  $course ? $course->ID : '')));
-			$lessons = get_posts($args);
-			$digital_journal_link = null;
-			foreach($lessons as $lesson){ 
-				if ( $lxp_lesson_post->ID === $lesson->ID ) {
-					 $digital_journal_link = get_permalink($lesson->ID); 
-				}; 
-			}
+			// $args = array( 'posts_per_page' => -1, 'post_type' => LP_LESSON_CPT, 'meta_query' => array(array('key'   => 'tl_course_id', 'value' =>  $course ? $course->ID : '')));
+			// $lessons = get_posts($args);
+			$digital_journal_link = $lxp_lesson_post->guid;
+			// foreach($lessons as $lesson){ 
+			// 	if ( $lxp_lesson_post->ID === $lesson->ID ) {
+			// 		 $digital_journal_link = get_permalink($lesson->ID); 
+			// 	}; 
+			// }
 			$digital_journal_link = $digital_journal_link ? $digital_journal_link . '?assignment_id=' . $assignment->ID : '';
 			$event = array();
 			if ($lxp_lesson_post && $course) {
@@ -530,5 +534,182 @@ class Rest_Lxp_Assignment
             'user_pass' =>$_POST['login_pass']
          );
          wp_send_json_success (wp_update_user($user_data));
+	}
+
+	// /**
+	//  * @param   submission_id
+	//  */
+	public static function get_interactions_by_assignment($request) {
+		$data = json_decode(file_get_contents('php://input'), true);
+		$assignment_submission['assignment_submission_id'] = $data['assignment_submission_id'];
+		$assignment_submission['lti_user_id'] = $data['lti_user_id'];
+		$assignment_submission['h5p_content_id'] = $data['h5p_content_id'];
+		$api_data = $data['interactions_data'];
+		$interaction_type = $data['interaction_type'];
+		require_once plugin_dir_path(dirname( __FILE__ )). 'templates/tinyLxpTheme/lxp/functions.php';
+		// $interaction_xapis = [];
+		$interaction_xapis = get_submitted_xapi_data( $assignment_submission );
+		// var_dump(count($interaction_xapis)); die;
+		$main_interactions = [];
+		if ($interaction_type == 'CP') {
+			foreach ($api_data as $slide_num => $single_slide) {
+				$score_raw = 0;
+				$score_max = 0;
+				if (isset($single_slide['elements'])) { // this if for empty slide or slide have data
+					foreach ($single_slide['elements'] as $quest_num => $question_per_slide) {
+						$slide_firt_question_type = $single_slide['elements'][0]['action']['metadata']['contentType'];
+						$intrect_type_name = $question_per_slide['action']['metadata']['contentType'];
+						$sub_content_id_array = []; // do not change the place of this code
+						if ( in_array($intrect_type_name, Allowed_Activity_types) ) {
+							if ($intrect_type_name == 'Essay') {
+								$sub_content_id_array[] = $question_per_slide['action']['subContentId'];
+								$scores_array = getScoresByGivenXapiStatements($sub_content_id_array, $interaction_xapis);
+
+								$scores = 1;
+								$i_grade = get_post_meta($assignment_submission['assignment_submission_id'], 'slide_'.$sub_content_id_array[0].'_grade', true);
+
+								$score_raw = $i_grade == '' ? 0 : $i_grade;
+								$score_max = '7';
+							} elseif ($intrect_type_name == 'Interactive Video') {
+								$iv_data = $question_per_slide['action']['params']['interactiveVideo'];
+								$result = get_iv_interactions_score( $assignment_submission, $iv_data, $interaction_xapis);
+								$sub_content_id_array = $result['sub_content_id_array'];
+								$score_raw = $result['score_raw'];
+								$score_max = $result['score_max'];
+								$scores_array = 1;
+							} else {
+								if ( $intrect_type_name == 'Statements' || $intrect_type_name == 'Summary' ) {
+									$sub_content_id_array = array_column( $question_per_slide['action']['params']['summaries'], 'subContentId' );
+								} elseif ($intrect_type_name == 'Single Choice Set') {
+									$sub_content_id_array = array_column( $question_per_slide['action']['params']['choices'], 'subContentId');
+								} else {
+									$sub_content_id_array[] = $question_per_slide['action']['subContentId'];
+								}
+								$scores_array = getScoresByGivenXapiStatements($sub_content_id_array, $interaction_xapis);
+								// var_dump($scores_array); 
+								$scores = array_column($scores_array, 'score');
+								$score_raw += array_sum(array_column($scores, 'raw'));
+								$score_max += array_sum(array_column($scores, 'max'));
+							}
+						}
+					}
+					// var_dump($sub_content_id_array); 
+					if (count($sub_content_id_array) > 0) {
+						$main_interactions[] = [
+							'slide_num' => $slide_num,
+							'slide_question_num' => 0,
+							'title' => $question_per_slide['action']['metadata']['title'],
+							'sub_content_id' => $sub_content_id_array[0],
+							'attempted' => $scores,
+							'score' => $score_max != 0 ? $score_raw.'/'.$score_max : ($slide_firt_question_type == 'Interactive Video' ? '' : 'Not Attempted'),
+							'auto_grade'=> $slide_firt_question_type == 'Essay' ? 0 : 1,
+							'interactive_video'=> $slide_firt_question_type == 'Interactive Video' ? 1 : 0
+						];
+					}
+				}
+			}
+		} elseif ($interaction_type == 'IV') {
+			$iv_questions = filterInteractiveVideoInteractions($api_data);
+			foreach ($iv_questions['data'] as $question_per_second) {
+				$intrect_type_name = $question_per_second['action']['metadata']['contentType'];
+				if ( isset($intrect_type_name) && in_array($intrect_type_name, Allowed_Activity_types) ) {
+					$sub_content_id_array = []; // do not change the place of this code
+					if ($intrect_type_name == 'Free Text Question') {
+						$sub_content_id_array[] = $question_per_second['action']['subContentId'];
+
+						$scores_array = getScoresByGivenXapiStatements($sub_content_id_array, $interaction_xapis);
+						
+						$i_grade = get_post_meta($assignment_submission['assignment_submission_id'], 'slide_'.$sub_content_id_array[0].'_grade', true);
+						$score_raw = ($scores_array ? ($i_grade == '' ? '' : $i_grade) : '');
+						$score_max = '7';
+					} else {
+						if ( $intrect_type_name == 'Statements' || $intrect_type_name == 'Summary' ) {
+							$sub_content_id_array = array_column( $question_per_second['action']['params']['summaries'], 'subContentId' );
+						} elseif ($intrect_type_name == 'Single Choice Set') {
+							$sub_content_id_array = array_column( $question_per_second['action']['params']['choices'], 'subContentId');
+						} else {
+							$sub_content_id_array[] = $question_per_second['action']['subContentId'];
+						}
+						$scores_array = getScoresByGivenXapiStatements($sub_content_id_array, $interaction_xapis);
+						$scores = array_column($scores_array, 'score');
+						$score_raw = array_sum(array_column($scores, 'raw'));
+						$score_max = array_sum(array_column($scores, 'max'));
+					}
+					$main_interactions[] = [
+						'title' => $question_per_second['action']['metadata']['title'],
+						'sub_content_id' => $sub_content_id_array[0],
+						'score' => ($scores_array && $score_raw == '' && $intrect_type_name == 'Free Text Question' ? 'Not Gradded' : ($scores_array && $score_max != 0 ? $score_raw.'/'.$score_max : 'Not Attempted')),
+						'auto_grade'=> $intrect_type_name == 'Free Text Question' ? 1 : 0,
+						'attempted' => $scores_array
+					];
+				}
+			}
+		} elseif ($interaction_type == 'IB' || $interaction_type == 'QS') {
+			foreach ($api_data as $section_per_activity) {
+				$section_per_activity = $interaction_type == 'QS' ? $section_per_activity : $section_per_activity['content'];
+
+				$intrect_type_name = $section_per_activity['metadata']['contentType'];
+				if ( isset($intrect_type_name) && in_array($intrect_type_name, Allowed_Activity_types) ) {
+					$sub_content_id_array = []; // do not change the place of this code
+					if ($intrect_type_name == 'Essay') {
+						$sub_content_id_array[] = $section_per_activity['subContentId'];
+						$scores_array = getScoresByGivenXapiStatements($sub_content_id_array, $interaction_xapis);
+						$i_grade = get_post_meta($assignment_submission['assignment_submission_id'], 'slide_'.$sub_content_id_array[0].'_grade', true);
+						$score_raw = ($scores_array ? ($i_grade == '' ? '' : $i_grade) : '');
+						$score_max = '7';
+					} else {
+						if ( $intrect_type_name == 'Statements' || $intrect_type_name == 'Summary' ) {
+							$sub_content_id_array = array_column( $section_per_activity['params']['summaries'], 'subContentId' );
+							$scores_array = getScoresByGivenXapiStatements($sub_content_id_array, $interaction_xapis);
+							$scores = array_column($scores_array, 'score');
+							$score_raw = array_sum(array_column($scores, 'raw'));
+							$score_max = array_sum(array_column($scores, 'max'));
+						} elseif ($intrect_type_name == 'Single Choice Set') {
+							$sub_content_id_array = array_column( $section_per_activity['params']['choices'], 'subContentId');
+							$scores_array = getScoresByGivenXapiStatements($sub_content_id_array, $interaction_xapis);
+							$scores = array_column($scores_array, 'score');
+							$score_raw = array_sum(array_column($scores, 'raw'));
+							$score_max = array_sum(array_column($scores, 'max'));
+						} elseif ($intrect_type_name == 'Course Presentation') {
+							$slides = $section_per_activity['params']['presentation']['slides'];
+							$result = get_cp_interactions_score($assignment_submission, $slides, $interaction_xapis);
+							$sub_content_id_array = $result['sub_content_id_array'];
+							$score_raw 			  = $result['score_raw'];
+							$score_max 			  = $result['score_max'];
+							$scores_array = 1;
+						} elseif ($intrect_type_name == 'Interactive Video') {
+							$iv_data = $section_per_activity['params']['interactiveVideo'];
+							$result = get_iv_interactions_score( $assignment_submission, $iv_data, $interaction_xapis);
+							$sub_content_id_array = $result['sub_content_id_array'];
+							$score_raw 			  = $result['score_raw'];
+							$score_max 			  = $result['score_max'];
+							$scores_array 		  = 1;
+						} elseif ($intrect_type_name == 'Question Set') {
+							$qs_data = $section_per_activity['params']['questions'];
+							$result = get_question_set_interactions_score($assignment_submission, $qs_data, $interaction_xapis);
+							$sub_content_id_array = $result['sub_content_id_array'];
+							$score_raw 			  = $result['score_raw'];
+							$score_max 			  = $result['score_max'];
+							$scores_array 		  = 1;
+						} else {
+							$sub_content_id_array[] = $section_per_activity['subContentId'];
+							$scores_array = getScoresByGivenXapiStatements($sub_content_id_array, $interaction_xapis);
+							$scores = array_column($scores_array, 'score');
+							$score_raw = array_sum(array_column($scores, 'raw'));
+							$score_max = array_sum(array_column($scores, 'max'));
+						}
+					}
+					$main_interactions[] = [
+						'title' => $section_per_activity['metadata']['title'],
+						'sub_content_id' => $sub_content_id_array[0],
+						'score' => ($scores_array && $score_raw == '' && ($intrect_type_name == 'Free Text Question' || $intrect_type_name == 'Essay') ? 'Not Gradded' : ($scores_array && $score_max != 0 ? $score_raw.'/'.$score_max : 'Not Attempted')),
+						'auto_grade'=> $intrect_type_name == 'Free Text Question' || $intrect_type_name == 'Essay' ? 1 : 0,
+						'interaction_type'=> $intrect_type_name,
+						'attempted' => $scores_array
+					];
+				}
+			}
+		}
+		return wp_send_json_success($main_interactions);
 	}
 }

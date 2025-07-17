@@ -91,6 +91,214 @@ class Tiny_LXP_Platform_Admin
             Tiny_LXP_Platform::get_plugin_name() . '-settings', array($this, 'options_page_html')
         );
         add_action("load-{$submenu}", array($this, 'load_submenu'));
+        add_menu_page(
+            'Edlink Integrations',  // Page title
+            'Edlink Settings',       // Menu title
+            'manage_options',        // Capability required to access this menu
+            'edlink_options',        // Menu slug
+            'edlink_options_page'    // Function that displays the page content
+        );
+
+        // Display the settings page content
+        function edlink_options_page() {
+            ?>
+            <form action="options.php" method="post">
+                <h2>Edlink Integrations</h2>
+                <?php
+                settings_fields('edlink_options_group');  // Output security fields for the registered setting
+                do_settings_sections('edlink_options');   // Output setting sections and fields
+                submit_button('Save Settings');           // Save button
+                ?>
+            </form>
+            <?php
+        }
+
+        // Callback function for the section description
+        function edlink_settings_section_cb() {
+            echo '<p>Configure your Edlink API credentials below.</p>';
+        }
+
+        // Render the Application Id field
+        function edlink_application_id_render() {
+            $options = get_option('edlink_options');
+            ?>
+            <input type="text" name="edlink_options[edlink_application_id]" value="<?php echo isset($options['edlink_application_id']) ? esc_attr($options['edlink_application_id']) : ''; ?>" />
+            <?php
+        }
+
+        // Render the Application Secrets field
+        function edlink_application_secrets_render() {
+            $options = get_option('edlink_options');
+            ?>
+            <input type="text" name="edlink_options[edlink_application_secrets]" value="<?php echo isset($options['edlink_application_secrets']) ? esc_attr($options['edlink_application_secrets']) : ''; ?>" />
+            <?php
+        }
+
+        // Render the Enable Edlink SSO checkbox field
+        function edlink_sso_enable_render() {
+            $options = get_option('edlink_options');
+            ?>
+            <input type="checkbox" name="edlink_options[edlink_sso_enable]" value="1" <?php checked(1, isset($options['edlink_sso_enable']) ? $options['edlink_sso_enable'] : 0, true); ?> />
+            <label for="edlink_sso_enable">Enable Edlink SSO</label>
+            <?php
+        }
+
+        function count_people_by_roles_from_edlink($access_token, $value) {
+            $count = 0;
+            $next = null;
+            $api_url = 'https://ed.link/api/v2/graph/people';
+
+            do {
+                // Construct URL with pagination and $first
+                // Build the query parameters
+                $params = array(
+                    '$filter' => json_encode(array(
+                        'roles' => array(
+                            array(
+                                'operator' => 'equals',
+                                'value' => $value
+                            )
+                        )
+                    )),
+                    '$first' => 10000
+                );
+
+                // Add the query parameters to the URL
+                $url = add_query_arg($params, $api_url);
+                
+                //$url = $api_url . '?$first=' . $first . '&$filter=' .$filter;
+                if ($next) {
+                    // Parse the URL to extract the query part
+                    $parsed_url = parse_url($next);
+
+                    // Extract the query string part and parse it into an array
+                    $query_string = $parsed_url['query'];
+
+                    parse_str($query_string, $query_params);
+
+                    // Get the value of $cursor
+                    $cursor_value = isset($query_params['$cursor']) ? $query_params['$cursor'] : null;
+                    $url .= '&cursor=' . $cursor_value;            
+                }
+
+                // Prepare request headers
+                $args = array(
+                    'headers' => array(
+                        'Authorization' => 'Bearer ' . $access_token
+                    )
+                );
+
+                // Make API request
+                $response = wp_remote_get( $url, $args );
+
+                if ( is_wp_error( $response ) ) {
+                    return 'Error: ' . $response->get_error_message().'<br/> Please refresh the page again!';
+                }
+
+                // Parse the response
+                $data = json_decode( wp_remote_retrieve_body( $response ), true );
+
+                if ( !empty( $data['$data'] ) ) {
+                    // Count current page's $data
+                    $count += count( $data['$data'] );
+                }
+
+                // Update next page token for the loop
+                $next = isset($data['$next']) ? $data['$next'] : null;
+
+            } while ( $next );  // Continue loop until there are no more pages
+
+            // Return total count of people    
+            return $count;
+        }
+
+        function count_schools_from_edlink($access_token, $value) {
+            $count = 0;
+            $next = null;
+            $api_url = 'https://ed.link/api/v2/graph/schools';
+
+            do {
+                // Construct URL with pagination and $first
+                // Build the query parameters
+                $params = array(            
+                    '$first' => 10000
+                );
+
+                // Add the query parameters to the URL
+                $url = add_query_arg($params, $api_url);
+                
+                //$url = $api_url . '?$first=' . $first . '&$filter=' .$filter;
+                if ($next) {
+                    // Parse the URL to extract the query part
+                    $parsed_url = parse_url($next);
+
+                    // Extract the query string part and parse it into an array
+                    $query_string = $parsed_url['query'];
+
+                    parse_str($query_string, $query_params);
+
+                    // Get the value of $cursor
+                    $cursor_value = isset($query_params['$cursor']) ? $query_params['$cursor'] : null;
+                    $url .= '&cursor=' . $cursor_value;            
+                }
+
+                // Prepare request headers
+                $args = array(
+                    'headers' => array(
+                        'Authorization' => 'Bearer ' . $access_token
+                    )
+                );
+
+                // Make API request
+                $response = wp_remote_get( $url, $args );
+
+                if ( is_wp_error( $response ) ) {
+                    return 'Error: ' . $response->get_error_message().'<br/> Please refresh the page again!';
+                }
+
+                // Parse the response
+                $data = json_decode( wp_remote_retrieve_body( $response ), true );
+
+                if ( !empty( $data['$data'] ) ) {
+                    // Count current page's $data
+                    $count += count( $data['$data'] );
+                }
+
+                // Update next page token for the loop
+                $next = isset($data['$next']) ? $data['$next'] : null;
+
+            } while ( $next );  // Continue loop until there are no more pages
+
+            // Return total count of people    
+            return $count;
+        }
+
+        function get_schools_list_from_edlink($access_token) {
+            $api_url = 'https://ed.link/api/v2/graph/schools';
+            $error = '';
+            $data = [];
+            // Prepare request headers
+            $args = array(
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $access_token
+                )
+            );
+
+            // Make API request
+            $response = wp_remote_get( $api_url, $args );
+
+            if ( is_wp_error( $response ) ) {
+                $error = 'Error: ' . $response->get_error_message().'<br/> Please refresh the page again!';
+            }
+
+            // Parse the response
+            $data = json_decode( wp_remote_retrieve_body( $response ), true );
+
+            if ( !empty( $data['$data'] ) ) {        
+                $data = $data['$data'];
+            }
+            return array('error' => $error, 'schools' => $data);   
+        }
     }
 
     public function network_options_page()
@@ -235,6 +443,42 @@ class Tiny_LXP_Platform_Admin
         add_settings_field('field_privatekey', __('Private key', Tiny_LXP_Platform::get_plugin_name()), array($this, 'field_textarea'),
             Tiny_LXP_Platform::get_plugin_name(), 'section_security',
             array('class' => 'row', 'label_for' => 'id_privatekey', 'name' => 'privatekey', 'options' => $options));
+        // Register a new setting for 'edlink' options
+        register_setting('edlink_options_group', 'edlink_options');
+        
+        // Add a new section for the settings page
+        add_settings_section(
+            'edlink_settings_section',      // Section ID
+            'Edlink API Settings',          // Section Title
+            'edlink_settings_section_cb',   // Callback function to explain the section
+            'edlink_options'                // Page slug where the section will appear
+        );
+        
+        // Add individual fields (Application ID, Secret, etc.) to the section
+        add_settings_field(
+            'edlink_application_id',               // Field ID
+            'Application ID',                      // Field Title
+            'edlink_application_id_render',        // Callback function to render the field
+            'edlink_options',               // Page slug where the field will appear
+            'edlink_settings_section'       // Section ID
+        );
+        
+        add_settings_field(
+            'edlink_application_secrets',
+            'Application Secrets',
+            'edlink_application_secrets_render',
+            'edlink_options',
+            'edlink_settings_section'
+        );
+
+        // Add a new checkbox field for 'edlink_sso_enable'
+        add_settings_field(
+            'edlink_sso_enable',
+            'Enable Edlink SSO',
+            'edlink_sso_enable_render',
+            'edlink_options',
+            'edlink_settings_section'
+        );
     }
 
     public function section_general()

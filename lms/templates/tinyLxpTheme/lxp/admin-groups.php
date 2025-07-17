@@ -6,6 +6,22 @@
     $lxp_client_admin_users = get_users(array('role' => 'lxp_client_admin'));
     $lxp_client_admin_user_ids = array_map(function ($user) { return $user->ID; },  $lxp_client_admin_users);
     // get post TL_DISTRICT_CPT based on multiple 'lxp_district_admin' meta values
+    $district_type_condition = (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') ? array(
+        'key' => 'lxp_district_type',
+        'value' => 'edlink',
+        'compare' => '='
+    ) : array(
+        'relation' => 'OR',
+        array(
+            'key' => 'lxp_district_type',
+            'compare' => 'NOT EXISTS'
+        ),
+        array(
+            'key' => 'lxp_district_type',
+            'value' => 'edlink',
+            'compare' => '!='
+        )
+    );
     $district_posts = get_posts(array(
     'post_type' => 'tl_district',
     'meta_query' => array(
@@ -13,7 +29,8 @@
         'key' => 'lxp_district_admin',
         'value' => $lxp_client_admin_user_ids,
         'compare' => 'IN'
-        )
+        ),
+        $district_type_condition
     )
     ));
 
@@ -30,6 +47,9 @@
     $classes = array_merge($default_classes, $classes);
     $other_groups = $teacher_post ? lxp_get_teacher_group_by_type($teacher_post->ID, 'other_group') : [];
     $small_groups = $teacher_post ? lxp_get_teacher_groups($teacher_post->ID) : [];
+
+    // Get the Edlink API Settings
+    $edlink_options = get_option('edlink_options');
 ?>
 
 <!DOCTYPE html>
@@ -136,7 +156,31 @@
                     <div class="row" style="width: 100%;">
                         <div class="col-md-9">
                             <form class="row">
-                                <div class="col-md-4">
+                                <?php 
+                                    if (isset($edlink_options['edlink_application_id']) && $edlink_options['edlink_application_id'] != '' && isset($edlink_options['edlink_application_secrets']) && $edlink_options['edlink_application_secrets'] != '' && isset($edlink_options['edlink_sso_enable']) && $edlink_options['edlink_sso_enable'] == 1
+                                    ) {
+                                ?>
+                                        <div class="col-md-2">
+                                            <label for="district_type" class="form-label">Integration</label>
+                                            <select id="district_type" name="district_type" class="form-select" onChange="javascript:onChangeDistrictType();">
+                                                <?php 
+                                                    if (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') {
+                                                ?>
+                                                        <option value="tinylxp">TinyLxp</option>
+                                                        <option value="edlink" selected="selected">Edlink</option>
+                                                <?php        
+
+                                                    } else {
+                                                ?>
+                                                        <option value="tinylxp">TinyLxp</option>
+                                                        <option value="edlink">Edlink</option>
+                                                <?php
+                                                    }
+                                                ?>
+                                            </select>                    
+                                        </div>
+                                <?php } ?>
+                                <div class="col-md-3">
                                     <label for="district-drop-down" class="form-label">District</label>
                                     <select class="form-select" id="district-drop-down" name="district_id">
                                         <option value="0">Choose...</option>
@@ -154,7 +198,7 @@
                                         <?php } ?>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="district-drop-down" class="form-label">Teacher</label>
                                     <select class="form-select" id="teacher-drop-down" name="teacher_id">
                                         <option value="0">Choose...</option>
@@ -326,6 +370,13 @@
                 window.location = url.href;
             });
         });
+
+        function onChangeDistrictType() {
+            var district_type = jQuery("#district_type option:selected").val();
+            let newUrl = window.location.pathname + '?district_type=' + district_type;
+            // Reload the page with the new URL
+            window.location.href = newUrl;
+        }
     </script>
 </body>
 

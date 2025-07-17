@@ -12,7 +12,7 @@
   $courses_count = 6;
   $args = array(
     'posts_per_page'   => 3,
-    'post_type'        => 'tl_course'
+    'post_type'        => LP_COURSE_CPT
   );
 
   $courses_saved = get_post_meta($teacher_post->ID, 'courses_saved');
@@ -40,7 +40,7 @@
   if ( get_userdata(get_current_user_id())->user_email === "guest@rpatreks.com" ) {
     $args = array(
       'include' => '15',
-      'post_type'        => 'tl_course',
+      'post_type'        => LP_COURSE_CPT,
       'order' => 'post__in'
     );
   }
@@ -63,13 +63,13 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><?php the_title(); ?></title>
-  <link href="<?php echo $treks_src; ?>/style/main.css" rel="stylesheet" />
-  <link rel="stylesheet" href="<?php echo $treks_src; ?>/style/header-section.css" />
-  <link href="<?php echo $treks_src; ?>/style/treksstyle.css" rel="stylesheet" />
+  <link href="<?= $treks_src; ?>/style/main.css" rel="stylesheet" />
+  <link rel="stylesheet" href="<?= $treks_src; ?>/style/header-section.css" />
+  <link href="<?= $treks_src; ?>/style/treksstyle.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
     integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous" />
-  <link href="<?php echo $treks_src; ?>/style/treksstyle.css" rel="stylesheet" />
-  <link rel="stylesheet" href="<?php echo $treks_src; ?>/style/newAssignment.css" />
+  <link href="<?= $treks_src; ?>/style/treksstyle.css" rel="stylesheet" />
+  <link rel="stylesheet" href="<?= $treks_src; ?>/style/newAssignment.css" />
   <script src="https://code.jquery.com/jquery-3.6.3.js" integrity="sha256-nQLuAZGRRcILA+6dMBOvcRh5Pe310sBpanc6+QBmyVM="
     crossorigin="anonymous"></script>
 
@@ -125,6 +125,9 @@
       .bg-green {
           background: #6dc200 !important;
       }
+      .bg-blue {
+          background: #1fa5d4 !important;
+      }
     </style>
 </head>
 
@@ -142,9 +145,9 @@
 
             <!-- searching input -->
             <div class="header-search">
-              <img src="<?php echo $treks_src; ?>/assets/img/header_search.svg" alt="svg" />
-              <form action="<?php echo site_url("search"); ?>">
-                  <input placeholder="Search" id="q" name="q" value="<?php echo isset($_GET["q"]) ? $_GET["q"]:''; ?>" />
+              <img src="<?= $treks_src; ?>/assets/img/header_search.svg" alt="svg" />
+              <form action="<?= site_url("search"); ?>">
+                  <input placeholder="Search" id="q" name="q" value="<?= isset($_GET["q"]) ? $_GET["q"]:''; ?>" />
               </form>
             </div>
           </div>
@@ -172,7 +175,7 @@
         <div class="recent-treks-header section-div-header">
           <h2>My Courses</h2>
           <div>
-            <a href="<?php echo site_url('courses'); ?>">See All</a>
+            <a href="<?= site_url('courses'); ?>">See All</a>
           </div>
         </div>
         <!-- Courses cards -->
@@ -181,9 +184,9 @@
           <?php
             foreach($teacher_saved_courses as $course) {
           ?>
-            <a href="<?php echo get_post_permalink($course->ID); ?>" class="treks-card-link">
+            <a href="<?= get_post_permalink($course->ID); ?>" class="treks-card-link">
               <div class="recent-treks-card-body treks-card">
-                  <div class="treks-card-saved"><img width="35" height="35" src="<?php echo $treks_src; ?>/assets/img/trek-save-filled-icon.svg" alt="svg" /></div>
+                  <div class="treks-card-saved"><img width="35" height="35" src="<?= $treks_src; ?>/assets/img/trek-save-filled-icon.svg" alt="svg" /></div>
                   <div class="treks-card-saved-back"></div>
                   <div>
                     <?php
@@ -191,13 +194,13 @@
                           echo get_the_post_thumbnail($course->ID, "medium", array( 'class' => 'rounded' )); 
                       } else {
                     ?>
-                      <img width="300" height="180" src="<?php echo $treks_src; ?>/assets/img/tr_main.jpg" class="rounded wp-post-image" /> 
+                      <img width="300" height="180" src="<?= $treks_src; ?>/assets/img/tr_main.jpg" class="rounded wp-post-image" /> 
                     <?php        
                         }
                     ?>
                   </div>
                   <div>
-                    <h3><?php echo get_the_title($course->ID); ?></h3>
+                    <h3><?= get_the_title($course->ID); ?></h3>
                     <span>Due date: May 17, 2023</span>
                   </div>
                 </div>
@@ -207,7 +210,7 @@
           <?php
             foreach($courses as $course) {
           ?>
-              <a href="<?php echo get_post_permalink($course->ID); ?>" class="treks-card-link">
+              <a href="<?= get_post_permalink($course->ID); ?>" class="treks-card-link">
                 <div class="recent-treks-card-body treks-card">
                     <div>
                       <?php
@@ -215,13 +218,13 @@
                             echo get_the_post_thumbnail($course->ID, "medium", array( 'class' => 'rounded' )); 
                         } else {
                       ?>
-                        <img width="300" height="180" src="<?php echo $treks_src; ?>/assets/img/tr_main.jpg" class="rounded wp-post-image" /> 
+                        <img width="300" height="180" src="<?= $treks_src; ?>/assets/img/tr_main.jpg" class="rounded wp-post-image" /> 
                       <?php        
                         }
                       ?>
                     </div>
                     <div>
-                      <h3><?php echo get_the_title($course->ID); ?></h3>
+                      <h3><?= get_the_title($course->ID); ?></h3>
                       <span>Due date: May 17, 2023</span>
                     </div>
                   </div>
@@ -238,7 +241,7 @@
         <div class="pending-assignments-header section-div-header">
           <h2>Pending Assignments</h2>
           <div>
-            <a href="<?php echo site_url('calendar');?>">See All</a>
+            <a href="<?= site_url('calendar');?>">See All</a>
           </div>
         </div>
         <!--  table -->
@@ -276,8 +279,13 @@
                   $class_id = intval(get_post_meta($assignment->ID, 'class_id', true));
                   $class_post = get_post(get_post_meta($assignment->ID, 'class_id', true));
                   $lxp_lesson_post = get_post(get_post_meta($assignment->ID, 'lxp_lesson_id', true));
-                  // $course = get_post(get_post_meta($assignment->ID, 'course_id', true));
-                  // $lesson_segment = implode("-", explode(" ", strtolower($lxp_lesson_post->post_title))) ;
+                  $section_name = $wpdb->get_var($wpdb->prepare(
+                      "SELECT s.section_name
+                      FROM {$wpdb->prefix}learnpress_sections s
+                      INNER JOIN {$wpdb->prefix}learnpress_section_items si ON s.section_id = si.section_id
+                      WHERE si.item_id = %d",
+                      $lxp_lesson_post->ID
+                  ));
                   
                   $student_stats = lxp_assignment_stats($assignment->ID);
                   $statuses = array("To Do", "In Progress");
@@ -300,13 +308,13 @@
                   });
               ?>
                 <tr>
-                <td><?php echo $class_id > 0 && $class_post ? $class_post->post_title : '---'; ?></td>
+                <td><?= $class_id > 0 && $class_post ? $class_post->post_title : '---'; ?></td>
                   <td>
                     <?php 
-                      $title = str_replace("'", "`", $course->post_title);
+                      $course_title = str_replace("'", "`", $course->post_title);
                       $lxp_lesson_post->post_title = str_replace('"', "`", $lxp_lesson_post->post_title);
-                      echo $title; 
-                      $course_post_image = has_post_thumbnail( $course->ID ) ? get_the_post_thumbnail_url($course->ID) : $treks_src.'/assets/img/tr_main.jpg';                       
+                      echo $course_title; 
+                      $thumbnail = has_post_thumbnail( $course->ID ) ? get_the_post_thumbnail_url($course->ID) : $treks_src.'/assets/img/tr_main.jpg';
                     ?>
                   </td>
                   <td>
@@ -315,7 +323,7 @@
                         <span>L</span>
                       </div>
                       <div>
-                        <span><?php echo $lxp_lesson_post->post_title; ?></span>
+                        <span><?= $lxp_lesson_post->post_title; ?></span>
                       </div>
                     </div>
                   </td>
@@ -327,13 +335,13 @@
                     ?>
                   </td>
                   <td>
-                    <div class="student-stats-link"><a href="#" onclick="fetch_assignment_stats(<?php echo $assignment->ID; ?>, '<?php echo $title; ?>', '<?php echo $lxp_lesson_post->post_title; ?>', ['To Do', 'In Progress'], '<?php echo $start; ?>', '<?php echo $end; ?>')"><?php echo count($students_in_progress); ?>/<?php echo count($student_stats); ?></a></div>
+                    <div class="student-stats-link"><a href="#" onclick="fetch_assignment_stats(<?= $assignment->ID; ?>, '<?= $thumbnail; ?>', '<?= $course_title; ?>', '<?= $section_name; ?>', '<?= $lxp_lesson_post->post_title; ?>', ['To Do', 'In Progress'], '<?= $start; ?>', '<?= $end; ?>')"><?= count($students_in_progress); ?>/<?= count($student_stats); ?></a></div>
                   </td>
                   <td>
-                    <div class="student-stats-link"><a href="#" onclick="fetch_assignment_stats(<?php echo $assignment->ID; ?>, '<?php echo $title; ?>', '<?php echo $lxp_lesson_post->post_title; ?>', ['Completed'], '<?php echo $start; ?>', '<?php echo $end; ?>')"><?php echo count($students_completed); ?>/<?php echo count($student_stats); ?></a></div>
+                    <div class="student-stats-link"><a href="#" onclick="fetch_assignment_stats(<?= $assignment->ID; ?>, '<?= $thumbnail; ?>', '<?= $course_title; ?>', '<?= $section_name; ?>', '<?= $lxp_lesson_post->post_title; ?>', ['Completed'], '<?= $start; ?>', '<?= $end; ?>')"><?= count($students_completed); ?>/<?= count($student_stats); ?></a></div>
                   </td>
                   <td>
-                    <div class="student-stats-link"><a href="#" onclick="fetch_assignment_stats(<?php echo $assignment->ID; ?>, '<?php echo $title; ?>', '<?php echo $lxp_lesson_post->post_title; ?>', ['Graded'], '<?php echo $start; ?>', '<?php echo $end; ?>')"><?php echo $students_graded; ?>/<?php echo count($student_stats); ?></a></div>
+                    <div class="student-stats-link"><a href="#" onclick="fetch_assignment_stats(<?= $assignment->ID; ?>, '<?= $thumbnail; ?>', '<?= $course_title; ?>', '<?= $section_name; ?>', '<?= $lxp_lesson_post->post_title; ?>', ['Graded'], '<?= $start; ?>', '<?= $end; ?>')"><?= $students_graded; ?>/<?= count($student_stats); ?></a></div>
                   </td>
                 </tr>  
               <?php } } ?>
@@ -345,18 +353,19 @@
   </section>
   <?php include $livePath.'/lxp/assignment-stats-modal.php'; ?>
 
-  <script src="<?php echo $treks_src; ?>/js/Animated-Circular-Progress-Bar-with-jQuery-Canvas-Circle-Progress/dist/circle-progress.js"></script>
-  <script src="<?php echo $treks_src; ?>/js/custom.js"></script>
+  <script src="<?= $treks_src; ?>/js/Animated-Circular-Progress-Bar-with-jQuery-Canvas-Circle-Progress/dist/circle-progress.js"></script>
+  <script src="<?= $treks_src; ?>/js/custom.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
     crossorigin="anonymous"></script>
   
   <script type="text/javascript">
-    function fetch_assignment_stats(assignment_id, course_title, lesson_title, statuses, start, end) {
+    function fetch_assignment_stats(assignment_id, course_thumbnail, course_title, section_title, lesson_title, statuses, start, end) {
 
-      jQuery('#student-progress-trek-title').text(course_title);
-      jQuery('#student-progress-trek-segment-char').text('L');
-      jQuery('#student-progress-trek-segment').text(lesson_title);
+      jQuery('#student-course-thumbnail').html(`<img width="40" height="40" style="border-radius: 5px;" src="`+course_thumbnail+`"><h3 class="inter-user-name" id="student-course-title"></h3>`);
+      jQuery('#student-course-title').text(course_title);
+      jQuery('#student-section-title').text(section_title);
+      jQuery('#student-lesson-title').text(lesson_title);
 
       // starting date and time
       let start_date = new Date(start);
@@ -404,24 +413,28 @@
           break;
         case 'Completed':
           statusClass = 'bg-green';
+          student.status = 'Submitted';
+          break;
+        case 'Graded':
+          statusClass = 'bg-blue';
           break;
       }
       return `
           <tr>
               <td>
               <div class="table-user">
-                  <img src="<?php echo $treks_src; ?>/assets/img/profile-icon.png" alt="user" />
+                  <img src="<?= $treks_src; ?>/assets/img/profile-icon.png" alt="user" />
                   <div class="user-about">
-                  <h5><a class='student-progress-link' href='<?php echo site_url("grade-assignment"); ?>?assignment=` + assignment_id + `&student=` + student.ID + `'>` + student.name + `</a></h5>
+                  <h5><a class='student-progress-link' href='<?= site_url("grade-assignment"); ?>?assignment=` + assignment_id + `&student=` + student.ID + `'>` + student.name + `</a></h5>
                   </div>
               </div>
               </td>
               <td>
               <div class="table-status ` + statusClass + `">` + student.status + `</div>
               </td>
-              <td><a class='student-progress-link' href='<?php echo site_url("grade-assignment"); ?>?assignment=` + assignment_id + `&student=` + student.ID + `'>` + student.progress + `</a></td>
+              <td><a class='student-progress-link' href='<?= site_url("grade-assignment"); ?>?assignment=` + assignment_id + `&student=` + student.ID + `'>` + student.progress + `</a></td>
               <td>` + student.score + `</td>
-              <td><a href='<?php echo site_url("grade-assignment"); ?>?assignment=` + assignment_id + `&student=` + student.ID + `'><img src="<?php echo $treks_src; ?>/assets/img/review-icon.svg" alt="svg" width="30" /></a></td>
+              <td><a href='<?= site_url("grade-assignment"); ?>/?assignment=` + assignment_id + `&student=` + student.ID + `'><img src="<?= $treks_src; ?>/assets/img/review-icon.svg" alt="svg" width="30" /></a></td>
           </tr>
       `;
     }

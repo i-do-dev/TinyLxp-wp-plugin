@@ -1,7 +1,7 @@
 <?php
-global $treks_src;
-$school_post = $args['school_post'];
-$teachers = $args['teachers'];
+    global $treks_src;
+    $school_post = $args['school_post'];
+    $teachers = $args['teachers'];
 ?>
 
 <!-- Modal -->
@@ -47,40 +47,40 @@ $teachers = $args['teachers'];
                         <div class="input_box">
                             <div class="label_box">
                                 <label class="label">First name</label>
-                                <input class="form-control" type="text" name="first_name" id="first_name_student"
+                                <input class="form-control" type="text" name="lxp_first_name" id="lxp_first_name_student"
                                     placeholder="Enter student’s first name here" />
                             </div>
                         </div>
                         <div class="input_box">
                             <div class="label_box">
                                 <label class="label">Last name</label>
-                                <input class="form-control" type="text" name="last_name" id="last_name_student"
+                                <input class="form-control" type="text" name="lxp_last_name" id="lxp_last_name_student"
                                     placeholder="Enter student’s last name here" />
                             </div>
                         </div>
                         <div class="input_box">
                             <div class="label_box">
                                 <label class="label">Username</label>
-                                <input class="form-control" type="text" name="username" id="usernameStudent" placeholder="johndoe@gmail.com" />
-                                <input type="hidden" id="inputUsernameDefaultStudent" name="username_default" />
+                                <input class="form-control" type="text" name="lxp_username" id="lxp_usernameStudent" placeholder="johndoe@gmail.com" />
+                                <input type="hidden" id="inputUsernameDefaultStudent" name="lxp_username_default" />
                             </div>
                         </div>
                         <div class="input_box">
                             <div class="label_box">
                                 <label class="label">Password</label>
-                                <input class="form-control" type="password" name="user_password" id="passwordStudent" placeholder="***" />
+                                <input class="form-control" type="password" name="lxp_user_password" id="lxp_passwordStudent" placeholder="***" />
                             </div>
                         </div>
                         <div class="input_box">
                             <div class="label_box">
                                 <label class="label">ID</label>
-                                <input class="form-control" type="text" name="student_id" id="idStudent" placeholder="Student ID" />
+                                <input class="form-control" type="text" name="lxp_student_id" id="idStudent" placeholder="Student ID" />
                             </div>
                         </div>
                         <div class="input_box">
                             <div class="label_box">
                                 <label class="label">About</label>
-                                <input class="form-control" type="text" name="about" id="aboutStudent"
+                                <input class="form-control" type="text" name="lxp_about" id="lxp_aboutStudent"
                                     placeholder="Something about Student" />
                             </div>
                         </div>
@@ -208,8 +208,8 @@ $teachers = $args['teachers'];
 
 <script type="text/javascript">
 
-function onStudentEdit(student_id) {
-    jQuery("#student_post_id").val(student_id);
+function onStudentEdit(lxp_student_id) {
+    jQuery("#student_post_id").val(lxp_student_id);
     jQuery(".student-action").text("Update");
     
     let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
@@ -219,17 +219,17 @@ function onStudentEdit(student_id) {
         method: "POST",
         enctype: 'multipart/form-data',
         url: apiUrl + "students",
-        data: {student_id}
+        data: {lxp_student_id}
     }).done(function( response ) {
         let student = response.data.student;
         let admin = response.data.admin.data;
         jQuery('#studentForm .form-control').removeClass('is-invalid');
-        jQuery('#studentModal #aboutStudent').val(student.post_content);
+        jQuery('#studentModal #lxp_aboutStudent').val(student.post_content);
         jQuery('#studentModal #teacher_id').val(student.teacher_id);
         jQuery('#studentModal #idStudent').val(student.student_id);
-        jQuery('#studentModal #first_name_student').val(admin.first_name);
-        jQuery('#studentModal #last_name_student').val(admin.last_name);
-        jQuery('#studentModal #usernameStudent').val(admin.user_login);
+        jQuery('#studentModal #lxp_first_name_student').val(admin.first_name);
+        jQuery('#studentModal #lxp_last_name_student').val(admin.last_name);
+        jQuery('#studentModal #lxp_usernameStudent').val(admin.user_login);
         jQuery('#studentModal #inputUsernameDefaultStudent').val(admin.user_login);
         
         if (student.grades) {
@@ -277,9 +277,9 @@ function onStudentEdit(student_id) {
 
         studentModal.addEventListener('hide.bs.modal', function (event) {
             jQuery("#student_post_id").val(0);
-            jQuery('#studentModal #aboutStudent').val("");
-            jQuery('#studentModal #first_name_student').val("");
-            jQuery('#studentModal #last_name_student').val("");
+            jQuery('#studentModal #lxp_aboutStudent').val("");
+            jQuery('#studentModal #lxp_first_name_student').val("");
+            jQuery('#studentModal #lxp_last_name_student').val("");
             jQuery('#studentModal #usernameStudent').val("");
             jQuery('#studentModal #inputUsernameDefaultStudent').val("");
             jQuery('#studentModal #passwordStudent').val("");

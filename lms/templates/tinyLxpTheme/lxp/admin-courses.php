@@ -2,7 +2,7 @@
 global $treks_src;
 $args = array(
     'posts_per_page'   => -1,
-    'post_type'        => 'tl_course',    
+    'post_type'        => LP_COURSE_CPT,
     'order' => 'asc'
 );
 $courses = get_posts($args);
@@ -187,52 +187,8 @@ $courses = get_posts($args);
                 url.searchParams.set('tekversion', tekversion);
                 window.location.href = url.href;
             });
-            // $('.dropdown').hover(function () {
-            //     console.log('why you hover agian and again');
-            // });
-            // $('.dropdown').mouseenter(
-            //     function () {
-            //         console.log('you mouse in on img');
-            //         // $(this).hide();
-            //         // $('#hover_tutor_hidden').show();
-            //     });
-
-            // $('.dropdown').mouseleave(       
-            //     function () {
-            //         // $('#hover_tutor').show();
-            //         // $(this).hide();
-            //         console.log('you mouse out of img');
-            //     }
-            // ).mouseleave(); 
         });
     </script>
-
-    <?php 
-        //get_template_part('lxp/admin-teacher-assign-treks-modal');
-        // check if district_id and school_id GET set
-        //get_template_part('lxp/admin-teacher-modal');
-        
-    ?>
-        <!-- <div class="modal fade teachers-modal" id="teacherModal" tabindex="-1" aria-labelledby="teacherModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <div class="modal-header-title">
-                            <h2 class="modal-title" id="teacherModalLabel"><span class="teacher-action-head">New</span> Teacher</h2>
-                        </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                            Please select <strong>District</strong> and <strong>School</strong> to add/edit a teacher.</strong>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> -->
-            
-    
     <script type="text/javascript">
         function onCourseEdit(x) {
             // redirect to wp admin post edit page in new tab

@@ -26,16 +26,16 @@ $mark_as_graded = $assignment_submission ? get_post_meta($assignment_submission[
     <!-- Teachers Table -->
     <h1 class="stu_heading">Submissions</h1>
     <?php if ($assignment_submission) {
-        $slides =  $args['slides'];
+        $slides_array =  $args['slides'];
         $slidesData = $slides->data;
-        $slides = $slides->slides;
+        $slides = $slides_array->slides;
         $slides_pages = array_chunk($slides, 4);
     ?>
         <div class="row justify-content-end">
             <div class="col-md-3">
                 <div class="row justify-content-end">
                     <div class="col-md-11">
-                        <a href="<?php echo site_url('grade-assignment/?assignment=' . $_GET['assignment'] . '&student='. $_GET['student'] . '&action=grade&slide=' . $slidesData->totalSlides); ?>" class="primary-btn lx-space summary_link">View Summary</a>
+                        <a href="<?php echo site_url('grade-assignment/?assignment=' . $_GET['assignment'] . '&student='. $_GET['student'] . '&action=summary&slide=' . $slidesData->totalSlides); ?>" class="primary-btn lx-space summary_link">View Summary</a>
                     </div>
                 </div>
             </div>

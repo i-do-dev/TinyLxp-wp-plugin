@@ -17,7 +17,7 @@ class TL_TREK_Post_Type extends TL_Post_Type
    /**
     * @var string
     */
-   protected $_post_type = TL_TREK_CPT;
+   protected $_post_type = TL_COURSE_CPT;
 
    /**
     * Get Instance
@@ -77,7 +77,7 @@ class TL_TREK_Post_Type extends TL_Post_Type
       if (empty($located)) {
          add_filter('single_template', function ($page_template, $type) {
             global $post;
-            if ($post->post_type == TL_TREK_CPT) {
+            if ($post->post_type == TL_COURSE_CPT) {
                $page_template = dirname(__FILE__) . '/templates/trek/single-tl_trek.php';
             }
             return $page_template;
@@ -217,7 +217,7 @@ class TL_TREK_Post_Type extends TL_Post_Type
    public function course_metabox_html($post = null)
    {
       $args = array(
-         'post_type' => 'tl_course',
+         'post_type' => TL_COURSE_CPT,
          'orderby'    => 'ID',
          'post_status' => 'publish,draft',
          'order'    => 'DESC',

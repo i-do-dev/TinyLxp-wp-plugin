@@ -65,7 +65,7 @@
 }
 
 .students-breadcrumb .interdependence-tab .inter-tab-polygon {
-  width: 38px;
+  width: 40px;
   height: 32px;
   clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
   display: flex;
@@ -360,7 +360,7 @@
 
 .student_assignment_tab .tab-content .tab-pane .student_grade_card {
   width: 222px;
-  min-height: 255px;
+  min-height: 400px;
   padding: 24px 8px;
   text-align: center;
   border-right: 1px solid #eaedf1;
@@ -399,6 +399,7 @@
 }
 
 .slider_cards_flex {
+  margin-left: 5%;
   display: flex;
   align-items: center;
   justify-content: center;

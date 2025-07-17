@@ -2,8 +2,15 @@
 global $treks_src;
 $students = $args['students'];
 $teacher_post = $args['teacher_post'];
+$school_post = $args['school_post'];
+$edlink_school_id = get_post_meta($school_post->ID, 'lxp_edlink_school_id', true);
+if (!empty($args['district_post'])) {
+    $edlink_access_token = get_post_meta($args['district_post']->ID, 'lxp_edlink_provider_access_token', true);
+} else {
+    $edlink_access_token = (isset($_GET['district_id']) && isset($_GET['district_id']) > 0) ? get_post_meta($_GET['district_id'], 'lxp_edlink_provider_access_token', true) : '';
+}
 ?>
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <div class="modal fade classes-modal" id="classModal" tabindex="-1" aria-labelledby="classModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered class-modal">
         <div class="modal-content">
@@ -24,13 +31,36 @@ $teacher_post = $args['teacher_post'];
                 <form class="row g-3" id="classForm">
                     <input type="hidden" name="class_teacher_id" id="class_teacher_id" value="<?php echo $teacher_post->ID; ?>" />
                     <input type="hidden" name="class_post_id" id="class_post_id" value="0" />
+                    <?php
+                        if (isset($edlink_access_token) && $edlink_access_token != '') {
+                    ?>
+                            <input type="hidden" id="inputEdlinkClassSecId" name="edlink_class_sec_id"/>
+                            <div class="label_box" id="edlink_error" style="color:#dc3545"></div>
+                            <div class="label_box" id="people_loader" style="color: #0000ff"></div>
+                    <?php        
+                        }
+                    ?>
                     <div class="personal_box">
                         <!-- Left Class box -->
                         <div class="class-information">
                             <p class="personal-text">Class & Group information</p>
                             <div class="search_box">
                                 <label class="trek-label">Name</label>
-                                <input type="text" class="form-control period-select" value="" id="class_name" name="class_name" />
+                                <?php
+                                    if (isset($edlink_access_token) && $edlink_access_token != '') {
+                                ?>
+                                        <div id="edlink_class_sec_name_container">
+                                            <select id="edlinkInputClassSecName" name="class_name" class="form-select" onChange="javascript:setEdlinkClassSecId();">
+                                                <option value="0">--- Select ---</option>
+                                            </select>
+                                        </div>
+                                <?php        
+                                    } else {
+                                ?>
+                                        <input type="text" class="form-control period-select" value="" id="class_name" name="class_name" />
+                                <?php        
+                                    }
+                                ?>
                             </div>
                             <div class="search_box">
                                 <label class="trek-label">Description</label>
@@ -172,25 +202,27 @@ $teacher_post = $args['teacher_post'];
                                 </div>
                             </div>
                             <div class="horizontal-line"></div>
-                            <p class="personal-text">Type</p>
-                            <table class="table table-borderless">
-                                <tbody>
-                                    <tr>
-                                        <td>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" value="classes" id="classes_radio" name="type" checked>
-                                                <label class="form-check-label" for="classes">Classes</label>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" value="other_group" id="other_group_radio" name="type">
-                                                <label class="form-check-label" for="other_group">Groups</label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            <div id="type-radio-options">
+                                <p class="personal-text">Type</p>
+                                <table class="table table-borderless">
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" value="classes" id="classes_radio" name="type" checked>
+                                                    <label class="form-check-label" for="classes">Classes</label>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" value="other_group" id="other_group_radio" name="type">
+                                                    <label class="form-check-label" for="other_group">Groups</label>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                     <!-- Button Section -->
@@ -208,55 +240,60 @@ $teacher_post = $args['teacher_post'];
 
 
 <script type="text/javascript">
+    access_token = '<?php echo $edlink_access_token; ?>';
+    host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+    apiUrl = host + '/wp-json/lms/v1/';
 
-function onClassEdit(class_id) {
-    jQuery("#class_post_id").val(class_id);
-    jQuery("#class-action-heading").text("Update");
-    jQuery("#class-action").text("Update");
-    
-    let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
-    let apiUrl = host + '/wp-json/lms/v1/';
+    function onClassEdit(class_id) {
+        jQuery("#class_post_id").val(class_id);
+        jQuery("#class-action-heading").text("Update");
+        jQuery("#class-action").text("Update");
 
-    $.ajax({
-        method: "POST",
-        enctype: 'multipart/form-data',
-        url: apiUrl + "classes",
-        data: {class_id}
-    }).done(function( response ) {
-        let class_record = response.data.class;
-        jQuery('#classForm .form-control').removeClass('is-invalid');
-        jQuery(".alert-danger").hide();
-        jQuery('#classModal #class_name').val(class_record.post_title);
-        jQuery('#classModal #class_description').val(class_record.post_content);
-        window.class_record = class_record;
-        console.log('class_record >> ', class_record);
+        $.ajax({
+            method: "POST",
+            enctype: 'multipart/form-data',
+            url: apiUrl + "classes",
+            data: {class_id}
+        }).done(function( response ) {
+            let class_record = response.data.class;
+            jQuery('#classForm .form-control').removeClass('is-invalid');
+            jQuery(".alert-danger").hide();
+            if (access_token && access_token != '') {
+                jQuery("#type-radio-options").hide();
+                jQuery("#edlink_class_sec_name_container").html('<input type="text" class="form-control period-select" value="" id="class_name" name="class_name" readonly="readonly" />');
+                jQuery("#inputEdlinkClassSecId").val(class_record.edlink_class_sec_id);
+            }
+            jQuery('#classModal #class_name').val(class_record.post_title);
+            jQuery('#classModal #class_description').val(class_record.post_content);
+            window.class_record = class_record;
+            console.log('class_record >> ', class_record);
 
-        Object.keys(class_record.schedule).forEach(day => {
-            jQuery('input#' + day).prop("checked", true);
-            jQuery('input#' + day + '-sd').val(class_record.schedule[day].start);
-            jQuery('input#' + day + '-ed').val(class_record.schedule[day].end);
+            Object.keys(class_record.schedule).forEach(day => {
+                jQuery('input#' + day).prop("checked", true);
+                jQuery('input#' + day + '-sd').val(class_record.schedule[day].start);
+                jQuery('input#' + day + '-ed').val(class_record.schedule[day].end);
+            });
+
+            jQuery('select#grade').val(class_record.grade);      
+            if (class_record.lxp_class_type == 'other_group') {
+                jQuery('#classes_radio').attr('checked', false);
+                jQuery('#other_group_radio').attr('checked', true);
+            } else {
+                jQuery('#classes_radio').attr('checked', true);
+                jQuery('#other_group_radio').attr('checked', false);
+            }
+            
+            class_record.lxp_student_ids.forEach(student_id => {
+                jQuery('input.select-student-check[value="' + student_id + '"]').prop('checked', true);
+            });
+
+            jQuery("#studentsDropdownMenu span").text(jQuery(".select-student-check:checked").length);
+
+            classModalObj.show();
+        }).fail(function (response) {
+            console.error("Can not load class");
         });
-
-        jQuery('select#grade').val(class_record.grade);      
-        if (class_record.lxp_class_type == 'other_group') {
-            jQuery('#classes_radio').attr('checked', false);
-            jQuery('#other_group_radio').attr('checked', true);
-        } else {
-            jQuery('#classes_radio').attr('checked', true);
-            jQuery('#other_group_radio').attr('checked', false);
-        }
-        
-        class_record.lxp_student_ids.forEach(student_id => {
-            jQuery('input.select-student-check[value="' + student_id + '"]').prop('checked', true);
-        });
-
-        jQuery("#studentsDropdownMenu span").text(jQuery(".select-student-check:checked").length);
-
-        classModalObj.show();
-    }).fail(function (response) {
-        console.error("Can not load class");
-    });
-}
+    }
 
     jQuery(document).ready(function() { 
         let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
@@ -265,16 +302,39 @@ function onClassEdit(class_id) {
         var classModal = document.getElementById('classModal');
         classModalObj = new bootstrap.Modal(classModal);
         window.classModalObj = classModalObj;
+
+        if (access_token && access_token != '') {
+            jQuery("#classModalBtn").on('click', function() {
+                getEdlinkClassAndSections('classes');
+                classModalObj.show();
+            });
+
+            jQuery("input[name='type']").on('change', function() {
+                jQuery("#edlinkInputClassSecName").html('<option value="0">--- Select ---</option>');
+                jQuery("#inputEdlinkClassSecId").val("");
+                var curr_val = jQuery(this).val();
+                curr_val = (curr_val == 'other_group') ? 'sections' : curr_val;
+                jQuery("#edlink_error").html("");
+                getEdlinkClassAndSections(curr_val);
+            });
+        }
         
         classModal.addEventListener('hide.bs.modal', function (event) {
-            
-            jQuery("#class_post_id").val(0);
-            jQuery('#classModal #aboutClass').val("");
-            jQuery('#classModal #first_name_class').val("");
-            jQuery('#classModal #last_name_class').val("");
-            jQuery('#classModal #emailClass').val("");
-            jQuery('#classModal #inputEmailDefaultClass').val("");
-            jQuery('#classModal #passwordClass').val("");
+            jQuery('#classForm .form-control').removeClass('is-invalid');
+            jQuery('#edlinkInputClassSecName').removeClass('is-invalid');
+            jQuery("#class_post_id").val(0);            
+            jQuery('#classModal #class_name').val("");
+            jQuery('#classModal #class_description').val("");            
+            jQuery('#classModal #grade').val(0);
+            jQuery('input[type="checkbox"]').prop('checked', false);
+            jQuery('input[type="time"]').val('');
+            jQuery("#edlink_error").html("");
+            if (access_token && access_token != '') {
+                jQuery("#edlinkInputClassSecName").html('<option value="0">--- Select ---</option>');
+                jQuery("#inputEdlinkClassSecId").val("");
+            }
+            jQuery("#class-action-heading").text("New");
+            jQuery("#class-action").text("Add");
             window.location.reload();
         });
 
@@ -294,9 +354,11 @@ function onClassEdit(class_id) {
             }).done(function( response ) {
                 jQuery('#classForm .form-control').removeClass('is-invalid');
                 classModalObj.hide();
+                window.location.reload();
             }).fail(function (response) {
                 jQuery('#classForm .form-control').removeClass('is-invalid');
                 if (response.responseJSON !== undefined && response.responseJSON.code === "rest_missing_callback_param") {
+                    console.log("yesss", response.responseJSON.data.params);
                     response.responseJSON.data.params.forEach(element => {
                         jQuery(".invalid-feedback-" + element).show();
                     });
@@ -340,4 +402,38 @@ function onClassEdit(class_id) {
         // ==== [end] Students Selection =================
 
     });
+
+    function getEdlinkClassAndSections($type) {
+        jQuery("#edlink-class-action").attr("disabled", true);
+        jQuery("#people_loader").html('<i class="fa fa-spinner fa-spin" style="font-size:25px"></i> Loading ...');
+        var access_token = '<?php echo $edlink_access_token; ?>';
+        var edlink_school_id = '<?php echo $edlink_school_id; ?>';
+        $.ajax({
+            method: "POST",            
+            url: apiUrl + "edlink/provider/class-sections",
+            data: {access_token, "api_require" : $type, "school_id" : edlink_school_id}
+        }).done(function( response ) {
+            // Set Data
+            if (typeof response.class_and_section === 'object' && response.class_and_section !== null && !response['class_and_section']['error']) {
+                var html = '';
+                html += '<option value="0">--- Select ---</option>';
+                Object.entries(response.class_and_section).forEach(([key, class_and_section]) => {
+                    html += '<option value="'+class_and_section["name"]+'" id="'+class_and_section["id"]+'">'+class_and_section["name"]+'</option>';
+                });
+                jQuery("#edlinkInputClassSecName").html(html);
+                jQuery("#edlink-class-action").attr("disabled", false);
+            } else if (response['class_and_section']['error'] != '') {
+                jQuery("#edlink-class-action").attr("disabled", true);                
+                jQuery("#edlink_error").html(response['class_and_section']['error']);
+                jQuery("#edlinkInputClassSecName").html('<option value="0">--- Select ---</option>');
+                jQuery("#inputEdlinkClassSecId").val("");
+            }        
+            jQuery("#people_loader").html('');
+        });
+    }
+
+    function setEdlinkClassSecId() {
+        var id = jQuery("#edlinkInputClassSecName option:selected").attr('id');
+        jQuery("#inputEdlinkClassSecId").val(id);
+    }
 </script>

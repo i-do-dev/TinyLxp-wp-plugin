@@ -1,35 +1,38 @@
 <?php
-$school_post = lxp_get_user_school_post();
-$teachers = lxp_get_school_teachers($school_post->ID);
+    $school_post = lxp_get_user_school_post();
+    $teachers = lxp_get_school_teachers($school_post->ID);
 
-$school_students = lxp_get_school_students($school_post->ID);
-$students = array();
-$is_teacher_assignment_needed = false;
-if (isset($_GET['teacher_id']) && $_GET['teacher_id'] != 0) {
-    $teacher_id = $_GET['teacher_id'];
-    $students = lxp_get_school_teacher_students($school_post->ID, $teacher_id);
-} else {
-    // filter out students who are not assigned to any teacher
-    $students = array_filter($school_students, function ($student) {
-        return !get_post_meta($student->ID, 'lxp_teacher_id', true);
-    });
-    // if all students are already assigned to teachers then show all students
-    if (count($students) == 0) {
-        $students = $school_students;
+    $school_students = lxp_get_school_students($school_post->ID);
+    $students = array();
+    $is_teacher_assignment_needed = false;
+    if (isset($_GET['teacher_id']) && $_GET['teacher_id'] != 0) {
+        $teacher_id = $_GET['teacher_id'];
+        $students = lxp_get_school_teacher_students($school_post->ID, $teacher_id);
     } else {
-        $is_teacher_assignment_needed = true;
+        // filter out students who are not assigned to any teacher
+        $students = array_filter($school_students, function ($student) {
+            return !get_post_meta($student->ID, 'lxp_teacher_id', true);
+        });
+        // if all students are already assigned to teachers then show all students
+        if (count($students) == 0) {
+            $students = $school_students;
+        } else {
+            $is_teacher_assignment_needed = true;
+        }
     }
-}
 
-$school_teachers_ids = array_map(function ($teacher) { return $teacher->ID; }, $teachers);
-$assignments = lxp_get_all_teachers_assignments($school_teachers_ids);
-//$classes = lxp_get_all_teachers_classes($school_teachers_ids);
-$default_classes = lxp_get_teacher_all_default_classes($school_teachers_ids);
-$classes = lxp_get_all_teachers_group_by_type($school_teachers_ids, 'classes');
-$other_groups = lxp_get_all_teachers_group_by_type($school_teachers_ids, 'other_group');
-$countClassesOtherGroup = count($default_classes) + count($classes) + count($other_groups);
-$groups = lxp_get_all_teachers_groups($school_teachers_ids);
-$classes = array_merge($default_classes, $classes);
+    $school_teachers_ids = array_map(function ($teacher) { return $teacher->ID; }, $teachers);
+    $assignments = lxp_get_all_teachers_assignments($school_teachers_ids);
+    //$classes = lxp_get_all_teachers_classes($school_teachers_ids);
+    $default_classes = lxp_get_teacher_all_default_classes($school_teachers_ids);
+    $classes = lxp_get_all_teachers_group_by_type($school_teachers_ids, 'classes');
+    $other_groups = lxp_get_all_teachers_group_by_type($school_teachers_ids, 'other_group');
+    $countClassesOtherGroup = count($default_classes) + count($classes) + count($other_groups);
+    $groups = lxp_get_all_teachers_groups($school_teachers_ids);
+    $classes = array_merge($default_classes, $classes);
+
+    $district_post = get_post(get_post_meta($school_post->ID, 'lxp_school_district_id', true));
+    $district_type = get_post_meta($district_post->ID, 'lxp_district_type', true);
 ?>
 
 <!DOCTYPE html>
@@ -187,6 +190,7 @@ $classes = array_merge($default_classes, $classes);
                             $args['classes'] = $classes;
                             $args['other_groups'] = $other_groups;
                             $args['groups'] = $groups;
+                            $args['district_type'] = $district_type;
 
                             include $livePath.'/lxp/school-dashboard-teachers-tab.php';
                             include $livePath.'/lxp/school-dashboard-students-tab.php';
@@ -236,12 +240,18 @@ $classes = array_merge($default_classes, $classes);
         integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
         crossorigin="anonymous"></script>
     
-    <?php include $livePath.'/lxp/school-teacher-modal.php'; ?>
-
     <?php
         $args['school_post'] = $school_post;
         $args['teachers'] = $teachers;
-        include $livePath.'/lxp/school-student-modal.php';
+        if (isset($district_type) && $district_type == 'edlink') {
+            $args['district_post'] = $district_post;
+            $args['role'] = 'school';
+            include $livePath.'/lxp/edlink/teacher-modal.php';
+            include $livePath.'/lxp/edlink/student-modal.php';
+        } else {
+            include $livePath.'/lxp/school-teacher-modal.php';
+            include $livePath.'/lxp/school-student-modal.php';
+        }
     ?>
     
     <script type="text/javascript">

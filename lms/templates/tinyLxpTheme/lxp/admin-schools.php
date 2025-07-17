@@ -3,6 +3,24 @@ global $treks_src;
 // get all user with role lxp_client_admin
 $lxp_client_admin_users = get_users(array('role' => 'lxp_client_admin'));
 $lxp_client_admin_user_ids = array_map(function ($user) { return $user->ID; },  $lxp_client_admin_users);
+
+$district_type_condition = (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') ? array(
+                'key' => 'lxp_district_type',
+                'value' => 'edlink',
+                'compare' => '='
+            ) : array(
+                'relation' => 'OR',
+                array(
+                    'key' => 'lxp_district_type',
+                    'compare' => 'NOT EXISTS'
+                ),
+                array(
+                    'key' => 'lxp_district_type',
+                    'value' => 'edlink',
+                    'compare' => '!='
+                )
+            );
+
 // get post TL_DISTRICT_CPT based on multiple 'lxp_district_admin' meta values
 $district_posts = get_posts(array(
   'post_type' => 'tl_district',
@@ -11,7 +29,8 @@ $district_posts = get_posts(array(
       'key' => 'lxp_district_admin',
       'value' => $lxp_client_admin_user_ids,
       'compare' => 'IN'
-    )
+    ),
+    $district_type_condition
   )
 ));
 
@@ -20,9 +39,18 @@ if ( isset($_GET['district_id']) ) {
     $district_post = get_post( $_GET['district_id'] );
 }
 
-$schools = $district_post ? lxp_get_district_schools($district_post->ID) : [];
+// $schools = $district_post ? lxp_get_district_schools($district_post->ID) : [];
+$schools = [];
+if (isset($_GET['inactive']) && $_GET['inactive'] == 'true') {
+    $schools = $district_post ? lxp_get_district_schools_inactive($district_post->ID, true) : [];
+} else {
+    $schools = $district_post ? lxp_get_district_schools_active($district_post->ID) : [];
+}
 
 while (have_posts()) : the_post();
+
+// Get the Edlink API Settings
+$edlink_options = get_option('edlink_options');
 ?>
 
     <!DOCTYPE html>
@@ -116,25 +144,65 @@ while (have_posts()) : the_post();
                     <div class="row" style="width: 50%;">
                         <div class="col-md-8">
                             <form class="row">
-                                <div class="col-md-12">
+                                <?php 
+                                    if (isset($edlink_options['edlink_application_id']) && $edlink_options['edlink_application_id'] != '' && isset($edlink_options['edlink_application_secrets']) && $edlink_options['edlink_application_secrets'] != '' && isset($edlink_options['edlink_sso_enable']) && $edlink_options['edlink_sso_enable'] == 1
+                                    ) {
+                                ?>
+                                        <div class="col-md-4">
+                                            <label for="district_type" class="form-label">Integration</label>
+                                            <select id="district_type" name="district_type" class="form-select" onChange="javascript:onChangeDistrictType();">
+                                                <?php 
+                                                    if (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') {
+                                                ?>
+                                                        <option value="tinylxp">TinyLxp</option>
+                                                        <option value="edlink" selected="selected">Edlink</option>
+                                                <?php        
+
+                                                    } else {
+                                                ?>
+                                                        <option value="tinylxp">TinyLxp</option>
+                                                        <option value="edlink">Edlink</option>
+                                                <?php
+                                                    }
+                                                ?>
+                                            </select>                    
+                                        </div>
+                                <?php } ?>        
+                                <div class="col-md-8">
                                     <label for="district-drop-down" class="form-label">District</label>
                                     <select class="form-select" id="district-drop-down" name="district_id">
                                         <option value="0">Choose...</option>
-                                        <?php foreach ($district_posts as $dist_post) { ?>
-                                            <option value="<?php echo $dist_post->ID; ?>"<?php echo isset($_GET['district_id']) && $_GET['district_id'] == $dist_post->ID ? ' selected=selected' : '' ?>><?php echo $dist_post->post_title; ?></option>
+                                        <?php foreach ($district_posts as $district_post) { ?>
+                                            <option value="<?php echo $district_post->ID; ?>"<?php echo isset($_GET['district_id']) && $_GET['district_id'] == $district_post->ID ? ' selected=selected' : '' ?>><?php echo $district_post->post_title; ?></option>
                                         <?php } ?>
                                     </select>
                                 </div>
                             </form>
                         </div>
-                        <div class="col-md-4">                   
-                            <button class="add-heading" type="button" id="addSchoolModal" class="primary-btn" style="margin-top: 25px;">Add New School</button>
-                        </div>
+                        <?php 
+                            if (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') {
+                                $model_id = 'addEdlinkSchoolModal';
+                            } else {
+                                $model_id = 'addSchoolModal';
+                            }
+                        ?>
+                                <div class="col-md-4">                   
+                                    <button class="add-heading" type="button" id="<?php echo $model_id; ?>" class="primary-btn" style="margin-top: 25px;">Add New School</button>
+                                </div>
                     </div>
                 </div>
 
                 <!-- Admin School Table Section -->
                 <section class="recent-treks-section-div table-school-section">
+                    <!-- bootstrap Active and Inactive tabs -->
+                    <ul class="nav nav-tabs mb-3" id="settingsTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link<?php echo !isset($_GET['inactive']) ? ' active':''; ?>" id="active-tab" data-bs-toggle="tab" href="#active" role="tab" aria-controls="active" aria-selected="true">Active</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link<?php echo isset($_GET['inactive']) ? ' active' : ''; ?>" id="inactive-tab" data-bs-toggle="tab" href="#inactive" role="tab" aria-controls="inactive" aria-selected="false">Inactive</a>
+                        </li>
+                    </ul>
 
                     <div class="students-table">
                         <div class="school-box">
@@ -220,6 +288,7 @@ while (have_posts()) : the_post();
                             <tbody>
                                 <?php 
                                     foreach ($schools as $school) {
+                                        $edlink_school_id = get_post_meta($school->ID, 'lxp_edlink_school_id', true);
                                 ?>
                                     <tr>
                                         <td class="user-box">
@@ -244,8 +313,12 @@ while (have_posts()) : the_post();
                                                     <img src="<?php echo $treks_src; ?>/assets/img/dots.svg" alt="logo" />
                                                 </button>
                                                 <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
-                                                    <button class="dropdown-item" type="button" onclick="onSchoolEdit(<?php echo $school->ID; ?>)"><img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo" />Edit</button>
+                                                    <button class="dropdown-item" type="button" onclick="onSchoolEdit(<?php echo $school->ID; ?>, '<?php echo $edlink_school_id; ?>')"><img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo" />Edit</button>
                                                     <!-- <button class="dropdown-item" type="button"><img src="<?php // echo $treks_src; ?>/assets/img/delete.svg" alt="logo" />Delete</button> -->
+                                                    <button class="dropdown-item" type="button" onclick="onSettingsClick(<?php echo $school->ID; ?>, 'school')">
+                                                        <img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo" />
+                                                        Settings
+                                                    </button>
                                                 </div>
                                             </div>
                                         </td>
@@ -292,14 +365,16 @@ while (have_posts()) : the_post();
             <input type="submit">
         </form> -->
         
-        <?php // echo do_shortcode("[Schools-Short-Code]"); ?>
-        <?php
+        <?php 
+            include $livePath.'/lxp/admin-settings-modal.php';
             if (isset($_GET['district_id'])) {
                 $args['district_post'] = $district_post;
+                $args['edlink_district_post'] = $district_post;
                 include $livePath.'/lxp/admin-school-modal.php';
+                include $livePath.'/lxp/edlink/school-modal.php';
             } else {
         ?>
-                <div class="modal fade modal-lg" id="schoolModal" tabindex="-1" aria-labelledby="schoolModalLabel" aria-hidden="true">
+                <div class="modal fade modal-lg" id="<?php echo (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') ? 'edlinkSchoolModal' : 'schoolModal'; ?>" tabindex="-1" aria-labelledby="<?php echo (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') ? 'edlinkSchoolModalLabel': 'schoolModalLabel'; ?>" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered class-modal">
                         <div class="modal-content">
                             <div class="modal-header">
@@ -320,11 +395,12 @@ while (have_posts()) : the_post();
 
                 <script>
                     jQuery(document).ready(function() {
-                        var schoolModal = document.getElementById('schoolModal');
+                        var district_type = '<?php echo (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') ? 'edlinkSchoolModal' : 'schoolModal'; ?>';                        
+                        var schoolModal = document.getElementById(district_type);
                         schoolModalObj = new bootstrap.Modal(schoolModal);
                         window.schoolModalObj = schoolModalObj;
 
-                        jQuery("#addSchoolModal").on('click', function() {
+                        jQuery("#addSchoolModal, #addEdlinkSchoolModal").on('click', function() {
                             schoolModalObj.show();
                         });
                     });
@@ -334,9 +410,16 @@ while (have_posts()) : the_post();
         ?>
 
         <script type="text/javascript">
-            function onSchoolEdit(school_id) {
+            function onSchoolEdit(school_id, edlink_school_id) {
                 jQuery("#school_post_id").val(school_id);
-                jQuery(".school-action").text("Update");
+                var district_type = jQuery("#district_type option:selected").val();
+                if (school_id > 0 && district_type == 'edlink') {
+                    jQuery("#edlink_school_post_id").val(school_id);
+                    jQuery("#inputEdlinkSchoolId").val(edlink_school_id);
+                    jQuery('.edlink-school-action').text("Update");
+                } else {
+                    jQuery(".school-action").text("Update");
+                }
                 
                 let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
                 let apiUrl = host + '/wp-json/lms/v1/';
@@ -349,15 +432,25 @@ while (have_posts()) : the_post();
                 }).done(function( response ) {
                     let school = response.data.school;
                     let admin = response.data.admin.data;
-                    jQuery('#schoolForm .form-control').removeClass('is-invalid');
-                    jQuery('#inputSchoolName').val(school.post_title);
-                    jQuery('#inputAbout').val(school.post_content);
-                    jQuery('#inputFirstName').val(admin.first_name);
-                    jQuery('#inputLastName').val(admin.last_name);
-                    jQuery('#inputEmail').val(admin.user_email);
-                    jQuery('#inputEmailDefault').val(admin.user_email);
-                    
-                    schoolModalObj.show();
+                    if (school_id > 0 && district_type == 'edlink') {                        
+                        jQuery('#edlinkSchoolForm .form-control').removeClass('is-invalid');
+                        var school_name_html = '<input class="brief_info id_info form-control" type="text" id="edlinkInputSchoolName" name="edlink_school_name" placeholder="Enter Schools name here" value="'+school.post_title+'" readonly="readonly"/>';
+                        jQuery('#edlink_school_container').html(school_name_html);
+                        jQuery('#edlinkInputAbout').val(school.post_content);
+                        jQuery('#edlinkInputFirstName').val(admin.first_name);
+                        jQuery('#edlinkInputLastName').val(admin.last_name);
+                        getEdlinkPeoples(jQuery("#inputEdlinkProviderAccessToken").val(), admin.user_email);
+                        edlinkSchoolModalObj.show();
+                    } else {
+                        jQuery('#schoolForm .form-control').removeClass('is-invalid');
+                        jQuery('#inputSchoolName').val(school.post_title);
+                        jQuery('#inputAbout').val(school.post_content);
+                        jQuery('#inputFirstName').val(admin.first_name);
+                        jQuery('#inputLastName').val(admin.last_name);
+                        jQuery('#inputEmail').val(admin.user_email);
+                        jQuery('#inputEmailDefault').val(admin.user_email);
+                        schoolModalObj.show();
+                    }
                 }).fail(function (response) {
                     console.error("Can not load school");
                 });
@@ -379,7 +472,70 @@ while (have_posts()) : the_post();
 
                 window.location.href = url.href;
             });
+
+            // Get the tabs
+            let activeTab = document.querySelector('#active-tab');
+            let inactiveTab = document.querySelector('#inactive-tab');
+
+            // Add event listener for 'shown.bs.tab' event
+            activeTab.addEventListener('shown.bs.tab', function (e) {
+                // Create a URLSearchParams object
+                let params = new URLSearchParams(window.location.search);
+                // Remove 'inactive' parameter
+                params.delete('inactive');
+                // Create the new URL
+                let newUrl = window.location.pathname + '?' + params.toString();
+                // Reload the page with the new URL
+                window.location.href = newUrl;
+            });
+
+            inactiveTab.addEventListener('shown.bs.tab', function (e) {
+                // Create a URLSearchParams object
+                let params = new URLSearchParams(window.location.search);
+                // Add 'inactive' parameter
+                params.set('inactive', 'true');
+                // Create the new URL
+                let newUrl = window.location.pathname + '?' + params.toString();
+                // Reload the page with the new URL
+                window.location.href = newUrl;
+            });
         });
+        
+        function getEdlinkPeoples(access_token, user_email) {
+            jQuery("#people_loader").html('<i class="fa fa-spinner fa-spin" style="font-size:25px"></i> Loading ...');
+            $.ajax({
+                method: "POST",            
+                url: apiUrl + "edlink/provider/people/edit",
+                data: {access_token, user_email}
+            }).done(function( response ) {
+                // Set People Data
+                if (typeof response.people === 'object' && response.people !== null && !response['people']['error']) {
+                    var html = '';
+                    html += '';
+                    Object.entries(response.people).forEach(([key, person]) => {
+                        html += '<option value="'+person["email"]+'" id="'+person["id"]+'" firstName="'+person["first_name"]+'" lastName="'+person["last_name"]+'">'+person["first_name"]+' '+person["last_name"]+' ('+person["email"]+')</option>';
+                    });
+                    jQuery("#edlinkInputPeopleName").html(html);
+                    jQuery('#edlinkInputPeopleName').val(user_email);
+                    jQuery("#saveEdlinkSchoolBtn").attr("disabled", false);
+                } else {
+                    jQuery("#saveEdlinkSchoolBtn").attr("disabled", true);                        
+                    jQuery("#edlink_error").html(response['people']['error']);
+                    jQuery("#edlinkInputPeopleName").html('<option value="0"> Choose...</option>');
+                    jQuery("#inputEdlinkUserId").val('');
+                    jQuery("#edlinkInputFirstName").val('');
+                    jQuery("#edlinkInputLastName").val('');
+                }
+                jQuery("#people_loader").html('');
+            });
+        }
+
+        function onChangeDistrictType() {
+            var district_type = jQuery("#district_type option:selected").val();
+            let newUrl = window.location.pathname + '?district_type=' + district_type;
+            // Reload the page with the new URL
+            window.location.href = newUrl;
+        }
     </script>
 
     </body>

@@ -16,7 +16,7 @@ $post = $wp_query->post;
 					$courseId =  isset($_GET['courseid']) ? $_GET['courseid'] : get_post_meta($post->ID, 'tl_course_id', true);
 					$args = array(
 						'posts_per_page'   => -1,
-						'post_type'        => 'tl_lesson',
+						'post_type'        => TL_LESSON_CPT,
 						'meta_query' => array(
 							array(
 								'key'   => 'tl_course_id',

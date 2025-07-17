@@ -1,18 +1,19 @@
 <?php
-global $treks_src;
-$students = $args["students"];
-$teachers = $args["teachers"];
-$is_teacher_assignment_needed = $args["is_teacher_assignment_needed"];
-$teacher_id = isset($_GET['teacher_id']) ? $_GET['teacher_id'] : 0;
-$teacher = array_values(array_filter($teachers, function($teacher) use ($teacher_id) {
-    return $teacher->ID == $teacher_id;
-}));
-$teacher_selected = is_array($teacher) && count($teacher) > 0 ? $teacher[0] : null;
+    global $treks_src;
+    $students = $args["students"];
+    $teachers = $args["teachers"];
+    $district_type = $args["district_type"];
+    $is_teacher_assignment_needed = $args["is_teacher_assignment_needed"];
+    $teacher_id = isset($_GET['teacher_id']) ? $_GET['teacher_id'] : 0;
+    $teacher = array_values(array_filter($teachers, function($teacher) use ($teacher_id) {
+        return $teacher->ID == $teacher_id;
+    }));
+    $teacher_selected = is_array($teacher) && count($teacher) > 0 ? $teacher[0] : null;
 ?>
 <div id="student-tab-content" class="tab-pane fade" role="tabpanel">
     <div class="add-teacher-box">
         
-      <!--   <div class="search-filter-box">
+        <!--   <div class="search-filter-box">
             <input type="text" name="text" placeholder="Search..." />
             <div class="filter-box">
                 <img src="<?php // echo $treks_src; ?>/assets/img/filter-alt.svg" alt="filter logo" />
@@ -41,13 +42,28 @@ $teacher_selected = is_array($teacher) && count($teacher) > 0 ? $teacher[0] : nu
         
         <?php if (!is_null($teacher_selected)) { ?>
             <div>
-                <button id="studentModalBtn" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#studentModal" class="primary-btn">
+            <?php 
+                if (isset($district_type) && $district_type == 'edlink') {
+                    $model_id = 'edlinkStudentModal';
+                    $add_btn = 'edlinkStudentModalBtn';
+                } else {
+                    $model_id = 'studentModal';
+                    $add_btn = 'studentModalBtn';
+                }
+            ?>
+                <button id="<?php echo $add_btn; ?>" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#<?php echo $model_id; ?>" class="primary-btn">
                     Add New Student
                 </button>
-                <label for="import-student" class="primary-btn add-heading">
-                    Import Students (CSV)
-                </label >
-                <input type="file" id="import-student" hidden />
+                <?php
+                    if (empty($district_type) || $district_type != 'edlink') {
+                ?>
+                        <label for="import-student" class="primary-btn add-heading">
+                            Import Students (CSV)
+                        </label >
+                        <input type="file" id="import-student" hidden />
+                <?php        
+                    }
+                ?>
             </div>
         <?php } else { ?>
             <!-- guide alter which says 'Select `Teacher` to `Add` or `Import` the `Students`-->
@@ -154,9 +170,21 @@ $teacher_selected = is_array($teacher) && count($teacher) > 0 ? $teacher[0] : nu
                                     <img src="<?php echo $treks_src; ?>/assets/img/dots.svg" alt="logo" />
                                 </button>
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
-                                    <button class="dropdown-item" type="button" onclick="onStudentEdit(<?php echo $student->ID; ?>)">
-                                        <img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo" />
-                                        Edit</button>
+                                    <?php
+                                        if (isset($district_type) && $district_type == 'edlink') {
+                                    ?>
+                                            <button class="dropdown-item" type="button" onclick="onEdlinkStudentEdit(<?php echo $student->ID; ?>)">
+                                            <img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo" />
+                                            Edit</button>
+                                    <?php
+                                        } else {
+                                    ?>
+                                            <button class="dropdown-item" type="button" onclick="onStudentEdit(<?php echo $student->ID; ?>)">
+                                            <img src="<?php echo $treks_src; ?>/assets/img/edit.svg" alt="logo" />
+                                            Edit</button>
+                                    <?php            
+                                        }
+                                    ?>
                                     <!-- <button class="dropdown-item" type="button">
                                         <img src="<?php // echo $treks_src; ?>/assets/img/delete.svg" alt="logo" />
                                         Delete</button> -->

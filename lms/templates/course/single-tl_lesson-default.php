@@ -27,7 +27,7 @@ Template Name: Course-template
 				// Start the loop.
 				$args = array(
 					'posts_per_page'   => -1,
-					'post_type'        => 'tl_lesson',
+					'post_type'        => TL_LESSON_CPT,
 					'meta_query' => array(
 						array(
 							'key'   => 'tl_course_id',
@@ -63,17 +63,7 @@ Template Name: Course-template
 					the_post();
 					echo the_title();
 					echo the_content();
-				} 
-				/* 
-				$post = get_post();
-				if (isset($post->post_type) && $post->post_type == "tl_lesson") {
-					
-				} else {
-					$content = get_the_content($more_link_text, $strip_teaser);
-					return  $content;
 				}
-				return  $content;
-				 */
 				// https://edtechmasters.us?lti-platform&post=221468&id=63c4f42d40e99/
 				$queryParam = '';
 				if(isset($_GET['slide'])){

@@ -9,12 +9,14 @@ $userdata = get_userdata(get_current_user_id());
 
 $userRole = count($userdata->roles) > 0 ? array_values($userdata->roles)[0] : '';
 switch ($userRole) {
-  case 'lxp_client_admin':
-    // get_template_part('lxp/client-students');
-    break;
-  case 'lxp_school_admin':
-    // get_template_part('lxp/school-students');
-    break;
+  // case 'lxp_client_admin':
+  //   echo 'Not a valid User role';
+  //   get_template_part('lxp/client-students');
+  //   break;
+  // case 'lxp_school_admin':
+  //   echo 'Not a valid User role';
+  //   get_template_part('lxp/school-students');
+  //   break;
   case 'lxp_teacher':
     include $livePath.'/lxp/teacher-classes.php';
     break;

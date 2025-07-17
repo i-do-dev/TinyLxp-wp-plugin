@@ -63,7 +63,7 @@ while (have_posts()) : the_post();
         font-size: 0.85rem;
       }
       .central-cncpt-section{
-        padding-top: 10px;
+        padding-top: 5%;
       }
       .central-cncpt-section h1 {
         font-size: 1.6rem;
@@ -124,112 +124,14 @@ while (have_posts()) : the_post();
         color: #979797 !important;
       }
 
-      /* recall active style */
-      .tags-body.recall-poly-body-active {
-        background: #ca2738;
-      }
-      .recall-poly-body-active .tags-body-detail span {
-        color: #fff !important;
-      }
-      .recall-poly-body-active .tags-body-polygon {
-        background: #fff !important;
-      }
-      .recall-poly-body-active .trek-section-character-recall {
-        color: #ca2738 !important;
-      }
-      .tags-body.recall-poly-body-hover {
-        background: #ca2738;
-      }
-      .recall-poly-body-hover .tags-body-detail span {
-        color: #fff !important;
-      }
-      .recall-poly-body-hover .tags-body-polygon {
-        background: #fff !important;
-      }
-      .recall-poly-body-hover .trek-section-character-recall {
-        color: #ca2738 !important;
+      .detail-prep-desc {
+        max-height: 5.8em; /* Approx. 4 lines based on the line height */
+        overflow-y: auto; /* Add vertical scroll if content exceeds height */
+        line-height: 1.2em; /* Adjust line height for consistency */
       }
 
-      /* practice a active style */
-      .tags-body.pa-poly-body-active {
-        background: #1fa5d4;
-      }
-      .pa-poly-body-active .tags-body-detail span {
-        color: #fff !important;
-      }
-      .pa-poly-body-active .tags-body-polygon {
-        background: #fff !important;
-      }
-      .pa-poly-body-active .trek-section-character-pa {
-        color: #1fa5d4 !important;
-      }
-      .tags-body.pa-poly-body-hover {
-        background: #1fa5d4;
-      }
-      .pa-poly-body-hover .tags-body-detail span {
-        color: #fff !important;
-      }
-      .pa-poly-body-hover .tags-body-polygon {
-        background: #fff !important;
-      }
-      .pa-poly-body-hover .trek-section-character-pa {
-        color: #1fa5d4 !important;
-      }
-
-      /* practice b active style */
-      .tags-body.pb-poly-body-active {
-        background: #1fa5d4;
-      }
-      .pb-poly-body-active .tags-body-detail span {
-        color: #fff !important;
-      }
-      .pb-poly-body-active .tags-body-polygon {
-        background: #fff !important;
-      }
-      .pb-poly-body-active .trek-section-character-pb {
-        color: #1fa5d4 !important;
-      }
-      .tags-body.pb-poly-body-hover {
-        background: #1fa5d4;
-      }
-      .pb-poly-body-hover .tags-body-detail span {
-        color: #fff !important;
-      }
-      .pb-poly-body-hover .tags-body-polygon {
-        background: #fff !important;
-      }
-      .pb-poly-body-hover .trek-section-character-pb {
-        color: #1fa5d4 !important;
-      }
-
-      /* apply active style */
-      .tags-body.apply-poly-body-active {
-        background: #9fc33b;
-      }
-      .apply-poly-body-active .tags-body-detail span {
-        color: #fff !important;
-      }
-      .apply-poly-body-active .tags-body-polygon {
-        background: #fff !important;
-      }
-      .apply-poly-body-active .trek-section-character-apply {
-        color: #9fc33b !important;
-      }
-      .tags-body.apply-poly-body-hover {
-        background: #9fc33b;
-      }
-      .apply-poly-body-hover .tags-body-detail span {
-        color: #fff !important;
-      }
-      .apply-poly-body-hover .tags-body-polygon {
-        background: #fff !important;
-      }
-      .apply-poly-body-hover .trek-section-character-apply {
-        color: #9fc33b !important;
-      }
-
-      .fc-timegrid-event-harness:hover {
-        cursor: pointer;
+      .detail-prep-tags{
+        margin-top: 10px;
       }
 
       a { text-decoration: none; }
@@ -307,7 +209,7 @@ while (have_posts()) : the_post();
           <div class="my-trk-detail-img">
           <?php
               if ( has_post_thumbnail( $post->ID ) ) {
-                  echo get_the_post_thumbnail($post->ID, "thumbnail", array( 'class' => 'rounded' )); 
+                  echo get_the_post_thumbnail($post->ID, "medium", array( 'class' => 'rounded' )); 
               } else {
               ?>
               <img width="300" height="180" src="<?php echo $treks_src; ?>/assets/img/tr_main.jpg" class="rounded wp-post-image" />
@@ -320,19 +222,24 @@ while (have_posts()) : the_post();
             <!-- Title -->
             <div class="detail-prep-title">
               <span class='course-label'><?php the_title(); ?></span>
-              <img src="<?php echo $treks_src; ?>/assets/img/bc_arrow_right.svg" />
-              <span class='section-label' id='course-section'></span>
-              <img src="<?php echo $treks_src; ?>/assets/img/bc_arrow_right.svg" />
-              <span id='section-lesson'></span> <br>
-              <div class="time-date-box">
-                <span class="date-time" id="student-progress-trek-start-time"></span>
-                <span style="padding: 4px 8px; font-weight:bold;" >To</span>
-                <span class="date-time" id="student-progress-trek-end-time"></span>
-              </div>
             </div>
             <!-- Description -->
             <div class="detail-prep-desc">
 				      <p><?php echo $post->post_content; ?></p>
+            </div>
+
+            <div class="detail-prep-tags">
+              <!-- Navigation Button -->
+              <a href="<?php echo get_permalink(); ?>" class="trek-section-nav-anchor"> 
+                <div class="tags-body overview-poly-body" id="over_view_btn">
+                  <div class="tags-body-polygon">
+                    <span class="trek-section-character-overview">O</span>
+                  </div>
+                  <div class="tags-body-detail">
+                    <span>View Course</span>
+                  </div>
+                </div>
+              </a>
             </div>
           </div>
         </div>
@@ -352,6 +259,7 @@ while (have_posts()) : the_post();
       </div> -->
       <section class="central-cncpt-section trek-section-Assignments">
         <div class="student-over-tab-content">
+            <h3>Assignments</h3>
           <div class="tab-pane">
             <div class="stu-assig-cards">
               <?php
@@ -371,25 +279,22 @@ while (have_posts()) : the_post();
     ></script>
     <script>
       jQuery(document).ready(function() {
-          let hiddenSection = jQuery('#currentSection').val();
-          jQuery('#course-section').text(hiddenSection);
-          let hiddenLesson = jQuery('#currentLesson').val();
-          jQuery('#section-lesson').text(hiddenLesson);
+          // let hiddenSection = jQuery('#currentSection').val();
+          // jQuery('#course-section').text(hiddenSection);
+          // let hiddenLesson = jQuery('#currentLesson').val();
+          // jQuery('#section-lesson').text(hiddenLesson);
 
-          // starting date and time
-          let start_date = new Date(jQuery('#startDateTime').val());
-          let start_date_string = start_date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
-          let start_time_string = start_date.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
-          jQuery('#student-progress-trek-start-time').text(start_date_string + ' ' + start_time_string);
-          // ending date and time
-          let end_date = new Date(jQuery('#endDateTime').val());
-          let end_date_string = end_date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
-          let end_time_string = end_date.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
-          jQuery('#student-progress-trek-end-time').text(end_date_string + ' ' + end_time_string);
+          // // starting date and time
+          // let start_date = new Date(jQuery('#startDateTime').val());
+          // let start_date_string = start_date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+          // let start_time_string = start_date.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
+          // jQuery('#student-progress-trek-start-time').text(start_date_string + ' ' + start_time_string);
+          // // ending date and time
+          // let end_date = new Date(jQuery('#endDateTime').val());
+          // let end_date_string = end_date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+          // let end_time_string = end_date.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
+          // jQuery('#student-progress-trek-end-time').text(end_date_string + ' ' + end_time_string);
         });
-      function go_to_url(url) {
-        window.location = url;
-      }
     </script>
     <script src="<?php echo $treks_src; ?>/js/Animated-Circular-Progress-Bar-with-jQuery-Canvas-Circle-Progress/dist/circle-progress.js"></script>
     <script src="<?php echo $treks_src; ?>/js/custom.js"></script>
@@ -399,11 +304,17 @@ while (have_posts()) : the_post();
       crossorigin="anonymous"
     ></script>
     <script>
-      // Initialize tooltips
-      var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-      var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-      })
+        // Select the element with the `overview-poly-body-active` class
+        // const tagsBody = document.querySelector('.tags-body.overview-poly-body-active');
+        const tagsBody = document.getElementById('over_view_btn');
+        // Add event listeners for hover in and hover out
+        tagsBody.addEventListener('mouseenter', () => {
+          tagsBody.classList.add('overview-poly-body-hover');
+        });
+
+        tagsBody.addEventListener('mouseleave', () => {
+          tagsBody.classList.remove('overview-poly-body-hover');
+        });
     </script>
   </body>
 </html>

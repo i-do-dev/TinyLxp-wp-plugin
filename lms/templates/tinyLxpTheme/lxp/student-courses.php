@@ -104,7 +104,7 @@ while (have_posts()) : the_post();
                             <?php
                             foreach($courses as $course) {
                             ?>
-                            <a href="<?php echo get_post_permalink($course->ID); ?>" class="treks-card-link">
+                            <a href="<?php echo '../tl/course/'.get_post_field('post_name', $course->ID); ?>" class="treks-card-link">
                                 <div class="recent-treks-card-body treks-card">
                                     <div>
                                     <?php

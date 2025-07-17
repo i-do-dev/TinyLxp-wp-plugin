@@ -6,7 +6,7 @@ lxp_login_check();
 $treks_src = content_url().'/plugins/TinyLxp-wp-plugin/lms/templates/tinyLxpTheme/treks-src/';
 $userdata = get_userdata(get_current_user_id());
 $userRole = count($userdata->roles) > 0 ? array_values($userdata->roles)[0] : '';
-if ($userRole == 'lxp_student') {
+if ($userRole != 'lxp_teacher') {
   die('Not a valid User role');
 }
 ?>
@@ -51,6 +51,18 @@ if ($userRole == 'lxp_student') {
 
     .fc-daygrid-day-frame a {
       text-decoration: none !important;      
+    }
+    .bg-gray {
+      background: #757575 !important;
+    }
+    .bg-orange {
+      background: #de6c03 !important;
+    }
+    .bg-green {
+      background: #6dc200 !important;
+    }
+    .bg-blue {
+      background: #1fa5d4 !important;
     }
   </style>
 </head>
@@ -263,6 +275,22 @@ if ($userRole == 'lxp_student') {
       }
 
       function student_assignment_stat_row_html(student, assignment_id) {
+        let statusClass = '';
+          switch (student.status) {
+            case 'To Do':
+              statusClass = 'bg-gray';
+              break;
+            case 'In Progress':
+              statusClass = 'bg-orange';
+              break;
+            case 'Completed':
+              statusClass = 'bg-green';
+              student.status = 'Submitted';
+              break;
+            case 'Graded':
+              statusClass = 'bg-blue';
+              break;
+          }
           return `
               <tr>
                   <td>
@@ -275,7 +303,7 @@ if ($userRole == 'lxp_student') {
                   </div>
                   </td>
                   <td>
-                  <div class="table-status">` + student.status + `</div>
+                  <div class="table-status `+statusClass+`">` + student.status + `</div>
                   </td>
                   <td>` + student.progress + `</td>
                   <td>` + student.score + `</td>

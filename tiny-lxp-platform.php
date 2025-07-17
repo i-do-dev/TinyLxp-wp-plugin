@@ -69,34 +69,10 @@ function run_tiny_lxp_platform()
     }
 }
 
-// Function to run on plugin activation
-// function my_plugin_activation_function() {
-//     $theme = wp_get_theme('TinyLxp-wp-theme');
-
-//     if ($theme->exists()) {
-//         switch_theme('TinyLxp-wp-theme');
-//     }
-// }
-
-// Function to run on plugin deactivation
-// function my_plugin_deactivation_function() {
-//     $theme = wp_get_theme('twentytwentytwo');
-
-//     if ($theme->exists()) {
-//         switch_theme('twentytwentytwo');
-//     }
-// }
-
-// Register activation hook
-register_activation_hook(__FILE__, 'my_plugin_activation_function');
-
-// Register deactivation hook
-register_deactivation_hook(__FILE__, 'my_plugin_deactivation_function');
-
 run_tiny_lxp_platform();
 function show_grade_link($actions, $post)
 {
-    if ($post->post_type=='tl_course')
+    if ($post->post_type==TL_COURSE_CPT)
     {
         $actions['duplicate'] = "<a href='admin.php?page=grades&course_id=".$post->ID."' title='' rel='permalink'>Grades</a>";
     }
