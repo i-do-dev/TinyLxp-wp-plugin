@@ -69,7 +69,7 @@ require_once( LMS__PLUGIN_DIR . 'lms-rest-apis/lms-rest-api.php' );
 		$args = $this->args_register_post_type();
 		if ( $args ) {
 			register_post_type( $this->_post_type, $args );
-			flush_rewrite_rules();
+			// flush_rewrite_rules();
 		}
 	}
 

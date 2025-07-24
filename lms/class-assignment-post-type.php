@@ -93,7 +93,7 @@ class TL_Assingment_Post_Type extends TL_Post_Type
          $this->_post_type,         // Admin page (or post type)
          'advanced',         // Context
          'default',         // Priority
-         'show_in_rest' => true,
+         // 'show_in_rest' => true,
       ]);
 
    }

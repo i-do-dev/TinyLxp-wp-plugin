@@ -190,7 +190,7 @@
          TL_COURSE_CPT,         // Admin page (or post type)
          'side',         // Context
          'default',         // Priority
-         'show_in_rest' => true,
+         // 'show_in_rest' => true,
       ]);
    }
 
