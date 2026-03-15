@@ -1,4 +1,4 @@
-<style style="text/css">
+<style>
     .district_input_box {
         padding: 0 0 30px !important;
     }
@@ -118,6 +118,10 @@
         let districtForm = jQuery("#districtForm");
         jQuery(districtForm).on('submit', function(e) {
             e.preventDefault();
+
+            jQuery("#saveDistrictBtn").attr("disabled", "disabled");
+            let beforeText = jQuery("#saveDistrictBtn").text();
+            jQuery("#saveDistrictBtn").html(`<i class="fa fa-spinner fa-spin"></i> ` + beforeText);
             
             const formData = new FormData(e.target);
             
@@ -141,6 +145,8 @@
                         jQuery('textarea[name="' + element + '"]').addClass('is-invalid');
                     });
                 }
+                jQuery("#saveDistrictBtn").text(beforeText);
+                jQuery("#saveDistrictBtn").removeAttr("disabled");
             });
         
         });

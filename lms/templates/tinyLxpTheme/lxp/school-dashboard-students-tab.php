@@ -49,6 +49,8 @@
                 } else {
                     $model_id = 'studentModal';
                     $add_btn = 'studentModalBtn';
+
+                    echo '<button id="takenStudentModalBtn" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#takenStudentModal" class="primary-btn"> Add Lxp Students </button>';
                 }
             ?>
                 <button id="<?php echo $add_btn; ?>" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#<?php echo $model_id; ?>" class="primary-btn">

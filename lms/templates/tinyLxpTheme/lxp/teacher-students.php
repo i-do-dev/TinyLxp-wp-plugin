@@ -8,9 +8,9 @@
     //$students = lxp_get_school_teacher_students($teacher_school_id, $teacher_post->ID);
     $students = array();
     if (isset($_GET['inactive']) && $_GET['inactive'] == 'true') {
-        $students = lxp_get_school_teacher_students_inactive($teacher_school_id, $teacher_post->ID);
+        $students = lxp_get_school_teacher_students_inactive($teacher_post->ID);
     } else {
-        $students = lxp_get_school_teacher_students_active($teacher_school_id, $teacher_post->ID);
+        $students = lxp_get_school_teacher_students_active($teacher_post->ID);
     }
     $district_post = get_post(get_post_meta($school_post->ID, 'lxp_school_district_id', true));
     $district_type = get_post_meta($district_post->ID, 'lxp_district_type', true);
@@ -131,6 +131,7 @@
                             } else {
                                 $model_id = 'studentModal';
                                 $add_btn = 'studentModalBtn';
+                                echo '<button id="takenStudentModalBtn" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#takenStudentModal" class="primary-btn"> Add Lxp Students </button>';
                             }
                         ?>
                         <button id="<?php echo $add_btn; ?>" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#<?php echo $model_id; ?>" class="primary-btn">
@@ -302,6 +303,7 @@
             $args['district_post'] = $district_post;
             include $livePath.'/lxp/edlink/student-modal.php';
         } else {
+            include $livePath.'/lxp/teacher-assign-student-modal.php';
             include $livePath.'/lxp/teacher-student-modal.php';
         }
     ?>

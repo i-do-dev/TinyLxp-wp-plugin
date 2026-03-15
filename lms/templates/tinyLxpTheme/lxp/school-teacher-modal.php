@@ -209,6 +209,9 @@
         let teacherForm = jQuery("#teacherForm");
         jQuery(teacherForm).on('submit', function(e) {
             e.preventDefault();
+            jQuery("#saveTeacherBtn").attr("disabled", "disabled");
+            let beforeText = jQuery("#saveTeacherBtn").text();
+            jQuery("#saveTeacherBtn").html(`<i class="fa fa-spinner fa-spin"></i> ` + beforeText);
             const formData = new FormData(e.target);
             $.ajax({
                 method: "POST",
@@ -229,6 +232,8 @@
                         jQuery('#teacherModal textarea[name="' + element + '"]').addClass('is-invalid');
                     });
                 }
+                jQuery("#saveTeacherBtn").text(beforeText);
+                jQuery("#saveTeacherBtn").removeAttr("disabled");
             });
         
         });

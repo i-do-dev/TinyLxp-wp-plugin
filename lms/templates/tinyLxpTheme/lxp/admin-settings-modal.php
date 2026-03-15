@@ -53,6 +53,10 @@
         window.settingsModalObj = settingsModalObj;
 
         jQuery("#updateSettingsBtn").on('click', function() {
+            jQuery("#updateSettingsBtn").attr("disabled", "disabled");
+            let beforeText = jQuery("#updateSettingsBtn").text();
+            jQuery("#updateSettingsBtn").html(`<i class="fa fa-spinner fa-spin"></i> ` + beforeText);
+            
             let isActive = jQuery("#activeSwitch").prop('checked');
             let data = {
                 entity_post_id: window.settingsEntityId,
@@ -68,6 +72,8 @@
                 location.reload();
             }).fail(function (response) {
                 console.error("Failed to update active status: ", response);
+                jQuery("#updateSettingsBtn").text(beforeText);
+                jQuery("#updateSettingsBtn").removeAttr("disabled");
             });
         });
 

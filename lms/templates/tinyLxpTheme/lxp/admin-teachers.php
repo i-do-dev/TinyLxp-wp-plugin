@@ -66,6 +66,7 @@ $edlink_options = get_option('edlink_options');
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
         integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous" />
     <link rel="stylesheet" href="<?php echo $treks_src; ?>/style/addNewTeacherModal.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 
 <body>
@@ -260,7 +261,7 @@ $edlink_options = get_option('edlink_options');
                                         }
                                         $lxp_teacher_students = array();
                                         if ($lxp_teacher_district && $lxp_teacher_school) {
-                                            $lxp_teacher_students = lxp_get_school_teacher_students($lxp_teacher_school->ID,  $teacher->ID);
+                                            $lxp_teacher_students = lxp_get_school_teacher_students($teacher->ID);
                                         }
                                 ?>
                                     <tr>
@@ -277,7 +278,7 @@ $edlink_options = get_option('edlink_options');
                                         </td>
                                         <td><?php echo $lxp_teacher_district ? $lxp_teacher_district->post_title : '---'; ?></td>
                                         <td><?php echo $lxp_teacher_school ? $lxp_teacher_school->post_title : '---' ?></td>
-                                        <td><?php echo $lxp_teacher_students ? count($lxp_teacher_students) : 0 ?></td>
+                                        <td><?php echo $lxp_teacher_students && is_array($lxp_teacher_students) ? count($lxp_teacher_students) : 0 ?></td>
                                         <td><?php echo $teacher->ID; ?></td>
                                         <td>
                                             <div class="dropdown">

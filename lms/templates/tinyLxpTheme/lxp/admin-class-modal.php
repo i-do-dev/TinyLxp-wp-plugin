@@ -342,6 +342,11 @@ if (!empty($args['district_post'])) {
         jQuery(classForm).on('submit', function(e) {
             e.preventDefault();
             jQuery(".alert-danger").hide();
+
+            jQuery("#class-action").attr("disabled", "disabled");
+            let beforeText = jQuery("#class-action").text();
+            jQuery("#class-action").html(`<i class="fa fa-spinner fa-spin"></i> ` + beforeText);
+
             const formData = new FormData(e.target);
             $.ajax({
                 method: "POST",
@@ -375,6 +380,8 @@ if (!empty($args['district_post'])) {
                         // }
                     });
                 }
+                jQuery("#class-action").text(beforeText);
+                jQuery("#class-action").removeAttr("disabled");
             });
         
         });

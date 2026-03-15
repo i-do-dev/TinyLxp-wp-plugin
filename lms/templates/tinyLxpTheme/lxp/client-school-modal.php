@@ -137,7 +137,9 @@
         let schoolForm = jQuery("#schoolForm");
         jQuery(schoolForm).on('submit', function(e) {
             e.preventDefault();
-            
+            jQuery("#saveSchoolBtn").attr("disabled", "disabled");
+            let beforeText = jQuery("#saveSchoolBtn").text();
+            jQuery("#saveSchoolBtn").html(`<i class="fa fa-spinner fa-spin"></i> ` + beforeText);
             const formData = new FormData(e.target);
             
             $.ajax({
@@ -160,6 +162,8 @@
                         jQuery('textarea[name="' + element + '"]').addClass('is-invalid');
                     });
                 }
+                jQuery("#saveSchoolBtn").text(beforeText);
+                jQuery("#saveSchoolBtn").removeAttr("disabled");
             });
         
         });

@@ -155,6 +155,12 @@ class Tiny_LXP_Platform
          * side of the site.
          */
         require_once plugin_dir_path(dirname(__FILE__)) . 'public/class-tiny-lxp-platform-public.php';
+        
+        /**
+         * The class responsible for define all widgets and working in admin and public
+         * side of the site.
+         */
+        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-tiny-lxp-platform-widget.php';
 
         if (class_exists('ceLTIc\LTI\Tool')) {
             require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-tiny-lxp-platform-tool.php';
@@ -222,6 +228,11 @@ class Tiny_LXP_Platform
         $plugin_public = new Tiny_LXP_Platform_Public(self::get_plugin_name(), $this->get_version());
 
         $this->loader->add_action('parse_request', $plugin_public, 'parse_request');
+
+        $widget_path = new Tiny_LXP_Widget(self::get_plugin_name(), $this->get_version());
+
+        $this->loader->add_action('elementor/widgets/register', $widget_path, 'register_elementor_widgets');
+        $this->loader->add_action('wp_enqueue_scripts', $widget_path, 'widget_dependencies');
     }
 
     /**

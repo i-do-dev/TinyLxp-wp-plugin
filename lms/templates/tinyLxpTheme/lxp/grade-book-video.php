@@ -97,7 +97,7 @@ global $post;
         <?php
         
         if ($all_interactions['type'] == 'interactive_video') {
-            // interactive video grade book start here
+            // interactive-video Grade-Summary start here
         ?>
             <div class="row">
                 <div class="col-md-12">
@@ -139,7 +139,7 @@ global $post;
                                             $score_raw = array_sum(array_column($scores, 'raw'));
                                             $score_max = array_sum(array_column($scores, 'max'));
                                         }
-                                        $percentage = $score_raw == '' ? '' : ($score_raw / $score_max) * 100;
+                                        $percentage = $score_raw == '' || $score_raw == 0 || $score_max == 0 ? '' : ($score_raw / $score_max) * 100;
                                         if ($percentage >= 80) {
                                             $progress_class = "bg-success";
                                             $icon = 'check-lg';
@@ -172,7 +172,7 @@ global $post;
                                                 <?= $score_raw > 0 ? $score_raw. '/' . $score_max : "---"; ?>
                                             </td>
                                             <td>
-                                                <?php if($score_raw == ''): ?>
+                                                <?php if($score_raw == '' || $score_max == 0): ?>
                                                     ---
                                                 <?php else: ?>
                                                     <div class="progress" style="height: 25px;">
@@ -192,9 +192,9 @@ global $post;
                 </div>
             </div>
         <?php
-            // interactive-Video Grade Book end here
+            // interactive-Video Grade-Summary end here
 
-            // interactive-Book Grade Book start here
+            // interactive-Book Grade-Summary start here
         } else {
             $interaction_count = 0; $interaction_seen_count = 0;
             
@@ -222,7 +222,7 @@ global $post;
                     }
                 }
             }
-
+            $total_score = $total_score == 0 ? 1 : $total_score;
             $marks_float = $obtain_score/$total_score;
             $interactions_float = $interaction_seen_count/$interaction_count;
             $interaction_percentage = round($interactions_float*100);
@@ -347,6 +347,7 @@ global $post;
             </div>
             <?php
         }
+        // interactive-Book Grade-Summary end here
         ?>
 
     </div>

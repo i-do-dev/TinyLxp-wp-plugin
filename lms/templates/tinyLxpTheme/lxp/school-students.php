@@ -8,9 +8,9 @@
         $teacher_id = $_GET['teacher_id'];
         // $students = lxp_get_school_teacher_students($school_post->ID, $teacher_id);
         if (isset($_GET['inactive']) && $_GET['inactive'] == 'true') {
-            $students = lxp_get_school_teacher_students_inactive($school_post->ID, $teacher_id);
+            $students = lxp_get_school_teacher_students_inactive($teacher_id);
         } else {
-            $students = lxp_get_school_teacher_students_active($school_post->ID, $teacher_id);
+            $students = lxp_get_school_teacher_students_active($teacher_id);
         }
     } else {
         //$school_students = lxp_get_school_students($school_post->ID);
@@ -123,8 +123,8 @@
                                 </div>
                             </form>
                         </div>
-                        <div class="col-md-4"></div>
-                        <div class="col-md-4">
+                        <div class="col-md-2"></div>
+                        <div class="col-md-6">
                             <?php if (isset($_GET['teacher_id']) && $_GET['teacher_id'] > 0) { ?>
                                 <div>
                                 <?php 
@@ -134,6 +134,8 @@
                                     } else {
                                         $model_id = 'studentModal';
                                         $add_btn = 'studentModalBtn';
+
+                                        echo '<button id="takenStudentModalBtn" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#takenStudentModal" class="primary-btn"> Add Lxp Students </button>';
                                     }
                                 ?>
                                 <button id="<?php echo $add_btn; ?>" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#<?php echo $model_id; ?>" class="primary-btn">
@@ -310,6 +312,7 @@
             $args['district_post'] = $district_post;
             include $livePath.'/lxp/edlink/student-modal.php';
         } else {
+            include $livePath.'/lxp/admin-student-assign-modal.php';
             include $livePath.'/lxp/school-student-modal.php';
         }
     ?>

@@ -172,8 +172,8 @@ $edlink_options = get_option('edlink_options');
                                     <label for="district-drop-down" class="form-label">District</label>
                                     <select class="form-select" id="district-drop-down" name="district_id">
                                         <option value="0">Choose...</option>
-                                        <?php foreach ($district_posts as $district_post) { ?>
-                                            <option value="<?php echo $district_post->ID; ?>"<?php echo isset($_GET['district_id']) && $_GET['district_id'] == $district_post->ID ? ' selected=selected' : '' ?>><?php echo $district_post->post_title; ?></option>
+                                        <?php foreach ($district_posts as $single_post) { ?>
+                                            <option value="<?php echo $single_post->ID; ?>"<?php echo isset($_GET['district_id']) && $_GET['district_id'] == $single_post->ID ? ' selected=selected' : '' ?>><?php echo $single_post->post_title; ?></option>
                                         <?php } ?>
                                     </select>
                                 </div>

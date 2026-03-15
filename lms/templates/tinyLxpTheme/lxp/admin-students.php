@@ -48,9 +48,9 @@ $students = [];
 if(isset($_GET['school_id']) && isset($_GET['teacher_id'])) {
     // $students = lxp_get_school_teacher_students($teacher_school_id, $teacher_post->ID);
     if (isset($_GET['inactive']) && $_GET['inactive'] == 'true') {
-        $students = lxp_get_school_teacher_students_inactive($teacher_school_id, $teacher_post->ID, true);
+        $students = lxp_get_school_teacher_students_inactive($teacher_post->ID, true);
     } else {
-        $students = lxp_get_school_teacher_students_active($teacher_school_id, $teacher_post->ID);
+        $students = lxp_get_school_teacher_students_active($teacher_post->ID);
     }
 } else if(isset($_GET['school_id'])) {
     // $students = lxp_get_school_students($_GET['school_id']);
@@ -175,20 +175,8 @@ $edlink_options = get_option('edlink_options');
         <section class="school-section">
             <section class="school_teacher_cards">
                 <div class="add-teacher-box">
-                    <!-- <div class="search-filter-box">
-                        <div class="search_box">
-                            <label class="search-label">Search</label>
-                            <input type="text" name="text" placeholder="School, ID, admin" />
-                        </div>
-                        <div class="filter-box">
-                            <img src="<?php //echo $treks_src; ?>/assets/img/filter-alt.svg" alt="filter logo" />
-                            <p class="filter-heading">Filter</p>
-                        </div>
-                    </div> -->
-
-                    <!-- bootstrap html form with Dstricts, School and Teachers drop downs components with text search capabilities. These all drop downs use $district_posts, $district_schools and $district_schools_teachers php arrays for drop down items -->
                     <div class="row">
-                        <div class="col-md-7">
+                        <div class="col-md-6">
                             <form class="row">
                                 <?php 
                                     if (isset($edlink_options['edlink_application_id']) && $edlink_options['edlink_application_id'] != '' && isset($edlink_options['edlink_application_secrets']) && $edlink_options['edlink_application_secrets'] != '' && isset($edlink_options['edlink_sso_enable']) && $edlink_options['edlink_sso_enable'] == 1
@@ -243,17 +231,22 @@ $edlink_options = get_option('edlink_options');
                                 </div>
                             </form>
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-md-6">
                             <?php 
-                                if (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') {                                    
+                                if (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') {
                                     $model_id = 'edlinkStudentModal';
                                     $add_btn = 'edlinkStudentModalBtn';
                                 } else {
                                     $model_id = 'studentModal';
                                     $add_btn = 'studentModalBtn';
+
+                                    $stdTakenModal = isset($_GET['school_id']) ? 'takenStudentModal' : $model_id;
+                                    $stdTakenModalBtn = isset($_GET['school_id']) ? 'takenStudentModalBtn' : $add_btn;
+
+                                    echo '<button id="'.$stdTakenModalBtn.'" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#'.$stdTakenModal.'" class="primary-btn"> Add Lxp Students </button>';
                                 }
                             ?>
-                            <div>
+                            
                                 <button id="<?php echo $add_btn; ?>" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#<?php echo $model_id; ?>" class="primary-btn">
                                     Add New Student
                                 </button>
@@ -267,7 +260,6 @@ $edlink_options = get_option('edlink_options');
                                 <?php    
                                     }
                                 ?>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -286,45 +278,6 @@ $edlink_options = get_option('edlink_options');
                     </ul>
 
                     <div class="students-table">
-                        <!-- 
-                        <div class="school-box">
-                            <div class="showing-row-box">
-                                <p class="showing-row-text">Showing 1 - 5 of 25</p>
-                                <div class="row-box">
-                                    <p class="showing-row-text">Rows per page</p>
-                                    <div class="show-page">
-                                        <button class="show-page-button" type="button" id="dropdownMenu2"
-                                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <span class="showing-row-text">5</span>
-                                        </button>
-                                        <img id="dropdownMenu2" data-bs-toggle="dropdown" aria-haspopup="true"
-                                            aria-expanded="false" src="<?php // echo $treks_src; ?>/assets/img//show-down-page.svg" alt="logo" />
-                                        <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
-                                            <button class="dropdown-item dropdown-class">
-                                                <p class="page-row-para">1</p>
-                                            </button>
-                                            <button class="dropdown-item dropdown-class" type="button">
-                                                <p class="page-row-para">2</p>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row-box">
-                                <p class="showing-row-text">First</p>
-                                <img class="previous-slide-img" src="<?php // echo $treks_src; ?>/assets/img/previous-arrow.svg" alt="logo" />
-                                <div class="slides-boxes">
-                                    <div class="slide-box"><span class="showing-row-text slide-num">1</span></div>
-                                    <div class="slide-box"><span class="showing-row-text slide-num slide-num2">2</span>
-                                    </div>
-                                    <div class="slide-box"><span class="showing-row-text slide-num slide-num2">3</span>
-                                    </div>
-                                </div>
-                                <img class="last-slide-img" src="<?php // echo $treks_src; ?>/assets/img/last-slide.svg" alt="logo" />
-                                <p class="showing-row-text">Last</p>
-                            </div>
-                        </div>
-                        -->
                         <table class="table">
                             <thead>
                                 <tr>
@@ -482,8 +435,12 @@ $edlink_options = get_option('edlink_options');
         if( $school_post ) {
             $args['school_post'] = $school_post;
             $args['teachers'] = $district_schools_teachers;
-            include $livePath.'/lxp/admin-student-modal.php';
-            include $livePath.'/lxp/edlink/student-modal.php';
+            if (isset($_GET['district_type']) && $_GET['district_type'] == 'edlink') {
+                include $livePath.'/lxp/edlink/student-modal.php';
+            } else {
+                include $livePath.'/lxp/admin-student-modal.php';
+                include $livePath.'/lxp/admin-student-assign-modal.php';
+            }
         } else {
 
         //if( !isset($_GET['teacher_id']) ) {

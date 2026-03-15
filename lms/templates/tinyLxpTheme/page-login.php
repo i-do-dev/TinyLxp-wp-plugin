@@ -124,7 +124,7 @@ while (have_posts()) : the_post();
         </div>
         <div class="d-flex" role="search">
           <div class="header-notification-user">
-            <?php include $livePath.'/trek/user-profile-block.php'; ?>
+            <?php //include $livePath.'/trek/user-profile-block.php'; ?>
           </div>
         </div>
       </div>

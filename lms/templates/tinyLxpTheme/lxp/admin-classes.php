@@ -48,9 +48,10 @@ $school_post = $teacher_school_id > 0 ? get_post($teacher_school_id) : null;
 $students = [];
 if ($teacher_post) {
     // get students by 'lxp_teacher_id' post meta
-    $students = lxp_get_school_students($teacher_school_id);
+    // $students = lxp_get_school_students($teacher_school_id);
+    $students = lxp_get_school_teacher_students_active($teacher_post->ID);
     $students = array_filter($students, function($student) use ($teacher_post) {
-        return get_post_meta($student->ID, 'lxp_teacher_id', true) == $teacher_post->ID;
+        return in_array($teacher_post->ID, get_post_meta($student->ID, 'lxp_teacher_id', true));
     });
 }
 

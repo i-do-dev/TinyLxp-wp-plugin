@@ -209,6 +209,10 @@ global $treks_src;
         jQuery(teacherForm).on('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(e.target);
+            jQuery("#saveTeacherBtn").attr("disabled", "disabled");
+            let beforeText = jQuery("#saveTeacherBtn").text();
+            jQuery("#saveTeacherBtn").html(`<i class="fa fa-spinner fa-spin"></i> ` + beforeText);
+
             $.ajax({
                 method: "POST",
                 enctype: 'multipart/form-data',
@@ -229,6 +233,8 @@ global $treks_src;
                         jQuery('#teacherModal textarea[name="' + element + '"]').addClass('is-invalid');
                     });
                 }
+                jQuery("#saveTeacherBtn").text(beforeText);
+                jQuery("#saveTeacherBtn").removeAttr("disabled");
             });
         
         });
@@ -242,14 +248,14 @@ global $treks_src;
             jQuery('#teacherModal #inputEmailDefault').val("");
             jQuery('#teacherModal #lxp_password').val("");
             jQuery('#teacherModal input.grade-checkbox').prop('checked', false);
-            jQuery('.teacher-action').text("Add");
+            jQuery("#saveTeacherBtn").text("Add");
             jQuery('.teacher-action-head').text("New");
             jQuery('#teacherForm .form-control').removeClass('is-invalid');
         });
     });
 
     function onTeacherEdit(teacher_id) {
-        jQuery(".teacher-action").text("Update");
+        jQuery("#saveTeacherBtn").text("Update");
         jQuery(".teacher-action-head").text("Update");
         
         let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;

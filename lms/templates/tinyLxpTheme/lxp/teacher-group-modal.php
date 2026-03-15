@@ -226,6 +226,9 @@ function onGroupEdit(group_post_id) {
         let groupForm = jQuery("#groupForm");
         jQuery(groupForm).on('submit', function(e) {
             e.preventDefault();
+            jQuery("#small-group-action").attr("disabled", "disabled");
+            let beforeText = jQuery("#small-group-action").text();
+            jQuery("#small-group-action").html(`<i class="fa fa-spinner fa-spin"></i> ` + beforeText);
             jQuery(".alert-danger").hide();
             var group_type = jQuery('#classes_other_group :selected').parent().attr('value');
             var name = jQuery('#classes_other_group :selected').text();
@@ -260,6 +263,8 @@ function onGroupEdit(group_post_id) {
                         jQuery('#groupModal select[name="' + element + '"]').addClass('is-invalid');
                     });
                 }
+                jQuery("#small-group-action").text(beforeText);
+                jQuery("#small-group-action").removeAttr("disabled");
             });
         
         });

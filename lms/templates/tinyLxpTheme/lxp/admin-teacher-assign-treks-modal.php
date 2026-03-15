@@ -59,7 +59,7 @@ $courses = get_posts($args);
                             </table>
                         </div>
                         <div class="btn_box">
-                            <button class="btn" id="saveTeacherBtn"><span class="teacher-action">Restrict</span></button>
+                            <button class="btn" id="teacherRestrictCoursesBtn" type="submit"><span class="teacher-action">Restrict</span></button>
                             <button class="btn" type="button" data-bs-dismiss="modal" aria-label="Close">Cancel</button>
                         </div>
                     </div>
@@ -86,6 +86,11 @@ $courses = get_posts($args);
         let teacherTreksForm = jQuery("#teacherTreksForm");
         jQuery(teacherTreksForm).on('submit', function(e) {
             e.preventDefault();
+
+            jQuery("#teacherRestrictCoursesBtn").attr("disabled", "disabled");
+            let beforeText = jQuery("#teacherRestrictCoursesBtn").text();
+            jQuery("#teacherRestrictCoursesBtn").html(`<i class="fa fa-spinner fa-spin"></i> ` + beforeText);
+
             const formData = new FormData(e.target);
             $.ajax({
                 method: "POST",
@@ -98,8 +103,12 @@ $courses = get_posts($args);
             }).done(function( response ) {
                 jQuery('#teacherTreksForm .form-control').removeClass('is-invalid');
                 teacherTreksModalObj.hide();
+                jQuery("#teacherRestrictCoursesBtn").attr("disabled", false);
+                jQuery("#teacherRestrictCoursesBtn").html(beforeText);
             }).fail(function (response) {
                 jQuery('#teacherTreksForm .form-control').removeClass('is-invalid');
+                jQuery("#teacherRestrictCoursesBtn").attr("disabled", false);
+                jQuery("#teacherRestrictCoursesBtn").html(beforeText);
             });
         
         });

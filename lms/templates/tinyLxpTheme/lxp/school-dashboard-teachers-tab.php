@@ -93,7 +93,7 @@
                         }
                         $lxp_teacher_students = array();
                         if ($lxp_teacher_district && $lxp_teacher_school) {
-                            $lxp_teacher_students = lxp_get_school_teacher_students($lxp_teacher_school->ID,  $teacher->ID);
+                            $lxp_teacher_students = lxp_get_school_teacher_students($teacher->ID);
                         }
                 ?>
                     <tr>
@@ -110,7 +110,7 @@
                         </td>
                         <td><?php echo $lxp_teacher_district ? $lxp_teacher_district->post_title : '---'; ?></td>
                         <td><?php echo $lxp_teacher_school ? $lxp_teacher_school->post_title : '---' ?></td>
-                        <td><?php echo $lxp_teacher_students ? count($lxp_teacher_students) : 0 ?></td>
+                        <td><?php echo $lxp_teacher_students && is_array($lxp_teacher_students) ? count($lxp_teacher_students) : 0 ?></td>
                         <!-- 
                         <td class="grade">
                             <?php 

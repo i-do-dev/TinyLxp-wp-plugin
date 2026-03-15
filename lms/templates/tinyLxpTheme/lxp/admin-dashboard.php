@@ -10,12 +10,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Dashboard</title>
-    <link href="<?php echo $treks_src; ?>/style/main.css" rel="stylesheet" />
-    <link rel="stylesheet" href="<?php echo $treks_src; ?>/style/header-section.css" />
-    <link rel="stylesheet" href="<?php echo $treks_src; ?>/style/adminDashboard.css" />
+    <link href="<?php echo $treks_src; ?>style/main.css" rel="stylesheet" />
+    <link rel="stylesheet" href="<?php echo $treks_src; ?>style/header-section.css" />
+    <link rel="stylesheet" href="<?php echo $treks_src; ?>style/adminDashboard.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
         integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous" />
-    <link href="<?php echo $treks_src; ?>/style/treksstyle.css" rel="stylesheet" />
+    <link href="<?php echo $treks_src; ?>style/treksstyle.css" rel="stylesheet" />
 </head>
 
 <body>
@@ -34,7 +34,7 @@
                     <div class="header-logo-search">
                         <!-- searching input -->
                         <div class="header-search">
-                            <img src="<?php echo $treks_src; ?>/assets/img/header_search.svg" alt="svg" />
+                            <img src="<?php echo $treks_src; ?>assets/img/header_search.svg" alt="svg" />
                             <input placeholder="Search" />
                         </div>
                     </div>
@@ -65,37 +65,37 @@
     <section class="school-section">
         <div class="cards-box">
             <div class="card">
-                <img src="<?php echo $treks_src; ?>/assets/img/home-logo.svg" alt="logo" />
+                <img src="<?php echo $treks_src; ?>assets/img/home-logo.svg" alt="logo" />
                 <!-- <h3 class="numbers-heading"><?php //echo count( $district_schools ); ?></h3> -->
                 <p class="name-text"><a href="<?php echo site_url('districts'); ?>">Manage Districts</a></p>
             </div>
             <div class="card">
-                <img src="<?php echo $treks_src; ?>/assets/img/home-logo.svg" alt="logo" />
+                <img src="<?php echo $treks_src; ?>assets/img/home-logo.svg" alt="logo" />
                 <!-- <h3 class="numbers-heading"><?php //echo count( $district_schools ); ?></h3> -->
                 <p class="name-text"><a href="<?php echo site_url('schools'); ?>">Manage Schools</a></p>
             </div>
             <div class="card">
-                <img src="<?php echo $treks_src; ?>/assets/img/verified-user.svg" alt="logo" />
+                <img src="<?php echo $treks_src; ?>assets/img/verified-user.svg" alt="logo" />
                 <!-- <h3 class="numbers-heading"><?php //echo count($district_schools_teachers); ?></h3> -->
                 <p class="name-text"><a href="<?php echo site_url('teachers'); ?>">Manage Teachers</a></p>
             </div>
             <div class="card">
-                <img src="<?php echo $treks_src; ?>/assets/img/user.svg" alt="logo" />
+                <img src="<?php echo $treks_src; ?>assets/img/user.svg" alt="logo" />
                 <!-- <h3 class="numbers-heading"><?php //echo count($district_schools_students); ?></h3> -->
                 <p class="name-text"> <a href="<?php echo site_url('students'); ?>">Manage Students</a></p>
             </div>
             <div class="card">
-                <img src="<?php echo $treks_src; ?>/assets/img/user.svg" alt="logo" />
+                <img src="<?php echo $treks_src; ?>assets/img/user.svg" alt="logo" />
                 <!-- <h3 class="numbers-heading"><?php //echo count($district_schools_students); ?></h3> -->
                 <p class="name-text"> <a href="<?php echo site_url('classes'); ?>">Manage Classes & Groups</a></p>
             </div>
             <div class="card">
-                <img src="<?php echo $treks_src; ?>/assets/img/user.svg" alt="logo" />
+                <img src="<?php echo $treks_src; ?>assets/img/user.svg" alt="logo" />
                 <!-- <h3 class="numbers-heading"><?php //echo count($district_schools_students); ?></h3> -->
                 <p class="name-text"> <a href="<?php echo site_url('groups'); ?>">Manage Groups</a></p>
             </div>
             <div class="card">
-                <img src="<?php echo $treks_src; ?>/assets/img/user.svg" alt="logo" />
+                <img src="<?php echo $treks_src; ?>assets/img/user.svg" alt="logo" />
                 <!-- <h3 class="numbers-heading"><?php //echo count($district_schools_students); ?></h3> -->
                 <p class="name-text"> <a href="<?php echo site_url('courses'); ?>">Manage Courses</a></p>
             </div>
@@ -118,7 +118,7 @@
                 
                 <div class="recent-treks-card-body">
                     <div>
-                        <img src="<?php // echo $treks_src; ?>/assets/img/admin_rec_tre_img1.svg" />
+                        <img src="<?php // echo $treks_src; ?>assets/img/admin_rec_tre_img1.svg" />
                     </div>
                     <div>
                         <h3>5.12A Interdependence</h3>
@@ -129,7 +129,7 @@
                 
                 <div class="recent-treks-card-body">
                     <div>
-                        <img src="<?php // echo $treks_src; ?>/assets/img/admin_rec_tre_img2.svg" />
+                        <img src="<?php // echo $treks_src; ?>assets/img/admin_rec_tre_img2.svg" />
                     </div>
                     <div>
                         <h3>5.7B Forces & Experimental Design</h3>
@@ -140,7 +140,7 @@
                 
                 <div class="recent-treks-card-body">
                     <div>
-                        <img src="<?php // echo $treks_src; ?>/assets/img/admin_rec_tre_img3.svg" />
+                        <img src="<?php // echo $treks_src; ?>assets/img/admin_rec_tre_img3.svg" />
                     </div>
                     <div>
                         <h3>5.6A Physical Properties</h3>
@@ -156,8 +156,8 @@
     <script src="https://code.jquery.com/jquery-3.6.3.js"
         integrity="sha256-nQLuAZGRRcILA+6dMBOvcRh5Pe310sBpanc6+QBmyVM=" crossorigin="anonymous"></script>
     <script
-        src="<?php echo $treks_src; ?>/js/Animated-Circular-Progress-Bar-with-jQuery-Canvas-Circle-Progress/dist/circle-progress.js"></script>
-    <script src="<?php echo $treks_src; ?>/js/custom.js"></script>
+        src="<?php echo $treks_src; ?>js/Animated-Circular-Progress-Bar-with-jQuery-Canvas-Circle-Progress/dist/circle-progress.js"></script>
+    <script src="<?php echo $treks_src; ?>js/custom.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
         crossorigin="anonymous"></script>

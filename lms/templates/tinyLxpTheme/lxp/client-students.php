@@ -12,9 +12,9 @@
     if(isset($_GET['school_id']) && isset($_GET['teacher_id'])) {
         // $students = lxp_get_school_teacher_students($teacher_school_id, $teacher_post->ID);
         if (isset($_GET['inactive']) && $_GET['inactive'] == 'true') {
-            $students = lxp_get_school_teacher_students_inactive($teacher_school_id, $teacher_post->ID);
+            $students = lxp_get_school_teacher_students_inactive($teacher_post->ID);
         } else {
-            $students = lxp_get_school_teacher_students_active($teacher_school_id, $teacher_post->ID);
+            $students = lxp_get_school_teacher_students_active($teacher_post->ID);
         }
     } else if(isset($_GET['school_id'])) {
         // $students = lxp_get_school_students($_GET['school_id']);
@@ -151,7 +151,7 @@
 
                     <!-- bootstrap html form with Dstricts, School and Teachers drop downs components with text search capabilities. These all drop downs use $district_posts, $district_schools and $district_schools_teachers php arrays for drop down items -->
                     <div class="row">
-                        <div class="col-md-7">
+                        <div class="col-md-6">
                             <form class="row">
                                 <div class="col-md-4">
                                     <label for="district-drop-down" class="form-label">School</label>
@@ -173,7 +173,7 @@
                                 </div>
                             </form>
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-md-6">
                             <div>
                                 <?php 
                                     if (isset($district_type) && $district_type == 'edlink') {                                    
@@ -182,6 +182,11 @@
                                     } else {
                                         $model_id = 'studentModal';
                                         $add_btn = 'studentModalBtn';
+
+                                        $stdTakenModal = isset($_GET['school_id']) ? 'takenStudentModal' : $model_id;
+                                        $stdTakenModalBtn = isset($_GET['school_id']) ? 'takenStudentModalBtn' : $add_btn;
+
+                                        echo '<button id="'.$stdTakenModalBtn.'" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#'.$stdTakenModal.'" class="primary-btn"> Add Lxp Students </button>';
                                     }
                                 ?>
                                 <button id="<?php echo $add_btn; ?>" class="add-heading" type="button" data-bs-toggle="modal" data-bs-target="#<?php echo $model_id; ?>" class="primary-btn">
@@ -417,6 +422,7 @@
                 $args['district_post'] = $district_post;
                 include $livePath.'/lxp/edlink/student-modal.php';
             } else {
+                include $livePath.'/lxp/admin-student-assign-modal.php';
                 include $livePath.'/lxp/admin-student-modal.php';
             }
         } else {

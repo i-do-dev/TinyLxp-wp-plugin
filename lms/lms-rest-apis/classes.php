@@ -153,7 +153,7 @@ class Rest_Lxp_Class
 		$class_post_id = intval($request->get_param('class_post_id'));
 		$class_name = trim($request->get_param('class_name'));
 		$class_description = trim($request->get_param('class_description'));
-		$edlink_class_sec_id = trim($request->get_param('edlink_class_sec_id'));
+		$edlink_class_sec_id = trim($request->get_param('edlink_class_sec_id') ?? '');
 		
 		$class_post_arg = array(
 			'post_title'    => wp_strip_all_tags($class_name),

@@ -5,10 +5,14 @@
     $teacher_post = lxp_get_teacher_post($userdata->data->ID);
     $teacher_school_id = get_post_meta($teacher_post->ID, 'lxp_teacher_school_id', true);
     $school_post = get_post($teacher_school_id);
-    $students = lxp_get_school_students($teacher_school_id);
+    $students = lxp_get_school_teacher_students_active($teacher_post->ID);
     $students = array_filter($students, function($student) use ($teacher_post) {
-        return get_post_meta($student->ID, 'lxp_teacher_id', true) == $teacher_post->ID;
+        return in_array($teacher_post->ID, get_post_meta($student->ID, 'lxp_teacher_id', true));
     });
+    // $students = lxp_get_school_students($teacher_school_id);
+    // $students = array_filter($students, function($student) use ($teacher_post) {
+    //     return get_post_meta($student->ID, 'lxp_teacher_id', true) == $teacher_post->ID;
+    // });
     //$classes = lxp_get_teacher_classes($teacher_post->ID);
     $default_classes = lxp_get_teacher_default_classes($teacher_post->ID);
     $classes = lxp_get_teacher_group_by_type($teacher_post->ID, 'classes');
@@ -39,6 +43,7 @@
     <link href="<?php echo $treks_src; ?>/style/treksstyle.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
         integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     
     <style type="text/css">
         .heading-wrapper {

@@ -3,7 +3,9 @@
 // 	$student_post = lxp_get_student_post(get_current_user_id());
 // 	lxp_check_assignment_submission($_GET['assignment_id'], $student_post->ID);
 // }
-
+$marks_float = 0;
+$interactions_float = 0;
+$progress_float = 0;
 $assignment = isset($_GET['assignment_id']) ? lxp_get_assignment($_GET['assignment_id']) : null;
 $assignment_submission = lxp_get_assignment_submissions($assignment->ID, lxp_get_student_post(get_current_user_id())->ID);
 $course = get_post(get_post_meta($assignment->ID, 'course_id', true));
@@ -15,6 +17,9 @@ $section_name = $wpdb->get_var($wpdb->prepare(
               WHERE si.item_id = %d",
               $lxp_lesson_post->ID
           ));
+$courseTitle = $course->post_title;
+$coursePermaLink = get_permalink($course->ID);
+
 $content = get_post_meta($post->ID);
 $attrId =  isset($content['lti_post_attr_id'][0]) ? $content['lti_post_attr_id'][0] : "";
 $title =  isset($content['lti_content_title'][0]) ? $content['lti_content_title'][0] : "";
@@ -26,8 +31,6 @@ $content = '<p>' . $post->post_content . '</p>';
 if ($attrId) {
 	$content .= '<p> [' . $plugin_name . ' tool=' . $toolCode . ' id=' . $attrId . ' title=\"' . $title . '\" url=' . $toolUrl . ' custom=' . $customAttr . ']' . "" . '[/' . $plugin_name . ']  </p>';
 }
-$courseTitle = $course->post_title;
-$coursePermaLink = get_permalink($course->ID);
 $queryParam = '';
 if (isset($_GET['slide'])) {
 	$queryParam = "&slideNumber=" . $_GET['slide'];
@@ -36,9 +39,6 @@ if (isset($_GET["assignment_id"])) {
 	$queryParam = $queryParam . "&assignment_id=" . $_GET["assignment_id"];	
 }
 $toolUrl = $toolUrl . $queryParam;
-$marks_float = 0;
-$interactions_float = 0;
-$progress_float = 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">

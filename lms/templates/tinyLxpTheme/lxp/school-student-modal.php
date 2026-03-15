@@ -225,7 +225,7 @@ function onStudentEdit(lxp_student_id) {
         let admin = response.data.admin.data;
         jQuery('#studentForm .form-control').removeClass('is-invalid');
         jQuery('#studentModal #lxp_aboutStudent').val(student.post_content);
-        jQuery('#studentModal #teacher_id').val(student.teacher_id);
+        // jQuery('#studentModal #teacher_id').val(student.teacher_id);
         jQuery('#studentModal #idStudent').val(student.student_id);
         jQuery('#studentModal #lxp_first_name_student').val(admin.first_name);
         jQuery('#studentModal #lxp_last_name_student').val(admin.last_name);
@@ -289,6 +289,9 @@ function onStudentEdit(lxp_student_id) {
         let studentForm = jQuery("#studentForm");
         jQuery(studentForm).on('submit', function(e) {
             e.preventDefault();
+            jQuery("#saveStudentBtn").attr("disabled", "disabled");
+            let beforeText = jQuery("#saveStudentBtn").text();
+            jQuery("#saveStudentBtn").html(`<i class="fa fa-spinner fa-spin"></i> ` + beforeText);
             const formData = new FormData(e.target);
             $.ajax({
                 method: "POST",
@@ -310,6 +313,8 @@ function onStudentEdit(lxp_student_id) {
                         jQuery('#studentModal select[name="' + element + '"]').addClass('is-invalid');
                     });
                 }
+                jQuery("#saveStudentBtn").text(beforeText);
+                jQuery("#saveStudentBtn").removeAttr("disabled");
             });
         
         });

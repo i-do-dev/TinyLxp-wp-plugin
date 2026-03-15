@@ -282,6 +282,9 @@ function onClassEdit(class_id) {
         let classForm = jQuery("#classForm");
         jQuery(classForm).on('submit', function(e) {
             e.preventDefault();
+            jQuery("#class-action").attr("disabled", "disabled");
+            let beforeText = jQuery("#class-action").text();
+            jQuery("#class-action").html(`<i class="fa fa-spinner fa-spin"></i> ` + beforeText);
             jQuery(".alert-danger").hide();
             const formData = new FormData(e.target);
             $.ajax({
@@ -315,6 +318,8 @@ function onClassEdit(class_id) {
                         // }
                     });
                 }
+                jQuery("#class-action").text(beforeText);
+                jQuery("#class-action").removeAttr("disabled");
             });
         
         });

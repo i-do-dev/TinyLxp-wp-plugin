@@ -33,7 +33,7 @@ class Rest_Lxp_Student
 		register_rest_route('lms/v1', '/students/save', array(
 			array(
 				'methods' => WP_REST_Server::EDITABLE,
-				'callback' => array('Rest_Lxp_Student', 'create'),
+				'callback' => array('Rest_Lxp_Student', 'save_update'),
 				'permission_callback' => '__return_true',
 				'args' => array(
 					'lxp_username' => array(
@@ -177,6 +177,39 @@ class Rest_Lxp_Student
 				'methods' => WP_REST_Server::EDITABLE,
 				'callback' => array('Rest_Lxp_Student', 'assign_grade'),
 				'permission_callback' => '__return_true'
+			)
+		));
+
+		register_rest_route('lms/v1', '/students/taken_student', array(
+			array(
+				'methods' => WP_REST_Server::READABLE,
+				'callback' => array('Rest_Lxp_Student', 'get_unassigned_students'),
+				'permission_callback' => '__return_true',
+				'args' => array(
+					'teacher_id' => array(
+						'required' => true,
+						'type' => 'integer',
+						'description' => 'teacher id',
+						'validate_callback' => function($param, $request, $key) {
+							return intval( $param ) > 0;
+						}
+					)
+				)
+			),
+			array(
+				'methods' => WP_REST_Server::EDITABLE,
+				'callback' => array('Rest_Lxp_Student', 'set_taken_students'),
+				'permission_callback' => '__return_true',
+				'args' => array(
+					'teacher_id' => array(
+						'required' => true,
+						'type' => 'integer',
+						'description' => 'teacher id',
+						'validate_callback' => function($param, $request, $key) {
+							return intval( $param ) > 0;
+						}
+					)
+				)
 			)
 		));
 
@@ -339,8 +372,188 @@ class Rest_Lxp_Student
 		return wp_send_json_success(array('grade' => $grade, 'slid' => $slid));
 	}
 
+	public static function get_unassigned_students( $request ) {
+		$teacher_id = intval( $request->get_param( 'teacher_id' ) );
+		$school_id  = intval( $request->get_param( 'school_id' ) );
 
-	public static function create($request) {		
+		// === STEP 1: Get ALL student IDs in school (efficient ID-only query) ===
+		$student_ids = get_posts( [
+			'post_type'   => TL_STUDENT_CPT,
+			'post_status' => 'publish',
+			'fields'      => 'ids',
+			'posts_per_page' => -1,
+			// 'meta_query'  => [
+			// 	[
+			// 		'key'     => 'lxp_student_school_id',
+			// 		'value'   => $school_id,
+			// 		'compare' => '=',
+			// 	],
+			// ],
+			// 'no_found_rows' => true, // Critical performance boost
+			// 'suppress_filters' => true,
+		] );
+
+		if ( empty( $student_ids ) ) {
+			return wp_send_json_success( [ 'students' => [] ] );
+		}
+
+		// === STEP 2: Filter students NOT assigned to teacher (fixes original bug + optimizes) ===
+		$unassigned_student_ids = array_filter( $student_ids, function( $student_id ) use ( $teacher_id ) {
+			$assigned_teachers = get_post_meta( $student_id, 'lxp_teacher_id', true );
+			
+			// Handle single ID (int/string)
+			if ( is_numeric( $assigned_teachers ) && (int) $assigned_teachers === $teacher_id ) {
+				return false;
+			}
+			
+			// Handle array of IDs (WordPress auto-unserializes)
+			if ( is_array( $assigned_teachers ) ) {
+				$assigned_teachers = array_map( 'intval', $assigned_teachers );
+				return ! in_array( $teacher_id, $assigned_teachers, true );
+			}
+			
+			// Handle edge case: serialized string not auto-unserialized (rare)
+			if ( is_string( $assigned_teachers ) && strpos( $assigned_teachers, 'a:' ) === 0 ) {
+				$unserialized = maybe_unserialize( $assigned_teachers );
+				if ( is_array( $unserialized ) ) {
+					$unserialized = array_map( 'intval', $unserialized );
+					return ! in_array( $teacher_id, $unserialized, true );
+				}
+			}
+			
+			// No assignment found → include student
+			return true;
+		} );
+
+		if ( empty( $unassigned_student_ids ) ) {
+			return wp_send_json_success( [ 'students' => [] ] );
+		}
+
+		// === STEP 3: Bulk fetch user IDs linked to filtered students ===
+		foreach ( $unassigned_student_ids as $student_id ) {
+			$user_id = get_post_meta( $student_id, 'lxp_student_admin_id', true );
+			
+			// Verify user actually exists in wp_users table
+			$user_exists = get_userdata( $user_id );
+			
+			if ( $user_exists ) {
+				$valid_students[] = [
+					'student_id' => $student_id,
+					'user_id'    => $user_id,
+					'user_data'  => $user_exists,
+				];
+			}
+		}
+
+		if ( empty( $valid_students ) ) {
+			return wp_send_json_success( [ 'students' => [] ] );
+		}
+
+		// === STEP 4: Build final student array ===
+		$students = array_map( function( $item ) {
+			return [
+				'id'         => (int) $item['user_id'],
+				'first_name' => $item['user_data']->first_name ?: '',
+				'last_name'  => $item['user_data']->last_name ?: '',
+				'email'      => $item['user_data']->user_email,
+			];
+		}, $valid_students );
+
+		return wp_send_json_success( [ 'students' => array_values( $students ) ] );
+	}
+
+	public static function set_taken_students( $request ) {
+		// Step 1: Define inputs
+		$student_ids = $request->get_param('student_ids');
+		$teacher_id  = intval($request->get_param('teacher_id'));
+		$post_type   = TL_STUDENT_CPT;
+
+		if (empty($student_ids) || !is_array($student_ids)) {
+			return wp_send_json_error(['message' => 'Invalid or missing student_ids'], 400);
+		}
+
+		if (!$teacher_id) {
+			return wp_send_json_error(['message' => 'Invalid teacher_id'], 400);
+		}
+
+		// Step 2: Loop through each student user ID
+		foreach ($student_ids as $student_user_id) {
+			$student_user_id = intval($student_user_id);
+
+			// Optional: Validate it's a real user
+			if (!get_userdata($student_user_id)) {
+				error_log("Invalid student user ID: $student_user_id");
+				continue;
+			}
+
+			/**
+			 * Step 3: Find posts where lxp_student_admin_id = $student_user_id
+			 */
+			$args = [
+				'post_type'      => $post_type,
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'meta_query'     => [
+					[
+						'key'     => 'lxp_student_admin_id',
+						'value'   => $student_user_id,
+						'type'    => 'NUMERIC',
+						'compare' => '='
+					]
+				]
+			];
+
+			$matched_posts = get_posts($args);
+
+			if (empty($matched_posts)) {
+				error_log("No posts found with lxp_student_admin_id = $student_user_id");
+				continue;
+			}
+
+			/**
+			 * Step 4: For each matched post, update lxp_teacher_id as an array
+			 */
+			foreach ($matched_posts as $post) {
+				$post_id = $post->ID;
+
+				// Get current lxp_teacher_id value (could be string, int, array, or false)
+				$previous_teachers = get_post_meta($post_id, 'lxp_teacher_id', true);
+
+				// Normalize into an array of integers
+				$teachers = [];
+
+				if (is_numeric($previous_teachers)) {
+					// Single number: convert to array
+					$teachers = [(int)$previous_teachers];
+				} elseif (is_array($previous_teachers)) {
+					// Already an array: cast all to int
+					$teachers = array_map('intval', $previous_teachers);
+				}
+				// Else: empty or invalid → leave as empty array
+
+				// Remove duplicates
+				$teachers = array_unique($teachers);
+
+				// Add new teacher ID if not already present
+				if (!in_array($teacher_id, $teachers, true)) {
+					$teachers[] = $teacher_id;
+				}
+
+				// Save back as a single meta field (replaces any old format)
+				$updated = update_post_meta($post_id, 'lxp_teacher_id', $teachers);
+
+				if ($updated) {
+					error_log("Updated lxp_teacher_id for post $post_id: " . print_r($teachers, true));
+				} else {
+					error_log("No change needed or failed to update post $post_id");
+				}
+			}
+		}
+
+		return wp_send_json_success(['message' => 'Students successfully updated with teacher ID.']);
+	}
+
+	public static function save_update($request) {		
 		
 		// ============= Student Post =================================
 		$school_admin_id = $request->get_param('school_admin_id');
@@ -489,7 +702,25 @@ class Rest_Lxp_Student
 		}
 		
 		$lxp_teacher_id = $request->get_param('teacher_id');
-		update_post_meta($student_post_id, 'lxp_teacher_id', ($lxp_teacher_id ? $lxp_teacher_id : 0));
+		// Get current teacher IDs (WordPress auto-unserializes stored arrays)
+		$current_teachers = get_post_meta($student_post_id, 'lxp_teacher_id', true);
+		$teacher_ids = [];
+		// Normalize existing value to clean integer array
+		if (is_array($current_teachers)) {
+			$teacher_ids = array_map('intval', array_filter($current_teachers));
+		} elseif (!empty($current_teachers)) {
+			// Handle legacy single-value storage (int/string)
+			$single_id = intval($current_teachers);
+			if ($single_id > 0) {
+				$teacher_ids = [$single_id];
+			}
+		}
+		// Append ONLY if valid and not duplicate
+		if ($lxp_teacher_id > 0 && !in_array($lxp_teacher_id, $teacher_ids, true)) {
+			$teacher_ids[] = $lxp_teacher_id;
+		}
+		// Save updated array (WordPress auto-serializes)
+		update_post_meta($student_post_id, 'lxp_teacher_id', $teacher_ids);
 
 		$student_id = $request->get_param('lxp_student_id');
 		update_post_meta($student_post_id, 'student_id', ($student_id ? $student_id : 0));
@@ -572,7 +803,7 @@ class Rest_Lxp_Student
 			}
 			
 			$lxp_teacher_id = $request->get_param('teacher_id');
-			update_post_meta($student_post_id, 'lxp_teacher_id', ($lxp_teacher_id ? $lxp_teacher_id : 0));
+			update_post_meta($student_post_id, 'lxp_teacher_id', ($lxp_teacher_id ? [$lxp_teacher_id] : 0));
 		}
 
 		return wp_send_json_success("Student Saved!");
@@ -670,7 +901,7 @@ class Rest_Lxp_Student
 								}
 
 								$lxp_teacher_id = $request->get_param('teacher_id');
-								update_post_meta($student_post_id, 'lxp_teacher_id', ($lxp_teacher_id ? $lxp_teacher_id : 0));
+								update_post_meta($student_post_id, 'lxp_teacher_id', ($lxp_teacher_id ? [$lxp_teacher_id] : 0));
 								update_post_meta($student_post_id, 'grades', json_encode($grades));
 								update_post_meta($student_post_id, 'student_id', ($student_id ? $student_id : 0));
 							}

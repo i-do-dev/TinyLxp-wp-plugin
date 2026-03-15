@@ -3,7 +3,7 @@
 function lxp_login_check()
 {
   if (!is_user_logged_in()) {
-    global $wp;
+    // global $wp;
     $url = "http" . (isset($_SERVER["HTTPS"]) ? "s" : "") . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
     wp_redirect(site_url('login') . '?redirect=' . urlencode($url));
   }
@@ -198,82 +198,188 @@ function lxp_get_school_students_inactive($school_id)
 
 function lxp_get_school_students($school_id)
 {
-    $school_query = new WP_Query( array( 
-        'post_type' => TL_STUDENT_CPT, 
-        'post_status' => array( 'publish' ),
-        'posts_per_page'   => -1,        
-        'meta_query' => array(
-            array('key' => 'lxp_student_school_id', 'value' => $school_id, 'compare' => '=')
-        ),
-        'orderby' => 'title',
-        'order' => 'ASC'
-    ) );
+    $school_teacher =lxp_get_school_teachers($school_id);
+    $all_students = [];
+    foreach ($school_teacher as $teacher) {
+        $teacher_students = lxp_get_school_teacher_students($teacher->ID);
+        $all_students = array_merge($all_students, $teacher_students);
+    }
+    // $school_query = new WP_Query( array( 
+    //     'post_type' => TL_STUDENT_CPT, 
+    //     'post_status' => array( 'publish' ),
+    //     'posts_per_page'   => -1,        
+    //     'meta_query' => array(
+    //         array('key' => 'lxp_student_school_id', 'value' => $school_id, 'compare' => '=')
+    //     ),
+    //     'orderby' => 'title',
+    //     'order' => 'ASC'
+    // ) );
     
-    $posts = $school_query->get_posts();
-    return $posts;
+    // $posts = $school_query->get_posts();
+    return $all_students;
 }
 
 // function lxp_get_school_teacher_students_active($school_id, $teacher_id) where settings_active meta key is not set or not not equal to false
-function lxp_get_school_teacher_students_active($school_id, $teacher_id)
+function lxp_get_school_teacher_students_active($teacher_id)
 {
-    $school_query = new WP_Query( array( 
-        'post_type' => TL_STUDENT_CPT, 
-        'post_status' => array( 'publish' ),
-        'posts_per_page'   => -1,        
-        'meta_query' => array(
-            array('key' => 'lxp_student_school_id', 'value' => $school_id, 'compare' => '='),
-            array('key' => 'lxp_teacher_id', 'value' => $teacher_id, 'compare' => '='),
-            array(
+    $all_students = get_posts([ 
+        'post_type'      => TL_STUDENT_CPT,
+        'post_status'    => 'publish',
+        'posts_per_page' => -1,
+        'meta_query'     => [
+            'relation' => 'AND',
+            [
+                'key'     => 'lxp_teacher_id',
+                'compare' => 'EXISTS',
+            ],
+            [
                 'relation' => 'OR',
-                array('key' => 'settings_active', 'compare' => 'NOT EXISTS'),
-                array('key' => 'settings_active', 'value' => 'false', 'compare' => '!=')
-            )
-        ),
-        'orderby' => 'title',
-        'order' => 'ASC'
-    ) );
+                [
+                    'key'     => 'settings_active',
+                    'compare' => 'NOT EXISTS',
+                ],
+                [
+                    'key'     => 'settings_active',
+                    'value'   => 'false',
+                    'compare' => '!=',
+                ]
+            ]
+        ]
+    ]);
+
+    $filtered_posts = array_filter($all_students, function($post) use ($teacher_id) {
+        $meta = get_post_meta($post->ID, 'lxp_teacher_id', true);
+        
+        if (is_numeric($meta) && (int)$meta === (int)$teacher_id) {
+            return true;
+        }
+
+        if (is_array($meta) && in_array((int)$teacher_id, array_map('intval', $meta))) {
+            return true;
+        }
+
+        return false;
+    });
+    // $school_query = new WP_Query( array( 
+    //     'post_type' => TL_STUDENT_CPT, 
+    //     'post_status' => array( 'publish' ),
+    //     'posts_per_page'   => -1,        
+    //     'meta_query' => array(
+    //         // array('key' => 'lxp_student_school_id', 'value' => $school_id, 'compare' => '='),
+    //         array('key' => 'lxp_teacher_id', 'value' => $teacher_id, 'compare' => '='),
+    //         array(
+    //             'relation'  => 'OR',
+    //             array('key' => 'settings_active', 'compare' => 'NOT EXISTS'),
+    //             array('key' => 'settings_active', 'compare' => '!=', 'value' => 'false')
+    //         )
+    //     ),
+    //     'orderby' => 'title',
+    //     'order' => 'ASC'
+    // ) );
     
-    $posts = $school_query->get_posts();
-    return $posts;
+    // $posts = $school_query->get_posts();
+    return $filtered_posts;
 }
 
 // function lxp_get_school_teacher_students_inactive($school_id, $teacher_id) where settings_active meta key is equal to false
-function lxp_get_school_teacher_students_inactive($school_id, $teacher_id)
+function lxp_get_school_teacher_students_inactive($teacher_id)
 {
-    $school_query = new WP_Query( array( 
-        'post_type' => TL_STUDENT_CPT, 
-        'post_status' => array( 'publish' ),
-        'posts_per_page'   => -1,        
-        'meta_query' => array(
-            array('key' => 'lxp_student_school_id', 'value' => $school_id, 'compare' => '='),
-            array('key' => 'lxp_teacher_id', 'value' => $teacher_id, 'compare' => '='),
-            array('key' => 'settings_active', 'value' => 'false', 'compare' => '=')
-        ),
-        'orderby' => 'title',
-        'order' => 'ASC'
-    ) );
+    $all_students = get_posts([ 
+        'post_type'      => TL_STUDENT_CPT,
+        'post_status'    => 'publish',
+        'posts_per_page' => -1,
+        'meta_query'     => [
+            'relation' => 'AND',
+            [
+                'key'     => 'lxp_teacher_id',
+                'compare' => 'EXISTS',
+            ],
+            [
+                'relation' => 'OR',
+                [
+                    'key'     => 'settings_active',
+                    'value'   => 'false',
+                    'compare' => '=',
+                ]
+            ]
+        ]
+    ]);
+
+    $filtered_posts = array_filter($all_students, function($post) use ($teacher_id) {
+        $meta = get_post_meta($post->ID, 'lxp_teacher_id', true);
+        
+        if (is_numeric($meta) && (int)$meta === (int)$teacher_id) {
+            return true;
+        }
+
+        if (is_array($meta) && in_array((int)$teacher_id, array_map('intval', $meta))) {
+            return true;
+        }
+
+        return false;
+    });
+    // $school_query = new WP_Query( array( 
+    //     'post_type' => TL_STUDENT_CPT, 
+    //     'post_status' => array( 'publish' ),
+    //     'posts_per_page'   => -1,        
+    //     'meta_query' => array(
+    //         // array('key' => 'lxp_student_school_id', 'value' => $school_id, 'compare' => '='),
+    //         array('key' => 'lxp_teacher_id', 'value' => $teacher_id, 'compare' => '='),
+    //         array('key' => 'settings_active', 'value' => 'false', 'compare' => '=')
+    //     ),
+    //     'orderby' => 'title',
+    //     'order' => 'ASC'
+    // ) );
     
-    $posts = $school_query->get_posts();
-    return $posts;
+    // $posts = $school_query->get_posts();
+    return $filtered_posts;
 }
 
-
-function lxp_get_school_teacher_students($school_id, $teacher_id)
+/**
+ * @return all_students_of_given_teacher
+ */
+function lxp_get_school_teacher_students($teacher_id)
 {
-    $school_query = new WP_Query( array( 
-        'post_type' => TL_STUDENT_CPT, 
-        'post_status' => array( 'publish' ),
-        'posts_per_page'   => -1,        
-        'meta_query' => array(
-            array('key' => 'lxp_student_school_id', 'value' => $school_id, 'compare' => '='),
-            array('key' => 'lxp_teacher_id', 'value' => $teacher_id, 'compare' => '=')
-        ),
-        'orderby' => 'title',
-        'order' => 'ASC'
-    ) );
+    $all_students = get_posts([ 
+        'post_type'      => TL_STUDENT_CPT,
+        'post_status'    => 'publish',
+        'posts_per_page' => -1,
+        'meta_query'     => [
+            'relation' => 'AND',
+            [
+                'key'     => 'lxp_teacher_id',
+                'compare' => 'EXISTS',
+            ]
+        ]
+    ]);
+
+    $filtered_posts = array_filter($all_students, function($post) use ($teacher_id) {
+        $meta = get_post_meta($post->ID, 'lxp_teacher_id', true);
+        
+        if (is_numeric($meta) && (int)$meta === (int)$teacher_id) {
+            return true;
+        }
+
+        if (is_array($meta) && in_array((int)$teacher_id, array_map('intval', $meta))) {
+            return true;
+        }
+
+        return false;
+    });
+    // $school_query = new WP_Query( array( 
+    //     'post_type' => TL_STUDENT_CPT, 
+    //     'post_status' => array( 'publish' ),
+    //     'posts_per_page'   => -1,        
+    //     'meta_query' => array(
+    //         // array('key' => 'lxp_student_school_id', 'value' => $school_id, 'compare' => '='),
+    //         array('key' => 'lxp_teacher_id', 'value' => $teacher_id, 'compare' => '=')
+    //     ),
+    //     'orderby' => 'title',
+    //     'order' => 'ASC'
+    // ) );
     
-    $posts = $school_query->get_posts();
-    return $posts;
+    // $posts = $school_query->get_posts();
+    return $filtered_posts;
 }
 
 // lxp_get_all_schools_active_teachers($school_ids) where settings_active meta key is not set or not not equal to false
@@ -356,18 +462,25 @@ function lxp_get_all_schools_students($school_ids)
     if (empty($school_ids)) {
         return array();
     }
+    $all_students = [];
+    foreach ($school_ids as $school_id) {
+        $school_teacher =lxp_get_school_teachers($school_id);
+        foreach ($school_teacher as $teacher) {
+            $teacher_students = lxp_get_school_teacher_students($teacher->ID);
+            $all_students = array_merge($all_students, $teacher_students);
+        }
+    }
+    // $school_query = new WP_Query( array( 
+    //     'post_type' => TL_STUDENT_CPT, 
+    //     'post_status' => array( 'publish' ),
+    //     'posts_per_page'   => -1,        
+    //     'meta_query' => array(
+    //         array('key' => 'lxp_student_school_id', 'value' => $school_ids, 'compare' => 'IN')
+    //     )
+    // ) );
     
-    $school_query = new WP_Query( array( 
-        'post_type' => TL_STUDENT_CPT, 
-        'post_status' => array( 'publish' ),
-        'posts_per_page'   => -1,        
-        'meta_query' => array(
-            array('key' => 'lxp_student_school_id', 'value' => $school_ids, 'compare' => 'IN')
-        )
-    ) );
-    
-    $posts = $school_query->get_posts();
-    return $posts;
+    // $posts = $school_query->get_posts();
+    return $all_students;
 }
 
 function lxp_get_teacher_post($lxp_teacher_admin_id)
@@ -542,7 +655,7 @@ function lxp_get_student_assignment_grade($student_post_id, $assignment_post_id,
 
 function lxp_get_student_post($student_id)
 {
-    $school_query = new WP_Query( array( 
+    $query = new WP_Query( array( 
         'post_type' => TL_STUDENT_CPT, 
         'post_status' => array( 'publish' ),
         'posts_per_page'   => -1,        
@@ -551,7 +664,7 @@ function lxp_get_student_post($student_id)
         )
     ) );
     
-    $posts = $school_query->get_posts();
+    $posts = $query->get_posts();
     return count($posts) > 0 ? $posts[0] : null;
 }
 
@@ -718,17 +831,17 @@ function get_assignment_lesson_slides($assignment_post_id) {
             array('key' => 'tl_course_id', 'value' => $course->ID, 'compare' => '=')
         )
     ) );
-    $activity_id = 0;
-    foreach ($lesson_query->get_posts() as $lesson) {
-        if ( $lesson->ID == $lxp_lesson_post->ID ) {
-            $tool_url_parts = parse_url(get_post_meta($lesson->ID, 'lti_tool_url', true));
-            if (isset($tool_url_parts['query'])) {
-                $q = [];
-                parse_str($tool_url_parts['query'], $q);
-                $activity_id = isset($q['activity']) ? $q['activity'] : 0;
-            }
-        }        
-    }
+    $activity_id = '47048';
+    // foreach ($lesson_query->get_posts() as $lesson) {
+    //     if ( $lesson->ID == $lxp_lesson_post->ID ) {
+    //         $tool_url_parts = parse_url(get_post_meta($lesson->ID, 'lti_tool_url', true));
+    //         if (isset($tool_url_parts['query'])) {
+    //             $q = [];
+    //             parse_str($tool_url_parts['query'], $q);
+    //             $activity_id = isset($q['activity']) ? $q['activity'] : 0;
+    //         }
+    //     }        
+    // }
 
     $response = wp_remote_get(CURRIKI_STUDIO_HOST . 'api/api/v1/activities/' . $activity_id . '/h5p/cp');
     $code = wp_remote_retrieve_response_code($response);
@@ -996,12 +1109,13 @@ function lxp_get_lessons_by_course($course_id)
  */
 function get_interactions_by_activity($assignment_submission) : array {
     $string = $assignment_submission['activity_id'];
-    $h5p_content_id = $assignment_submission['h5p_content_id'];
+    // $h5p_content_id = $assignment_submission['h5p_content_id'];\
+    $h5p_content_id = '40439';
     // Split the string by '=' to get an array
     $parts = explode('=', $string);
     // The value you want is the last element in the array
-    $activityId = end($parts);
-
+    // $activityId = end($parts);
+    $activityId = '48225';
     $curriki_studio_host = CURRIKI_STUDIO_HOST.'api/api/v1/google-classroom/activities/'.$activityId.'/h5p-resource-settings';
     // var_dump($curriki_studio_host); die;
     $response = wp_remote_get($curriki_studio_host, ['timeout' => 180]);
@@ -1287,6 +1401,34 @@ function get_question_set_interactions_score($assignment_submission, $qs_data, $
         }
     }
     return [ 'sub_content_id_array' => $sub_content_id_array, 'score_raw' => $score_raw, 'score_max' => $score_max ];
+}
+
+/**
+ * @return      array-of-roles-of-current-user      
+ */
+if (! function_exists('get_custom_role')) {
+    function get_custom_role() : string {
+        $current_user = wp_get_current_user();
+        $roles = $current_user->roles;
+
+        // Get current active role from transient
+        $active_role = get_transient('active_role_' . $current_user->ID);
+        // If not set, default to first available role
+        if (!$active_role && !empty($roles)) {
+            $active_role = $roles[0];
+            set_transient('active_role_' . $current_user->ID, $active_role, 3600);
+        }
+
+        // Handle form submit to switch role
+        if (isset($_POST['switch_role'])) {
+            $switch_role = sanitize_text_field($_POST['switch_role']);
+            if (in_array($switch_role, $roles)) {
+                $active_role = $switch_role;
+                set_transient('active_role_' . $current_user->ID, $active_role, 3600);
+            }
+        }
+        return $active_role;
+    }
 }
 
 ?>
