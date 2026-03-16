@@ -403,7 +403,7 @@ class Rest_Lxp_Teacher
 			'first_name' => trim($request->get_param('lxp_first_name')),
 			'last_name' => trim($request->get_param('lxp_last_name')),
 			'display_name' =>  wp_strip_all_tags($teacher_name),
-			'role' => 'lxp_teacher'
+			'role' => 'lp_teacher'
 		);
 		
 		if (trim($request->get_param('lxp_user_password'))) {
@@ -415,6 +415,9 @@ class Rest_Lxp_Teacher
 			$teacher_admin_data["ID"] = $lxp_teacher_admin_id;
 		}
 		$teacher_admin_id  = wp_insert_user($teacher_admin_data);
+		if (!is_wp_error($teacher_admin_id)) {
+			// Use only 'lp_teacher' for teacher users.
+		}
 		if (trim($request->get_param('lxp_user_password'))) {
 			wp_set_password( trim($request->get_param('lxp_user_password')), $teacher_admin_id );
 		}
@@ -477,7 +480,7 @@ class Rest_Lxp_Teacher
 				'first_name' => $first_name,
 				'last_name' => $last_name,
 				'display_name' =>  wp_strip_all_tags($teacher_name),
-				'role' => 'lxp_teacher'
+				'role' => 'lp_teacher'
 			);
 			
 			$teacher_admin_data['user_pass'] = $email;
@@ -493,7 +496,11 @@ class Rest_Lxp_Teacher
 				);
 			}
 			$teacher_admin_id  = wp_insert_user($teacher_admin_data);			
-			wp_set_password($email, $teacher_admin_id);
+
+			// Use only 'lp_teacher' for teacher users.
+			if (!is_wp_error($teacher_admin_id)) {
+				wp_set_password($email, $teacher_admin_id);
+			}
 
 			if (!boolval($lxp_teacher_admin_id) && $teacher_admin_id) {
 				if(get_post_meta($teacher_post_id, 'lxp_teacher_admin_id', $teacher_admin_id) && trim($request->get_param('about'))) {
@@ -501,7 +508,7 @@ class Rest_Lxp_Teacher
 				} else {
 					add_post_meta($teacher_post_id, 'lxp_teacher_admin_id', $teacher_admin_id, true);
 				}
-				
+                
 				if(get_post_meta($teacher_post_id, 'lxp_teacher_school_id', true) && trim($request->get_param('about'))) {
 					update_post_meta($teacher_post_id, 'lxp_teacher_school_id', trim($request->get_param('edlink_teacher_school_id')));
 				} else {
@@ -510,8 +517,8 @@ class Rest_Lxp_Teacher
 			}
 		}
 
-        return wp_send_json_success("Teacher Saved!");
-    }
+		return wp_send_json_success("Teacher Saved!");
+	}
 
     public static function get_one($request) {
 		$teacher_id = $request->get_param('teacher_id');
@@ -579,11 +586,11 @@ class Rest_Lxp_Teacher
 									'last_name' => $last_name,
 									'display_name' => $user_display_name,
 									'user_pass' => $password,
-									'role' => 'lxp_teacher'
+									'role' => 'lp_teacher'
 								);
-								$teacher_admin_id  = wp_insert_user($teacher_admin_data);
-								if ($teacher_admin_id) {
-									wp_set_password( $password, $teacher_admin_id );
+									$teacher_admin_id  = wp_insert_user($teacher_admin_data);
+									if (!is_wp_error($teacher_admin_id)) {
+										wp_set_password( $password, $teacher_admin_id );
 									add_post_meta($teacher_post_id, 'lxp_teacher_admin_id', $teacher_admin_id, true);
 									add_post_meta($teacher_post_id, 'lxp_teacher_school_id', trim($request->get_param('teacher_school_id')), true);
 									update_post_meta($teacher_post_id, 'grades', json_encode($grades));

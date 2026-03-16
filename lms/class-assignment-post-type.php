@@ -110,16 +110,16 @@ class TL_Assingment_Post_Type extends TL_Post_Type
 
    public function lxp_teacher_metabox_html($post = null)
    {
-      $args = array(
-         'role' => 'lxp_teacher',
-         'order' => 'ASC'
-        );
-      $clientAdmins = get_users($args);
+         $args = array(
+             'role' => 'lp_teacher',
+             'order' => 'ASC'
+            );
+         $clientAdmins = get_users($args);
 
 
       $users = get_users(
          array(
-            'role' => 'lxp_teacher',
+            'role' => 'lp_teacher',
             'meta_key' => 'lxp_assignment_teacher_id',
             'meta_value' => $post->ID,
             'number' => -1
@@ -148,7 +148,7 @@ class TL_Assingment_Post_Type extends TL_Post_Type
       if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['post_type']) && 'tl_assignment' == $_POST['post_type']) {
          $users = get_users(
             array(
-               'role' => 'lxp_teacher',
+               'role' => 'lp_teacher',
                'meta_key' => 'lxp_assignment_teacher_id',
                'meta_value' => $post_id,
                'number' => -1

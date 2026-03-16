@@ -9,6 +9,24 @@ function lxp_login_check()
   }
 }
 
+function lxp_get_active_role($user_id = 0)
+{
+    $user_id = intval($user_id) > 0 ? $user_id : get_current_user_id();
+    $user = get_userdata($user_id);
+    $roles = $user ? (array) $user->roles : array();
+
+    if (in_array('lp_teacher', $roles, true) || in_array('lxp_teacher_admin', $roles, true)) {
+        return 'lp_teacher';
+    }
+
+    return count($roles) > 0 ? array_values($roles)[0] : '';
+}
+
+function lxp_is_teacher_user($user_id = 0)
+{
+    return 'lp_teacher' === lxp_get_active_role($user_id);
+}
+
 function lxp_get_user_school_post($user_id = 0)
 {
     $user_id = intval($user_id) > 0 ? $user_id : get_current_user_id();
@@ -1427,6 +1445,10 @@ if (! function_exists('get_custom_role')) {
                 set_transient('active_role_' . $current_user->ID, $active_role, 3600);
             }
         }
+        if ($active_role === 'lp_teacher' || $active_role === 'lxp_teacher_admin') {
+            return 'lp_teacher';
+        }
+
         return $active_role;
     }
 }

@@ -461,11 +461,12 @@ class Rest_Lxp_Assignment
 
     public static function calendar_events($request) {
 		$userdata = get_userdata($request->get_param('user_id'));
-		$userRole = count($userdata->roles) > 0 ? array_values($userdata->roles)[0] : '';
+		$user_roles = $userdata ? (array) $userdata->roles : array();
+		$userRole = in_array('lp_teacher', $user_roles, true) ? 'lp_teacher' : (count($user_roles) > 0 ? array_values($user_roles)[0] : '');
 		if ($userRole === 'lxp_student') {
 			$student_post = self::lxp_get_student_post($userdata->data->ID);
 			return self::get_student_assignments_calendar_events($student_post->ID);
-		} else if ($userRole === 'lxp_teacher') {
+		} else if ($userRole === 'lp_teacher') {
 			$teacher_post = self::lxp_get_teacher_post($userdata->data->ID);
 			return self::get_teacher_assignments_calendar_events($teacher_post->ID);
 		} else {

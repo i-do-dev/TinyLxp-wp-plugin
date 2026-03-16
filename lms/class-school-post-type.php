@@ -266,7 +266,7 @@ class TL_School_Post_Type extends TL_Post_Type
                   continue;
                }
                if ($getData[5] == "Teacher") {
-                  $role = "lxp_teacher";
+                  $role = "lp_teacher";
                } else {
                   $role = "lxp_student";
                }
@@ -280,6 +280,10 @@ class TL_School_Post_Type extends TL_Post_Type
                   'role' => $role
                );
                $user_id  = wp_insert_user($user_data);
+               if ($getData[5] == "Teacher" && !is_wp_error($user_id)) {
+                  $teacher_user = get_userdata($user_id);
+                  // Use only 'lp_teacher' for teacher users.
+               }
                update_user_meta($user_id, 'lxp_school_id', $post_id);
             }
 

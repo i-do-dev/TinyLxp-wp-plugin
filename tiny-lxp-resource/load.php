@@ -252,10 +252,10 @@ function save_course_view_page_id() {
     if ($user_id > 0) {
         require_once plugin_dir_path(dirname( __FILE__ )). '/lms/templates/tinyLxpTheme/lxp/functions.php';
         $userdata = get_userdata($user_id);
-        $userRole = count($userdata->roles) > 0 ? array_values($userdata->roles)[0] : '';
+        $userRole = lxp_get_active_role($user_id);
         // condition 1
         // update_post_meta($user_post_id->ID, 'lxp_visited_courses', $course_id);
-        if (is_singular('lp_course') && $userRole == 'lxp_teacher') {
+        if (is_singular('lp_course') && $userRole == 'lp_teacher') {
             // Get the current course post ID
             $course_id = get_the_ID();
             
@@ -392,7 +392,8 @@ function custom_login_redirect( $redirect_to, $request, $user ) {
     // Ensure user is valid
     if (is_user_logged_in()) {
         $userdata = get_userdata(get_current_user_id());
-        $userRole = count($userdata->roles) > 0 ? array_values($userdata->roles)[0] : '';
+        $user_roles = $userdata ? (array) $userdata->roles : array();
+        $userRole = in_array('lp_teacher', $user_roles, true) ? 'lp_teacher' : (count($user_roles) > 0 ? array_values($user_roles)[0] : '');
         if ( $userRole == 'lxp_student') {
             // Prevent loop if already on learner page
             if ( strpos( $_SERVER['REQUEST_URI'], '/learner' ) === false ) {

@@ -283,7 +283,7 @@ class Tiny_LXP_Platform_Tool extends Tool
             $totalStudents +=  count($students);
             $teachers = get_users(
                 array(
-                    'role' => 'lxp_teacher',
+                    'role' => 'lp_teacher',
                     'meta_key' => 'lxp_school_id',
                     'meta_value' => $school->ID,
                     'number' => -1
@@ -418,7 +418,7 @@ class Tiny_LXP_Platform_Tool extends Tool
         FROM wp_posts p
         JOIN wp_postmeta pm ON p.ID = pm.post_id AND pm.meta_key = 'lxp_school_district_id' AND pm.meta_value = '" . $userDistrict[0] . "'
         JOIN wp_users u ON u.ID IN (
-            SELECT user_id FROM wp_usermeta WHERE meta_key = 'wp_capabilities' AND meta_value LIKE '%lxp_teacher%'
+            SELECT user_id FROM wp_usermeta WHERE meta_key = 'wp_capabilities' AND meta_value LIKE '%lp_teacher%'
         ) 
         JOIN wp_usermeta um ON u.ID = um.user_id AND um.meta_key = 'lxp_school_id' AND um.meta_value = p.ID
         WHERE ".$queryParam." p.post_type = 'tl_school'");
@@ -438,15 +438,15 @@ class Tiny_LXP_Platform_Tool extends Tool
             }
         }
         $query = "SELECT p.ID AS post_id,p.post_title AS post_title, u.ID AS user_id, u.display_name, u.user_email
-       FROM wp_posts p
-       JOIN wp_postmeta pm ON p.ID = pm.post_id AND pm.meta_key = 'lxp_school_district_id' AND pm.meta_value = '" . $userDistrict[0] . "'
-       JOIN wp_users u ON u.ID IN (
-           SELECT user_id FROM wp_usermeta WHERE meta_key = 'wp_capabilities' AND meta_value LIKE '%lxp_teacher%'
-       ) 
-       JOIN wp_usermeta um ON u.ID = um.user_id AND um.meta_key = 'lxp_school_id' AND um.meta_value = p.ID
-       WHERE  ".$queryParam." p.post_type = 'tl_school'
-       ORDER BY p.post_date DESC
-       LIMIT $offset, $posts_per_page ";
+           FROM wp_posts p
+           JOIN wp_postmeta pm ON p.ID = pm.post_id AND pm.meta_key = 'lxp_school_district_id' AND pm.meta_value = '" . $userDistrict[0] . "'
+           JOIN wp_users u ON u.ID IN (
+               SELECT user_id FROM wp_usermeta WHERE meta_key = 'wp_capabilities' AND meta_value LIKE '%lp_teacher%'
+           ) 
+           JOIN wp_usermeta um ON u.ID = um.user_id AND um.meta_key = 'lxp_school_id' AND um.meta_value = p.ID
+           WHERE  ".$queryParam." p.post_type = 'tl_school'
+           ORDER BY p.post_date DESC
+           LIMIT $offset, $posts_per_page ";
         $posts = $wpdb->get_results($query);
         if ($posts) {
             foreach ($posts as $post) {
@@ -589,8 +589,8 @@ class Tiny_LXP_Platform_Tool extends Tool
     {
 
         add_role(
-            'lxp_teacher',
-            'Lxp Teacher ',
+            'lp_teacher',
+            'LP Instructor',
             array()
         );
 
@@ -619,25 +619,25 @@ class Tiny_LXP_Platform_Tool extends Tool
         $school_cap = "_lxp_school";
         $district_cap = "_lxp_district";
 
-        $teacher = get_role("lxp_teacher");
-        if ($teacher) {
-            $teacher->add_cap('read' . $course_cap);
-            $teacher->add_cap('read_private' . $course_cap . "s");
-            $teacher->add_cap('create' . $course_cap);
-            $teacher->add_cap('create' . $course_cap . "s");
-            $teacher->add_cap('delete' . $course_cap);
-            $teacher->add_cap('lxp_teacher' . $course_cap . "s");
-            $teacher->add_cap('edit' . $course_cap);
-            $teacher->add_cap('edit' . $course_cap . "s");
-            $teacher->add_cap('publish' . $course_cap . "s");
-            $teacher->add_cap('grades' . $course_cap);
-            $teacher->add_cap('read' . $lesson_cap);
-            $teacher->add_cap('create' . $lesson_cap);
-            $teacher->add_cap('create' . $lesson_cap . "s");
-            $teacher->add_cap('delete' . $lesson_cap);
-            $teacher->add_cap('edit' . $lesson_cap);
-            $teacher->add_cap('edit' . $lesson_cap . "s");
-            $teacher->add_cap('publish' . $lesson_cap . "s");
+        $lp_teacher = get_role('lp_teacher');
+        if ($lp_teacher) {
+            $lp_teacher->add_cap('read' . $course_cap);
+            $lp_teacher->add_cap('read_private' . $course_cap . "s");
+            $lp_teacher->add_cap('create' . $course_cap);
+            $lp_teacher->add_cap('create' . $course_cap . "s");
+            $lp_teacher->add_cap('delete' . $course_cap);
+            $lp_teacher->add_cap('lp_teacher' . $course_cap . "s");
+            $lp_teacher->add_cap('edit' . $course_cap);
+            $lp_teacher->add_cap('edit' . $course_cap . "s");
+            $lp_teacher->add_cap('publish' . $course_cap . "s");
+            $lp_teacher->add_cap('grades' . $course_cap);
+            $lp_teacher->add_cap('read' . $lesson_cap);
+            $lp_teacher->add_cap('create' . $lesson_cap);
+            $lp_teacher->add_cap('create' . $lesson_cap . "s");
+            $lp_teacher->add_cap('delete' . $lesson_cap);
+            $lp_teacher->add_cap('edit' . $lesson_cap);
+            $lp_teacher->add_cap('edit' . $lesson_cap . "s");
+            $lp_teacher->add_cap('publish' . $lesson_cap . "s");
         }
 
         $student = get_role('lxp_student');

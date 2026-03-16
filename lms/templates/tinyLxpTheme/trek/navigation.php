@@ -2,7 +2,7 @@
   global $treks_src;
   global $post;
   $userdata = get_userdata(get_current_user_id());
-  $userRole = count($userdata->roles) > 0 ? array_values($userdata->roles)[0] : '';
+  $userRole = lxp_get_active_role(get_current_user_id());
 ?>
 <nav class="nav-section">
   <ul>

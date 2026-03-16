@@ -81,19 +81,19 @@
                 <?php 
                     foreach ($teachers as $teacher) {
                         $teacher_admin = get_userdata(get_post_meta($teacher->ID, 'lxp_teacher_admin_id', true));
-                        $lxp_teacher_school = null;
-                        $lxp_teacher_district = null;
-                        $lxp_teacher_school_id = get_post_meta($teacher->ID, 'lxp_teacher_school_id', true);
-                        if ($lxp_teacher_school_id) {
-                            $lxp_teacher_school = get_post($lxp_teacher_school_id);
-                            $lxp_teacher_district_id = get_post_meta($lxp_teacher_school->ID, 'lxp_school_district_id', true);
-                            if ($lxp_teacher_district_id) {
-                                $lxp_teacher_district = get_post($lxp_teacher_district_id);
+                        $teacher_school = null;
+                        $teacher_district = null;
+                        $teacher_school_id = get_post_meta($teacher->ID, 'lxp_teacher_school_id', true);
+                        if ($teacher_school_id) {
+                            $teacher_school = get_post($teacher_school_id);
+                            $teacher_district_id = get_post_meta($teacher_school->ID, 'lxp_school_district_id', true);
+                            if ($teacher_district_id) {
+                                $teacher_district = get_post($teacher_district_id);
                             }
                         }
-                        $lxp_teacher_students = array();
-                        if ($lxp_teacher_district && $lxp_teacher_school) {
-                            $lxp_teacher_students = lxp_get_school_teacher_students($teacher->ID);
+                        $teacher_students = array();
+                        if ($teacher_district && $teacher_school) {
+                            $teacher_students = lxp_get_school_teacher_students($teacher->ID);
                         }
                 ?>
                     <tr>
@@ -108,9 +108,9 @@
                         <td>
                             <div class="table-status"><?php echo $teacher_admin->user_email?></div>
                         </td>
-                        <td><?php echo $lxp_teacher_district ? $lxp_teacher_district->post_title : '---'; ?></td>
-                        <td><?php echo $lxp_teacher_school ? $lxp_teacher_school->post_title : '---' ?></td>
-                        <td><?php echo $lxp_teacher_students && is_array($lxp_teacher_students) ? count($lxp_teacher_students) : 0 ?></td>
+                        <td><?php echo $teacher_district ? $teacher_district->post_title : '---'; ?></td>
+                        <td><?php echo $teacher_school ? $teacher_school->post_title : '---' ?></td>
+                        <td><?php echo $teacher_students && is_array($teacher_students) ? count($teacher_students) : 0 ?></td>
                         <!-- 
                         <td class="grade">
                             <?php 

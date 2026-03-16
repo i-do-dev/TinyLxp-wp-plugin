@@ -78,16 +78,7 @@ class TL_Teacher_Post_Type extends TL_Post_Type
          'show_in_rest'       => true,
          'rest_base'          => 'tl_teacher',
          'supports' => array('title', 'editor', 'thumbnail'),
-         // 'capabilities' => array(
-         //     'edit_post' => 'edit_lxp_teacher',
-         //     'publish_posts' => 'publish_lxp_teachers',
-         //     'read_post' => 'read_lxp_teacher',
-         //     'read_private_posts' => 'read_private_lxp_teachers',
-         //     'delete_post' => 'delete_lxp_teacher',
-         //     'delete_posts' => 'delete_lxp_teachers',
-         //     'create_posts' => 'create_lxp_teachers',
-         //     'create_post' => 'create_lxp_teacher'
-         // )
+         // Custom capability mapping intentionally omitted.
       );
       add_theme_support('post-thumbnails');
       return $args;
@@ -267,7 +258,7 @@ class TL_Teacher_Post_Type extends TL_Post_Type
                   continue;
                }
                if ($getData[5] == "Teacher") {
-                  $role = "lxp_teacher";
+                  $role = "lp_teacher";
                } else {
                   $role = "lxp_student";
                }

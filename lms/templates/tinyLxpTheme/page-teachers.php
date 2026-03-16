@@ -6,7 +6,7 @@ lxp_login_check();
 $treks_src = content_url().'/plugins/TinyLxp-wp-plugin/lms/templates/tinyLxpTheme/treks-src/';
 
 $userdata = get_userdata(get_current_user_id());
-$userRole = count($userdata->roles) > 0 ? $userdata->roles[0] : '';
+$userRole = lxp_get_active_role(get_current_user_id());
 switch ($userRole) {
   case 'lxp_client_admin':
     include $livePath.'/lxp/client-teachers.php';

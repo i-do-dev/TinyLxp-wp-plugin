@@ -6,7 +6,7 @@
 
   $treks_src = content_url().'/plugins/TinyLxp-wp-plugin/lms/templates/tinyLxpTheme/treks-src/';
   $userdata = get_userdata(get_current_user_id());
-  $userRole = count($userdata->roles) > 0 ? array_values($userdata->roles)[0] : '';
+  $userRole = lxp_get_active_role(get_current_user_id());
   switch ($userRole) {
     case 'lxp_student':
       include $livePath.'/lxp/student-grade-summary.php';
