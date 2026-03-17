@@ -185,7 +185,7 @@
 
 
 <script type="text/javascript">
-    host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+    host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
     apiUrl = host + '/wp-json/lms/v1/';
 
     selectionLimit = 10;
@@ -366,7 +366,7 @@
         jQuery("#edlink_add_student_container").hide();        
         jQuery("#edlinkSaveStudentBtn").attr("disabled", true);
         
-        // let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+        // let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
         // let apiUrl = host + '/wp-json/lms/v1/';
 
         $.ajax({

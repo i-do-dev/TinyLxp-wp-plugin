@@ -221,7 +221,7 @@ while (have_posts()) : the_post();
     <script type="text/javascript">
         jQuery(document).ready(function() {
             // fetch search results
-            let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+            let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
             let apiUrl = host + '/wp-json/lms/v1/';
             jQuery.ajax({
                 url: apiUrl + 'trek/search',

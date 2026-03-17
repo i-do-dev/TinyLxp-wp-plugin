@@ -133,7 +133,7 @@ if ($userRole != 'lp_teacher') {
   <script type="text/javascript">
       jQuery(document).ready(function() {
 
-          let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+          let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
           let apiUrl = host + '/wp-json/lms/v1/';
           const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
           var calendarEl = document.getElementById('calendar');
@@ -258,7 +258,7 @@ if ($userRole != 'lp_teacher') {
       function fetch_assignment_stats(assignment_id) {
           jQuery("#student-modal-loader").show();
           jQuery("#student-modal-table").hide();
-          let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+          let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
           let apiUrl = host + '/wp-json/lms/v1/';
           jQuery.ajax({
               method: "POST",

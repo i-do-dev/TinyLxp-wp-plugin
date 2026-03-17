@@ -12,6 +12,9 @@ const TL_CLASS_CPT   = 'tl_class';
 const TL_ASSIGNMENT_SUBMISSION_CPT   = 'tl_submission';
 const TL_GROUP_CPT   = 'tl_group';
 
+// Configure WordPress subdirectory path used by inline JS API URL builders.
+const WORDPRESS_HOST = '/tinylxp';
+
 const Allowed_Activity_types = [
             'Course Presentation',
             'Crossroads',

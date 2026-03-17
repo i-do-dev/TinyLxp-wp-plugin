@@ -241,7 +241,7 @@ if (!empty($args['district_post'])) {
 
 <script type="text/javascript">
     access_token = '<?php echo $edlink_access_token; ?>';
-    host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+    host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
     apiUrl = host + '/wp-json/lms/v1/';
 
     function onClassEdit(class_id) {
@@ -296,7 +296,7 @@ if (!empty($args['district_post'])) {
     }
 
     jQuery(document).ready(function() { 
-        let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+        let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
         let apiUrl = host + '/wp-json/lms/v1/';
 
         var classModal = document.getElementById('classModal');

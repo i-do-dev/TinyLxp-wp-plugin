@@ -724,7 +724,7 @@ $trek_sections = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}trek_sections 
         jQuery('.assignment-modal .modal-content .modal-body .assignment-modal-left .recall-user').css('background-color', '#eaedf1');
         
         window.selectedCalendarEvent = null;
-        let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+        let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
         let apiUrl = host + '/wp-json/lms/v1/';
         var apiUrlLoadAssignments = host + '/wp-json/lms/v1/get/all/trek/events?user_id=<?php echo get_current_user_id() ?>';
         var calendarEl = document.getElementById('assignmentCalendar');
@@ -889,7 +889,7 @@ $trek_sections = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}trek_sections 
         format_modal_elements(trek_title, trek_segment);
         window.assignmentStatsModalObj.show();
 
-        let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+        let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
         let apiUrl = host + '/wp-json/lms/v1/';
         jQuery.ajax({
           method: "POST",
@@ -957,7 +957,7 @@ $trek_sections = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}trek_sections 
         const is_saved_val = is_saved ? 1 : 0;
         let trek_id = <?php echo $post->ID; ?>;
         let teacher_post_id = <?php echo $teacher_post->ID; ?>;
-        let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+        let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
         let apiUrl = host + '/wp-json/lms/v1/';
         
         $.ajax({

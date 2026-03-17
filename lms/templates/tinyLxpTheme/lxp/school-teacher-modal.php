@@ -195,7 +195,7 @@
 <script type="text/javascript">
     
     jQuery(document).ready(function() {
-        let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+        let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
         let apiUrl = host + '/wp-json/lms/v1/';
 
         var teacherModal = document.getElementById('teacherModal');
@@ -257,7 +257,7 @@
         jQuery(".teacher-action").text("Update");
         jQuery(".teacher-action-head").text("Update");
         
-        let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+        let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
         let apiUrl = host + '/wp-json/lms/v1/';
 
         $.ajax({

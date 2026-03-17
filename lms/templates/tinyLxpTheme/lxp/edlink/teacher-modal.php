@@ -238,7 +238,7 @@
             }
         });
 
-        let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+        let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
         let apiUrl = host + '/wp-json/lms/v1/';
 
         var edlinkTeacherModal = document.getElementById('edlinkTeacherModal');
@@ -325,7 +325,7 @@
         jQuery(".teacher-action-head").text("Update");
         jQuery("#edlinkInputTeacherName").html('<option value="0"> Choose...</option>');
         
-        let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+        let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
         let apiUrl = host + '/wp-json/lms/v1/';
 
         $.ajax({

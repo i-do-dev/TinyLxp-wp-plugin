@@ -226,7 +226,7 @@ $lessons = lxp_get_lessons_by_course($course_id);
 </div>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script type="text/javascript">
-    host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+    host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
     apiUrl = host + '/wp-json/lms/v1/';
     window.selected_lxp_sections = [];
     window.selected_lxp_lessons = [];

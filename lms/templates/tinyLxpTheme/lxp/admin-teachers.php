@@ -408,7 +408,7 @@ $edlink_options = get_option('edlink_options');
             <input type="hidden" name="teacher_school_id_imp" id="teacher_school_id_imp" value="<?php echo $_GET['school_id']; ?>">
             
             <script type="text/javascript">
-                let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+                let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
                 let apiUrl = host + '/wp-json/lms/v1/';
                 
                 jQuery("#import-teacher").on("change", function(e) {

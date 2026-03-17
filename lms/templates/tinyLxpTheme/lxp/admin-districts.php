@@ -446,7 +446,7 @@ if (isset($_GET['inactive']) && $_GET['inactive'] === 'true') {
                     jQuery(".district-action").text("Update");
                 }
                 
-                let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+                let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
                 let apiUrl = host + '/wp-json/lms/v1/';
 
                 $.ajax({

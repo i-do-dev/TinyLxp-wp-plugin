@@ -379,14 +379,14 @@ while (have_posts()) : the_post();
         })
     </script>
     <script type="text/javascript">
-        host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+        host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
         apiUrl = host + '/wp-json/lms/v1/';
 
         function set_course_saved(course_id, is_saved_val) {
             event.preventDefault(); // Prevents default form action
             const is_saved = is_saved_val ? 1 : 0;
             let teacher_post_id = <?php echo $teacher_post->ID; ?>;
-            let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+            let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
             let apiUrl = host + '/wp-json/lms/v1/';
 
             $.ajax({

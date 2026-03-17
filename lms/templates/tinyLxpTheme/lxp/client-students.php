@@ -464,7 +464,7 @@
 
         <script>
             jQuery(document).ready(function() {
-                let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+                let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
                 let apiUrl = host + '/wp-json/lms/v1/';
                 
                 jQuery("#import-student").on("change", function(e) {

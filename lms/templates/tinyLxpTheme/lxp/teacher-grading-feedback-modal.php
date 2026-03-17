@@ -48,7 +48,7 @@ $feedback = get_post_meta($assignment_submission_id, "slide_{$slide}_feedback", 
 
 <script type="text/javascript">
     jQuery(document).ready(function() {
-        let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+        let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
         let apiUrl = host + '/wp-json/lms/v1/';
 
         var feedbackModal = document.getElementById('feedbackModal');

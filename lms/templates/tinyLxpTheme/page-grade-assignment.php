@@ -575,7 +575,7 @@
       // function assign_grade() assign grade and selected grade to student
       function assign_grade(slide) {
         let grade = jQuery("#grade").val();
-        let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+        let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
         let apiUrl = host + '/wp-json/lms/v1/';
         $.ajax({
           url: apiUrl + 'assignment/submission/grade',
@@ -628,7 +628,7 @@
 
         // handle Mark as Graded check
         jQuery('#markGraded').on('change', function() {
-          let host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+          let host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
           let apiUrl = host + '/wp-json/lms/v1/';
           let checked = jQuery(this).prop('checked');
           jQuery.ajax({

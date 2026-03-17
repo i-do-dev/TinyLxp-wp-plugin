@@ -93,7 +93,7 @@
 </div>
 
 <script type="text/javascript">
-    host = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress' : window.location.origin;
+    host = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' : window.location.origin;
     apiUrl = host + '/wp-json/lms/v1/';
 
     jQuery(document).ready(function() {

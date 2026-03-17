@@ -46,7 +46,7 @@
 
 <script type="text/javascript">
     jQuery(document).ready(function() {
-        let apiUrl = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress/wp-json/lms/v1/' : window.location.origin + '/wp-json/lms/v1/';
+        let apiUrl = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' + '/wp-json/lms/v1/' : window.location.origin + '/wp-json/lms/v1/';
 
         var settingsModal = document.getElementById('settingsModal');
         settingsModalObj = new bootstrap.Modal(settingsModal);
@@ -84,7 +84,7 @@
     });
 
     function onSettingsClick(settingsEntityId, settingsEntity) {
-        let apiUrl = window.location.hostname === 'localhost' ? window.location.origin + '/wordpress/wp-json/lms/v1/' : window.location.origin + '/wp-json/lms/v1/';
+        let apiUrl = window.location.hostname === 'localhost' ? window.location.origin + '<?php echo WORDPRESS_HOST; ?>' + '/wp-json/lms/v1/' : window.location.origin + '/wp-json/lms/v1/';
 
         $.ajax({
             method: "GET",
