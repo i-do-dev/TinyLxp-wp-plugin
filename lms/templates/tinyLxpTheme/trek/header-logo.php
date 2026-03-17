@@ -10,7 +10,7 @@
             <img width="200" height="80" src="<?php echo esc_url( $logo_url[0] ); ?>" alt="TinyLxp Logo" />
         <?php } else { ?>
             <div class="header-logo rounded">
-                <img width="200" src="<?php echo $treks_src; ?>/assets/img/The-skillsGuru-logo.png" alt="TheskillsGuru" />
+                <img width="200" src="<?php echo $treks_src; ?>/assets/img/test.png" alt="LXP" />
             </div>
         <?php } ?>
     </div>
