@@ -32,9 +32,9 @@
     $args['post__in'] = $lxp_visited_courses_to_show;
     $args['orderby'] = 'post__in';
   } else {
-    $args['meta_key'] = 'sort';
+    /* $args['meta_key'] = 'sort';
     $args['orderby'] = 'meta_value_num';
-    $args['order'] = 'ASC';
+    $args['order'] = 'ASC'; */
   }
 
   if ( get_userdata(get_current_user_id())->user_email === "guest@rpatreks.com" ) {
@@ -201,7 +201,7 @@
                   </div>
                   <div>
                     <h3><?= get_the_title($course->ID); ?></h3>
-                    <span>Due date: May 17, 2023</span>
+                    <!-- <span>Due date: May 17, 2023</span> -->
                   </div>
                 </div>
             </a>
