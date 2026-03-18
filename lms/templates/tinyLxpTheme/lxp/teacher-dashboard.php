@@ -225,7 +225,7 @@
                     </div>
                     <div>
                       <h3><?= get_the_title($course->ID); ?></h3>
-                      <span>Due date: May 17, 2023</span>
+                      <!-- <span>Due date: May 17, 2023</span> -->
                     </div>
                   </div>
               </a>
