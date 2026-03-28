@@ -226,8 +226,16 @@ class Tiny_LXP_Platform
     private function define_public_hooks()
     {
         $plugin_public = new Tiny_LXP_Platform_Public(self::get_plugin_name(), $this->get_version());
+        $lesson_extension = new TL_LearnPress_Lesson_Extension();
 
         $this->loader->add_action('parse_request', $plugin_public, 'parse_request');
+        $this->loader->add_filter('tinylxp_lti_launch_metadata', $lesson_extension, 'provide_lti_launch_metadata', 10, 5);
+        $this->loader->add_filter('tinylxp_lesson_template_include', $lesson_extension, 'filter_template_include', 10, 4);
+        $this->loader->add_action('learn-press/after-content-item-summary/lp_lesson', $lesson_extension, 'render_lti_lesson_embed');
+        $this->loader->add_action('add_meta_boxes', $lesson_extension, 'add_meta_boxes');
+        $this->loader->add_action('save_post', $lesson_extension, 'save_tl_post', 10, 2);
+        $this->loader->add_action('rest_lp_lesson_query', $lesson_extension, 'post_meta_request_params', 10, 2);
+        $this->loader->add_action('rest_insert_lp_lesson', $lesson_extension, 'insert_post_api', 10, 2);
 
         $widget_path = new Tiny_LXP_Widget(self::get_plugin_name(), $this->get_version());
 

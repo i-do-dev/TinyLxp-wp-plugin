@@ -39,10 +39,9 @@ class Rest_Lxp_Course
 	}
 
 	public static function get_lxp_sections($request) {
-		$course_id = $request->get_param('course_id');
-		global $wpdb;
-		$section_query = "SELECT section_id, section_name FROM $wpdb->prefix" . "learnpress_sections WHERE section_course_id = ".$course_id;
-		$results = $wpdb->get_results($section_query);
+		$course_id = absint($request->get_param('course_id'));
+		$repository = new TL_LearnPress_Section_Repository();
+		$results = $repository->get_sections_by_section_course_id($course_id);
   		$lxp_sections = $results ? $results : [];
   		return wp_send_json_success(array("lxp_sections" => $lxp_sections));
 	}
@@ -51,13 +50,10 @@ class Rest_Lxp_Course
 		$lxp_sections = $request->get_param('lxp_sections');
 		if ( is_array($lxp_sections) ) {
 			$lxp_lessons = [];
-			global $wpdb;
-			$lesson_query_string = "SELECT p.ID, p.post_title 
-									FROM {$wpdb->prefix}posts AS p
-									INNER JOIN {$wpdb->prefix}learnpress_section_items AS si ON p.ID = si.item_id
-									WHERE si.section_id IN (%d)";
+			$repository = new TL_LearnPress_Section_Repository();
 			foreach ($lxp_sections as $section_id) {
-				$lxp_lessons[$section_id] = $wpdb->get_results($wpdb->prepare($lesson_query_string, $section_id));
+				$section_id = absint($section_id);
+				$lxp_lessons[$section_id] = $repository->get_lessons_by_section_id($section_id);
 			}
 		}
 		return wp_send_json_success(array("lxp_lessons" => $lxp_lessons));

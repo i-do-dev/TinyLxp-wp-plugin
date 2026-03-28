@@ -99,13 +99,8 @@ class Student_Grade_Summay_Widget extends Widget_Base {
 		$cache_key = "section_name_{$lxp_lesson_id}";
 		$section_title = wp_cache_get($cache_key, 'lxp');
 		if (false === $section_title) {
-			$section_title = $wpdb->get_var($wpdb->prepare(
-				"SELECT s.section_name
-				FROM {$wpdb->prefix}learnpress_sections s
-				INNER JOIN {$wpdb->prefix}learnpress_section_items si ON s.section_id = si.section_id
-				WHERE si.item_id = %d",
-				$lxp_lesson_id
-			));
+			$section_repository = new TL_LearnPress_Section_Repository();
+			$section_title = $section_repository->get_section_name_by_item_id($lxp_lesson_id);
 			$section_title = $section_title ?: esc_html__('Uncategorized', 'text-domain');
 			wp_cache_set($cache_key, $section_title, 'lxp', 3600); // 1 hour
 		}

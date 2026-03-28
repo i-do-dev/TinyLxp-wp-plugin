@@ -75,7 +75,7 @@ Template Name: Course-template
 				<iframe style="border: none;width: 100%;height: 400px;" class="" src="<?php echo site_url() ?>?lti-platform&post=<?php echo $post->ID ?>&id=<?php echo $attrId ?><?php echo $queryParam ?>"  allowfullscreen></iframe>
 				<div>
 					<?php
-					$tags = get_the_terms($post->ID, 'tl_lesson_tag');
+					$tags = get_the_terms($post->ID, 'lp_lesson_tag');
 					if ($tags) {
 						foreach ($tags as $tag) {
 							$tag_link = get_tag_link($tag->term_id);

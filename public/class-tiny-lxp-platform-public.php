@@ -256,17 +256,22 @@ class Tiny_LXP_Platform_Public
                 $reason = __('Invalid url attribute', Tiny_LXP_Platform::get_plugin_name());
             }
         }
-        if(isset($post->post_type) && $post->post_type == LP_LESSON_CPT && !$ok){
-            $link_atts['tool'] = get_post_meta($post->ID, 'lti_tool_code', true); 
-            $link_atts['title'] =  get_post_meta($post->ID, 'lti_content_title', true); 
-            $link_atts['url'] = get_post_meta($post->ID, 'lti_tool_url', true); 
-            $link_atts['custom'] = get_post_meta($post->ID, 'lti_custom_attr', true);
-            $target = "embed";
-            $link_atts['id'] = get_post_meta($post->ID, 'lti_post_attr_id', true);
-            $toolObj = Tiny_LXP_Platform_Tool::fromCode($link_atts['tool'], Tiny_LXP_Platform::$tinyLxpPlatformDataConnector);
-            $url = strpos($link_atts['url'], $toolObj->messageUrl) === false ? $toolObj->messageUrl.$link_atts['url'] : $link_atts['url'];
-            $tool = Tiny_LXP_Platform_Tool::fromCode($link_atts['tool'], Tiny_LXP_Platform::$tinyLxpPlatformDataConnector);
-            $ok = true;
+        if (!$ok) {
+            $launch_metadata = apply_filters('tinylxp_lti_launch_metadata', array(), $post, $deeplink, $ok, $reason);
+            if (is_array($launch_metadata) && !empty($launch_metadata['tool']) && !empty($launch_metadata['id'])) {
+                $link_atts = isset($link_atts) && is_array($link_atts) ? $link_atts : array();
+                $link_atts = array_merge($link_atts, $launch_metadata);
+                $target = !empty($launch_metadata['target']) ? $launch_metadata['target'] : 'embed';
+                $toolObj = Tiny_LXP_Platform_Tool::fromCode($link_atts['tool'], Tiny_LXP_Platform::$tinyLxpPlatformDataConnector);
+                if (!empty($toolObj)) {
+                    $url = strpos($link_atts['url'], $toolObj->messageUrl) === false ? $toolObj->messageUrl . $link_atts['url'] : $link_atts['url'];
+                    $tool = Tiny_LXP_Platform_Tool::fromCode($link_atts['tool'], Tiny_LXP_Platform::$tinyLxpPlatformDataConnector);
+                    if (!empty($tool)) {
+                        $ok = true;
+                        $reason = null;
+                    }
+                }
+            }
         }
         if ($ok) {
             $options = Tiny_LXP_Platform_Tool::getOptions();

@@ -10,9 +10,20 @@ require_once( LMS__PLUGIN_DIR . 'lms-rest-apis/assignments.php' );
 require_once( LMS__PLUGIN_DIR . 'lms-rest-apis/assignment-submissions.php' );
 require_once( LMS__PLUGIN_DIR . 'lms-rest-apis/courses.php' );
 require_once( LMS__PLUGIN_DIR . 'lms-rest-apis/edlink-apis.php' );
+require_once( LMS__PLUGIN_DIR . 'repositories/class-section-repository-interface.php' );
+require_once( LMS__PLUGIN_DIR . 'repositories/class-learnpress-section-repository.php' );
 
 class LMS_REST_API
 {
+	private static $section_repository = null;
+
+	private static function section_repository() {
+		if (!self::$section_repository) {
+			self::$section_repository = new TL_LearnPress_Section_Repository();
+		}
+
+		return self::$section_repository;
+	}
 
 	/**
 	 * Register the REST API routes.
@@ -235,7 +246,8 @@ class LMS_REST_API
 					global $wpdb;
 					$course_id = get_post_meta($assignment->ID, 'course_id', true);
 					$course_section_id = get_post_meta($assignment->ID, 'course_section_id', true);
-					$course_section = $wpdb->get_row("SELECT * FROM {$wpdb->prefix}learnpress_sections WHERE id={$course_section_id}");
+					$course_section_data = self::section_repository()->get_section_by_id($course_section_id);
+					$course_section = isset($course_section_data[0]) ? $course_section_data[0] : (object) array('title' => '');
 					return array('course_id' => $course_id, 'course_section_id' => $course_section_id, 'section_title' => $course_section->title, 'assignment_id' => $assignment->ID ); 
 				}, $assignments);
 
@@ -389,7 +401,6 @@ class LMS_REST_API
 
 	public static function get_playlists($request = null)
 	{
-		global $wpdb;
 		$playlists = get_post_meta($_GET['course_id'], "lxp_sections", true);
 		$playlists = json_decode($playlists);
 		if (!is_array($playlists)) {
@@ -400,7 +411,8 @@ class LMS_REST_API
 			$playlists = ["Overview", "Recall", "Practice A", "Practice B", "Apply"];
 		}
 
-		$records = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "learnpress_sections WHERE course_id = " .  $_GET['post_id']);
+		$post_id = isset($_GET['post_id']) ? absint($_GET['post_id']) : 0;
+		$records = self::section_repository()->get_sections_by_course_id($post_id);
 		foreach ($records as $record) {
 			foreach ($playlists as $key => $playlist) {
 				if (trim($record->title) == trim($playlist)) {
@@ -414,39 +426,36 @@ class LMS_REST_API
 
 	public static function store_course_section($request = null)
 	{
-		$post = get_post($_POST['post_id']);
+		$post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
+		$post = get_post($post_id);
 		if ($post->post_status == "auto-draft") {
 			return 0;
 		}
-		global $wpdb;
-		if ($_POST['section_id'] != 0) {
-			$wpdb->query("UPDATE " . $wpdb->prefix . "learnpress_sections SET content = '" . $_POST['content'] . "', title='" . $_POST['title'] . "', sort=". intval($_POST['sort']) ." where id=" . $_POST['section_id']);
-			$recordId = $_POST['section_id'];   //update using wpdb->update
+		$section_id = isset($_POST['section_id']) ? absint($_POST['section_id']) : 0;
+		$title = isset($_POST['title']) ? wp_unslash($_POST['title']) : '';
+		$content = isset($_POST['content']) ? wp_unslash($_POST['content']) : '';
+		$sort = isset($_POST['sort']) ? absint($_POST['sort']) : 0;
+
+		if ($section_id != 0) {
+			self::section_repository()->update_section($section_id, $title, $content, $sort);
+			$recordId = $section_id;
 		} else {
-			$wpdb->insert($wpdb->prefix . 'learnpress_sections', array(
-				'course_id' => $_POST['post_id'],
-				'title' => $_POST['title'],
-				'type' => 'content',
-				'content' => $_POST['content'],
-				'sort' => intval($_POST['sort'])
-			));
-			$recordId = $wpdb->insert_id;
+			$recordId = self::section_repository()->create_section($post_id, $title, $content, $sort);
 		}
 		return $recordId;
 	}
 
 	public static function get_course_section($request = null)
 	{
-		global $wpdb;
-		$respones = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "learnpress_sections WHERE id = " . $_GET['section_id']);
-		$respones[0]->content = stripslashes($respones[0]->content);
+		$section_id = isset($_GET['section_id']) ? absint($_GET['section_id']) : 0;
+		$respones = self::section_repository()->get_section_by_id($section_id);
 		return $respones;
 	}
 
 	public static function delete_course_section($request = null)
 	{
-		global $wpdb;
-		$wpdb->query("DELETE FROM " . $wpdb->prefix . "learnpress_sections WHERE id =" . $_POST['section_id']);
+		$section_id = isset($_POST['section_id']) ? absint($_POST['section_id']) : 0;
+		self::section_repository()->delete_section($section_id);
 		return [];
 	}
 
@@ -465,8 +474,8 @@ class LMS_REST_API
 
 	public static function get_all_course_sections($request = null)
 	{
-		global $wpdb;
-		$respones = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "learnpress_sections WHERE course_id = " . $_GET['trek_post_id']);
+		$course_id = isset($_GET['trek_post_id']) ? absint($_GET['trek_post_id']) : 0;
+		$respones = self::section_repository()->get_sections_by_course_id($course_id);
 		return $respones;
 	}
 
@@ -488,7 +497,7 @@ class LMS_REST_API
 			'user_id' => $user_id
 		));
 
-		$data = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "learnpress_sections WHERE id = " . $course_section_id);
+		$data = self::section_repository()->get_section_by_id($course_section_id);
 		$data[0]->title;
 		$data[0]->course_id;
 		$coursePost = get_post($data[0]->course_id);
@@ -555,7 +564,7 @@ class LMS_REST_API
 		$result = array();
 		$response = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "trek_events where user_id=" . $_GET['user_id']);
 		foreach ($response as $key => $row) {
-			$data = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "learnpress_sections WHERE id = " . $row->trek_section_id);
+			$data = self::section_repository()->get_section_by_id($row->trek_section_id);
 			if (isset($data[0])) {
 				$coursePost = get_post($data[0]->course_id);
 				// $response[$key]->title =  $data[0]->title . " - " . $coursePost->post_title;
@@ -617,7 +626,7 @@ class LMS_REST_API
 		global $wpdb;
 		if (isset($_POST['trek_section_id'])) {
 			$wpdb->query("UPDATE " . $wpdb->prefix . "trek_events SET start = " . $_POST['start'] . ", end=" . $_POST['end'] . ", trek_section_id=" . $_POST['trek_section_id'] . " where id=" . $_POST['id']);
-			$data = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "learnpress_sections WHERE id = " . $_POST['trek_section_id']);
+			$data = self::section_repository()->get_section_by_id($_POST['trek_section_id']);
 			$coursePost = get_post($data[0]->course_id);
 			$response['title'] = $data[0]->title . " - " .  $coursePost->post_title;
 			$response['textColor'] = 'white';
@@ -641,7 +650,7 @@ class LMS_REST_API
 	{
 		global $wpdb;
 		$event = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "trek_events WHERE id = " . $_GET['id']);
-		$data = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "learnpress_sections WHERE id = " . $event[0]->trek_section_id);
+		$data = self::section_repository()->get_section_by_id($event[0]->trek_section_id);
 		// $data->title;
 		$coursePost = get_post($data[0]->course_id);
 		// $response['title'] = $data[0]->title ." - ".  $coursePost->post_title ;

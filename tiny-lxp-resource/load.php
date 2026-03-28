@@ -2,9 +2,13 @@
 require_once plugin_dir_path(dirname(__FILE__)) . 'tiny-lxp-resource/Activity.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'lms/tl-constants.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'lms/xapi-constants.php';
+require_once plugin_dir_path(dirname(__FILE__)) . 'lms/models/class-lti-metadata.php';
+require_once plugin_dir_path(dirname(__FILE__)) . 'lms/repositories/class-lti-metadata-repository.php';
+require_once plugin_dir_path(dirname(__FILE__)) . 'lms/repositories/class-section-repository-interface.php';
+require_once plugin_dir_path(dirname(__FILE__)) . 'lms/repositories/class-learnpress-section-repository.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-abstract-tl-post-type.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-course-post-type.php';
-require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-lesson-post-type.php';
+require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-learnpress-lesson-extension.php';
 // require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-trek-post-type.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-tl-admin-menu.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-district-post-type.php';
@@ -21,7 +25,6 @@ require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-group-post-type.php
 // error_reporting(E_ALL);
 
 TL_Course_Post_Type::instance();
-TL_Lesson_Post_Type::instance();
 // TL_TREK_Post_Type::instance();
 TL_District_Post_Type::instance();
 TL_School_Post_Type::instance();
@@ -84,22 +87,16 @@ function tinyLxp_page_templates($template) {
         //     $template = plugin_dir_path(dirname( __FILE__ )).'/lms/templates/tinyLxpTheme/page-grade-summary.php';
         } elseif (is_page('edlink-integration')) {
             $template = plugin_dir_path(dirname( __FILE__ )) . '/lms/templates/tinyLxpTheme/page-edlink-integration.php';
-        // } elseif (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/tl/course/') !== false ) {
-        } elseif ( (strpos($request_uri, '/courses/') !== false || strpos($request_uri, '/lessons/') !== false || strpos($request_uri, '/quizzes/') !== false) ) {
-            // $template = plugin_dir_path(dirname( __FILE__ )) . '/lms/templates/tinyLxpTheme/single-tl_lesson.php';
-            if ( $has_assignment && in_array( 'lxp_student', (array) $userdata->roles ) ) {
-                $template = plugin_dir_path(dirname( __FILE__ )) . '/lms/templates/tinyLxpTheme/page-learner-lesson.php';
-            }
         } elseif ( strpos($_SERVER['REQUEST_URI'], '/courses/') === 0 ) {
             // $template = plugin_dir_path(dirname( __FILE__ )) . '/lms/templates/tinyLxpTheme/single-tl_course.php';
             if ( in_array( 'lxp_student', (array) $userdata->roles ) ) {
                 $template = plugin_dir_path(dirname( __FILE__ )) . '/lms/templates/tinyLxpTheme/page-learner-single-course.php';
             }
-        } elseif (is_singular('lp_lesson')) { // || isset($_GET['assignment_id'])
-            $template = plugin_dir_path(dirname( __FILE__ )) . '/lms/templates/tinyLxpTheme/single-tl_lesson.php';
         } elseif (is_page('learner-courses')) {
             $template = plugin_dir_path(dirname( __FILE__ )) . '/lms/templates/tinyLxpTheme/page-learner-courses.php';
         }
+
+		$template = apply_filters('tinylxp_lesson_template_include', $template, $request_uri, $has_assignment, $userdata);
     }
     // $template = plugin_dir_path(dirname( __FILE__ )) . '/lms/templates/tinyLxpTheme/single-tl_course.php';
     return $template; // Return the original template if conditions are not met

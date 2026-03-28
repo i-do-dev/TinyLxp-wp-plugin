@@ -24,13 +24,8 @@
   $students = lxp_get_students($assignment->lxp_student_ids);
   $course = get_post(get_post_meta($assignment->ID, 'course_id', true));
   $lxp_lesson_post = get_post(get_post_meta($assignment->ID, 'lxp_lesson_id', true));
-  $section_name = $wpdb->get_var($wpdb->prepare(
-              "SELECT s.section_name
-              FROM {$wpdb->prefix}learnpress_sections s
-              INNER JOIN {$wpdb->prefix}learnpress_section_items si ON s.section_id = si.section_id
-              WHERE si.item_id = %d",
-              $lxp_lesson_post->ID
-          ));
+    $section_repository = new TL_LearnPress_Section_Repository();
+    $section_name = $section_repository->get_section_name_by_item_id($lxp_lesson_post->ID);
   $slide_current = isset($_GET['slide']) ? $_GET['slide'] : 0;
   $assignment_submission = lxp_get_assignment_submissions($assignment->ID, $student_id);
   $grade = $assignment_submission ? get_post_meta($assignment_submission['ID'], "slide_" . $slide_current . "_grade", true) : '';

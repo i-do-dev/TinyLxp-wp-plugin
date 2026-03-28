@@ -49,13 +49,8 @@
           $class_post = get_post($class_id);
           // $class_post = get_post(get_post_meta($assignment->ID, 'class_id', true));
           $lxp_lesson_post = get_post(get_post_meta($assignment->ID, 'lxp_lesson_id', true));
-          $section_name = $wpdb->get_var($wpdb->prepare(
-              "SELECT s.section_name
-              FROM {$wpdb->prefix}learnpress_sections s
-              INNER JOIN {$wpdb->prefix}learnpress_section_items si ON s.section_id = si.section_id
-              WHERE si.item_id = %d",
-              $lxp_lesson_post->ID
-          ));
+          $section_repository = new TL_LearnPress_Section_Repository();
+          $section_name = $section_repository->get_section_name_by_item_id($lxp_lesson_post->ID);
           
           $student_stats = lxp_assignment_stats($assignment->ID);
           $statuses = array("To Do", "In Progress");

@@ -1,11 +1,12 @@
 <?php
-$content = get_post_meta($post->ID);
+$lti_metadata_repository = new TL_LTI_Metadata_Repository();
+$metadata = $lti_metadata_repository->get($post->ID);
 
-$attrId =  isset($content['lti_post_attr_id'][0]) ? $content['lti_post_attr_id'][0] : "";
-$title =  isset($content['lti_content_title'][0]) ? $content['lti_content_title'][0] : "";
-$toolCode =  isset($content['lti_tool_code'][0]) ? $content['lti_tool_code'][0] : "";
-$customAttr =  isset($content['lti_custom_attr'][0]) ? $content['lti_custom_attr'][0] : "";
-$toolUrl =  isset($content['lti_tool_url'][0]) ? $content['lti_tool_url'][0] : "";
+$attrId = $metadata->lti_post_attr_id;
+$title = $metadata->lti_content_title;
+$toolCode = $metadata->lti_tool_code;
+$customAttr = $metadata->lti_custom_attr;
+$toolUrl = $metadata->lti_tool_url;
 $plugin_name = Tiny_LXP_Platform::get_plugin_name();
 $content = '<p>' . $post->post_content . '</p>';
 if ($attrId) {

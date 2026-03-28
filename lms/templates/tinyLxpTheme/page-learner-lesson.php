@@ -21,13 +21,8 @@
 	$cache_key = "section_name_{$lxp_lesson_id}";
 	$section_name = wp_cache_get($cache_key, 'lxp');
 	if (false === $section_name) {
-		$section_name = $wpdb->get_var($wpdb->prepare(
-			"SELECT s.section_name
-			FROM {$wpdb->prefix}learnpress_sections s
-			INNER JOIN {$wpdb->prefix}learnpress_section_items si ON s.section_id = si.section_id
-			WHERE si.item_id = %d",
-			$lxp_lesson_id
-		));
+		$section_repository = new TL_LearnPress_Section_Repository();
+		$section_name = $section_repository->get_section_name_by_item_id($lxp_lesson_id);
 		$section_name = $section_name ?: esc_html__('Uncategorized', 'text-domain');
 		wp_cache_set($cache_key, $section_name, 'lxp', 3600); // 1 hour
 	}
@@ -38,17 +33,18 @@
 	}
 	$post = $lxp_lesson_post;
 	$_GET['post'] = $post->ID;
-    $content = get_post_meta($post->ID);
-    $attrId =  isset($content['lti_post_attr_id'][0]) ? $content['lti_post_attr_id'][0] : "";
-    $title =  isset($content['lti_content_title'][0]) ? $content['lti_content_title'][0] : "";
-    $toolCode =  isset($content['lti_tool_code'][0]) ? $content['lti_tool_code'][0] : "";
-    $customAttr =  isset($content['lti_custom_attr'][0]) ? $content['lti_custom_attr'][0] : "";
-    $toolUrl =  isset($content['lti_tool_url'][0]) ? $content['lti_tool_url'][0] : "";
-    $plugin_name = Tiny_LXP_Platform::get_plugin_name();
-    $content = '<p>' . $post->post_content . '</p>';
-    if ($attrId) {
-        $content .= '<p> [' . $plugin_name . ' tool=' . $toolCode . ' id=' . $attrId . ' title=\"' . $title . '\" url=' . $toolUrl . ' custom=' . $customAttr . ']' . "" . '[/' . $plugin_name . ']  </p>';
-    }
+	$lti_metadata_repository = new TL_LTI_Metadata_Repository();
+	$metadata = $lti_metadata_repository->get($post->ID);
+	$attrId = $metadata->lti_post_attr_id;
+	$title = $metadata->lti_content_title;
+	$toolCode = $metadata->lti_tool_code;
+	$customAttr = $metadata->lti_custom_attr;
+	$toolUrl = $metadata->lti_tool_url;
+	$plugin_name = Tiny_LXP_Platform::get_plugin_name();
+	$content = '<p>' . $post->post_content . '</p>';
+	if ($attrId) {
+		$content .= '<p> [' . $plugin_name . ' tool=' . $toolCode . ' id=' . $attrId . ' title=\"' . $title . '\" url=' . $toolUrl . ' custom=' . $customAttr . ']' . '' . '[/' . $plugin_name . ']  </p>';
+	}
     
     $queryParam = '';
 
