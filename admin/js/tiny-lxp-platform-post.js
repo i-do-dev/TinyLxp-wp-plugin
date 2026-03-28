@@ -91,16 +91,6 @@ var currentsectionId = 0;
         $('#tiny-lxp-platform-select').prop("disabled", false);
       });
 
-      $(".course_remove_lesson").on('click', function () {
-        var deletedLessons = $("#course_removed_lessons").val();
-        $(this).parent().fadeOut();
-        if (deletedLessons) {
-          $("#course_removed_lessons").val(deletedLessons + "," + $(this).attr('lesson_id'));
-        } else {
-          $("#course_removed_lessons").val($(this).attr('lesson_id'));
-        }
-      });
-
       $('body').on('click', '.chip-close', function () {
         if (confirm("Are you sure you want to remove?") == true) {
           var sectionId = $(this).parent('div').attr('identifier');

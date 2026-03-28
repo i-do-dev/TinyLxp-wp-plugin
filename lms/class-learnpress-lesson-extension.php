@@ -92,6 +92,7 @@ class TL_LearnPress_Lesson_Extension {
 
 	public function save_tl_post($post_id = null) {
 		if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['post_type']) && TL_LESSON_CPT == $_POST['post_type']) {
+			$posted_course_id = isset($_POST['tl_course_id']) ? intval(trim(wp_unslash($_POST['tl_course_id']))) : 0;
 			$metadata_values = array(
 				'lti_tool_url' => isset($_POST['lti_tool_url']) ? wp_unslash($_POST['lti_tool_url']) : '',
 				'lti_tool_code' => isset($_POST['lti_tool_code']) ? wp_unslash($_POST['lti_tool_code']) : '',
@@ -99,48 +100,19 @@ class TL_LearnPress_Lesson_Extension {
 				'lti_custom_attr' => isset($_POST['lti_custom_attr']) ? wp_unslash($_POST['lti_custom_attr']) : '',
 				'lti_post_attr_id' => isset($_POST['lti_post_attr_id']) ? wp_unslash($_POST['lti_post_attr_id']) : '',
 			);
-			if (isset($_POST['tl_course_id']) && $_POST['tl_course_id'] > 0) {
-				$_POST['tl_course_id'] = intval(trim($_POST['tl_course_id']));
-				$course_post_sections = get_post_meta($_POST['tl_course_id'], 'lxp_sections', true);
-				$_POST['lti_content_title'] = $metadata_values['lti_content_title'];
-				if ($course_post_sections) {
-					$course_post_sections = json_decode($course_post_sections);
-					$title_found = array_search($_POST['lti_content_title'], $course_post_sections, true);
-					if (gettype($title_found) === 'boolean' && !$title_found) {
-						$course_post_sections[] = $_POST['lti_content_title'];
-						update_post_meta($_POST['tl_course_id'], 'lxp_sections', json_encode($course_post_sections));
-					}
-				} else {
-					add_post_meta($_POST['tl_course_id'], 'lxp_sections', json_encode(array($_POST['lti_content_title'])), true);
-				}
-			}
 			$this->metadata_repository()->update_from_array($post_id, $metadata_values);
-			if ($_POST['tl_course_id'] != get_post_meta($post_id, 'tl_course_id', true)) {
+			if ($posted_course_id != get_post_meta($post_id, 'tl_course_id', true)) {
 				$this->metadata_repository()->update_from_array($post_id, array('lti_course_id' => ''));
 			}
-			update_post_meta($post_id, 'tl_course_id', $_POST['tl_course_id']);
+			update_post_meta($post_id, 'tl_course_id', $posted_course_id);
 		}
 	}
 
 	public function insert_post_api($post, $request) {
 		if (isset($request['meta'])) {
-			$course_id = intval(trim($request['meta']['tl_course_id']));
-			$playlist_title = isset($request['meta']['lti_content_title']) ? trim($request['meta']['lti_content_title']) : 'Section';
-			$course_post_sections = get_post_meta($course_id, 'lxp_sections', true);
-
-			if ($course_post_sections) {
-				$course_post_sections = json_decode($course_post_sections);
-				$title_found = array_search($playlist_title, $course_post_sections, true);
-				if (gettype($title_found) === 'boolean' && !$title_found) {
-					$course_post_sections[] = $playlist_title;
-					update_post_meta($course_id, 'lxp_sections', json_encode($course_post_sections));
-				}
-			} else {
-				add_post_meta($course_id, 'lxp_sections', json_encode(array($playlist_title)), true);
-			}
-
 			if (isset($request['meta']['lti_content_id'])) {
-				update_post_meta($post->ID, 'tl_course_id', $request['meta']['tl_course_id']);
+				$course_id = isset($request['meta']['tl_course_id']) ? intval(trim($request['meta']['tl_course_id'])) : 0;
+				update_post_meta($post->ID, 'tl_course_id', $course_id);
 				$this->metadata_repository()->update_from_array($post->ID, array(
 					'lti_content_id' => isset($request['meta']['lti_content_id']) ? $request['meta']['lti_content_id'] : '',
 					'lti_tool_url' => isset($request['meta']['lti_tool_url']) ? $request['meta']['lti_tool_url'] : '',

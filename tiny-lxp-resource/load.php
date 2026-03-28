@@ -7,7 +7,7 @@ require_once plugin_dir_path(dirname(__FILE__)) . 'lms/repositories/class-lti-me
 require_once plugin_dir_path(dirname(__FILE__)) . 'lms/repositories/class-section-repository-interface.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'lms/repositories/class-learnpress-section-repository.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-abstract-tl-post-type.php';
-require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-course-post-type.php';
+require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-learnpress-course-extension.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-learnpress-lesson-extension.php';
 // require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-trek-post-type.php';
 require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-tl-admin-menu.php';
@@ -24,7 +24,6 @@ require_once plugin_dir_path(dirname(__FILE__)) . 'lms/class-group-post-type.php
 // ini_set('display_startup_errors', 1);
 // error_reporting(E_ALL);
 
-TL_Course_Post_Type::instance();
 // TL_TREK_Post_Type::instance();
 TL_District_Post_Type::instance();
 TL_School_Post_Type::instance();

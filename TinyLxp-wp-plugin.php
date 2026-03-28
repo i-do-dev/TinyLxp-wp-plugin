@@ -71,19 +71,20 @@ function run_tiny_lxp_platform()
 }
 
 run_tiny_lxp_platform();
-function show_grade_link($actions, $post)
-{
-    if ($post->post_type==TL_COURSE_CPT)
-    {
-        $actions['duplicate'] = "<a href='admin.php?page=grades&course_id=".$post->ID."' title='' rel='permalink'>Grades</a>";
-    }
-    return $actions;
-}
-add_filter('post_row_actions', 'show_grade_link', 10, 2);
 
 register_activation_hook(__FILE__, 'on_activate');
 
 function on_activate() {
+    global $wpdb;
+
+    $wpdb->query("CREATE TABLE IF NOT EXISTS {$wpdb->prefix}tiny_lms_grades(
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        lesson_id bigint(20) default NULL,
+        score FLOAT default NULL,
+        user_id bigint(20) default NULL,
+        PRIMARY KEY (id)
+    )");
+
     // Check if the pages already exist to avoid duplication
     $pagesArray = array(
     	['title' => 'Assignment','content' =>''],
@@ -104,8 +105,7 @@ function on_activate() {
 		['title' => 'Search','content' =>''],
 		['title' => 'Students','content' =>''],
 		['title' => 'Teachers','content' =>'']
-	);
-    global $wpdb;
+    );
 
     foreach ($pagesArray as $newPage) {
         $pageExist = $wpdb->get_row($wpdb->prepare("SELECT * FROM $wpdb->posts WHERE post_title = %s AND post_type = 'page' AND post_status = 'publish' ", $newPage['title']));

@@ -60,20 +60,42 @@ class Rest_Lxp_Course
 	}
 
 	public static function get_lxp_lessons_by_course($request) {
-		$course_id = $request->get_param('course_id');
-		$lessons_query = new WP_Query( array( 
-	        'post_type' => TL_LESSON_CPT, 
-	        'post_status' => array( 'publish' ),
-	        'posts_per_page'   => -1,
-	        'order' => 'asc',
-	        'meta_query' => [
-	            [
-	              'key' => 'tl_course_id', 
-	              'value' => $course_id,
-	              'compare' => '='
-	            ]
-	        ]
-	    ));
-	    return wp_send_json_success(array("lxp_lessons" => $lessons_query->get_posts()));
+		$course_id = absint($request->get_param('course_id'));
+		$repository = new TL_LearnPress_Section_Repository();
+		$sections = $repository->get_sections_by_section_course_id($course_id);
+		$lesson_ids = array();
+
+		if (is_array($sections)) {
+			foreach ($sections as $section) {
+				if (!isset($section->section_id)) {
+					continue;
+				}
+
+				$section_lessons = $repository->get_lessons_by_section_id($section->section_id);
+				if (!is_array($section_lessons)) {
+					continue;
+				}
+
+				foreach ($section_lessons as $section_lesson) {
+					if (isset($section_lesson->ID)) {
+						$lesson_ids[] = absint($section_lesson->ID);
+					}
+				}
+			}
+		}
+
+		$lesson_ids = array_values(array_unique(array_filter($lesson_ids)));
+		$lessons = array();
+		if (!empty($lesson_ids)) {
+			$lessons = get_posts(array(
+				'post_type' => TL_LESSON_CPT,
+				'post_status' => array('publish'),
+				'posts_per_page' => -1,
+				'post__in' => $lesson_ids,
+				'orderby' => 'post__in',
+			));
+		}
+
+		return wp_send_json_success(array("lxp_lessons" => $lessons));
 	}
 }

@@ -279,15 +279,36 @@ class LMS_REST_API
 		$courses = get_posts(array('posts_per_page' => -1, 'post_type' => TL_COURSE_CPT));
 		$courses_record = array();
 		foreach ($courses as $single_course) {
-			$courseId = get_post_meta($single_course->ID, 'tl_course_id', true);
-			$lesson_query = new WP_Query( array( 
-				'post_type' => TL_LESSON_CPT, 
-				'post_status' => array( 'publish' ),
-				'posts_per_page'   => -1,        
-				'meta_query' => array(
-					array('key' => 'tl_course_id', 'value' => $courseId, 'compare' => '=')
-				)
-			) );
+			$course_id = absint($single_course->ID);
+			$sections = self::section_repository()->get_sections_by_section_course_id($course_id);
+			$lesson_ids = array();
+			if (is_array($sections)) {
+				foreach ($sections as $section) {
+					if (!isset($section->section_id)) {
+						continue;
+					}
+
+					$section_lessons = self::section_repository()->get_lessons_by_section_id($section->section_id);
+					if (!is_array($section_lessons)) {
+						continue;
+					}
+
+					foreach ($section_lessons as $section_lesson) {
+						if (isset($section_lesson->ID)) {
+							$lesson_ids[] = absint($section_lesson->ID);
+						}
+					}
+				}
+			}
+
+			$lesson_ids = array_values(array_unique(array_filter($lesson_ids)));
+			$lesson_query = new WP_Query(array(
+				'post_type' => TL_LESSON_CPT,
+				'post_status' => array('publish'),
+				'posts_per_page' => -1,
+				'post__in' => !empty($lesson_ids) ? $lesson_ids : array(0),
+				'orderby' => 'post__in',
+			));
 			$lessons_ids = array();
 			foreach ($lesson_query->get_posts() as $lesson) {
 				$tool_url_parts = parse_url(get_post_meta($lesson->ID, 'lti_tool_url', true));
@@ -299,7 +320,7 @@ class LMS_REST_API
 				}
 				$lessons_ids[$lesson->ID] = array('activity_id' => $activity_id);
 			}
-			$courses_record[$single_course->ID] = array('course_id' => $courseId, 'lessons_ids' => $lessons_ids);
+			$courses_record[$single_course->ID] = array('course_id' => $course_id, 'lessons_ids' => $lessons_ids);
 		}
 		return $courses_record;
 	}

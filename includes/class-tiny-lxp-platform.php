@@ -226,9 +226,11 @@ class Tiny_LXP_Platform
     private function define_public_hooks()
     {
         $plugin_public = new Tiny_LXP_Platform_Public(self::get_plugin_name(), $this->get_version());
+		$course_extension = new TL_LearnPress_Course_Extension();
         $lesson_extension = new TL_LearnPress_Lesson_Extension();
 
         $this->loader->add_action('parse_request', $plugin_public, 'parse_request');
+		$this->loader->add_filter('post_row_actions', $course_extension, 'modify_list_row_actions', 10, 2);
         $this->loader->add_filter('tinylxp_lti_launch_metadata', $lesson_extension, 'provide_lti_launch_metadata', 10, 5);
         $this->loader->add_filter('tinylxp_lesson_template_include', $lesson_extension, 'filter_template_include', 10, 4);
         $this->loader->add_action('learn-press/after-content-item-summary/lp_lesson', $lesson_extension, 'render_lti_lesson_embed');
