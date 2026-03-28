@@ -366,25 +366,6 @@ function show_current_user_name() {
 }
 add_shortcode('after_header_user_title', 'show_current_user_name');
 
-// if user click on logo then redirect into dashboard for logged user or home for unloged user
-function update_account_button_text() {
-    ?>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const accountText = document.querySelector('.text-account');
-        <?php if (is_user_logged_in()): ?>
-            accountText.textContent = 'User Menu';
-        <?php endif; ?>
-    });
-    // Redirect account link to /login on landing page // convert login button href to /login for unlogged user
-    // if (window.location.pathname === '/') {
-    //     document.querySelector('.text-account')?.closest('a')?.setAttribute('href', '/login');
-    // }
-    </script>
-    <?php
-}
-add_action('wp_footer', 'update_account_button_text');
-
 function custom_login_redirect( $redirect_to, $request, $user ) {
     // Ensure user is valid
     if (is_user_logged_in()) {
