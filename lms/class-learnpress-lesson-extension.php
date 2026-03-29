@@ -2,6 +2,7 @@
 
 class TL_LearnPress_Lesson_Extension {
 	private $lti_metadata_repository = null;
+	private $section_repository = null;
 	private $lesson_template_path = '';
 	private $learner_assignment_template_path = '';
 
@@ -16,6 +17,28 @@ class TL_LearnPress_Lesson_Extension {
 		}
 
 		return $this->lti_metadata_repository;
+	}
+
+	private function section_repository() {
+		if (is_null($this->section_repository)) {
+			$this->section_repository = new TL_LearnPress_Section_Repository();
+		}
+
+		return $this->section_repository;
+	}
+
+	private function resolve_course_id_for_lesson($lesson_id = 0, $fallback_course_id = 0) {
+		$lesson_id = absint($lesson_id);
+		$fallback_course_id = absint($fallback_course_id);
+
+		if ($lesson_id > 0) {
+			$course_id = $this->section_repository()->get_course_id_by_item_id($lesson_id);
+			if ($course_id > 0) {
+				return $course_id;
+			}
+		}
+
+		return $fallback_course_id;
 	}
 
 	private function add_meta_box($args = array()) {
@@ -51,30 +74,17 @@ class TL_LearnPress_Lesson_Extension {
 
 	public function options_metabox_html($post = null) {
 		$metadata = $this->metadata_repository()->get($post->ID);
-		$args = array(
-			'post_type' => TL_COURSE_CPT,
-			'orderby' => 'ID',
-			'post_status' => 'publish,draft',
-			'order' => 'DESC',
-			'posts_per_page' => -1,
-		);
-		$courses = get_posts($args);
-		$selectedCourse = isset($_GET['courseid']) ? $_GET['courseid'] : get_post_meta($post->ID, 'lp_course_id', true);
-		$disabled = ($selectedCourse && $selectedCourse > 0) ? 'disabled' : '';
-		$output = '  <h4>Select Course</h4>';
-		$output .= '<select '.$disabled.' name="tl_course_id" style="margin-top:-10px"> 
-               <option disabled selected>Select a course</option>';
-		foreach ($courses as $course) {
-			if ($selectedCourse == $course->ID) {
-				$selected = 'selected';
-			} else {
-				$selected = '';
-			}
-			$output .= '<option value="'.$course->ID .'" '.$selected.' >'. $course->post_title .' </option>';
+		$fallback_course_id = isset($_GET['courseid']) ? absint(wp_unslash($_GET['courseid'])) : absint(get_post_meta($post->ID, 'tl_course_id', true));
+		$resolved_course_id = $this->resolve_course_id_for_lesson($post->ID, $fallback_course_id);
+		$resolved_course = $resolved_course_id > 0 ? get_post($resolved_course_id) : null;
+
+		echo '<h4>Course</h4>';
+		if (!empty($resolved_course) && isset($resolved_course->post_title)) {
+			echo '<p>' . esc_html($resolved_course->post_title) . '</p>';
+		} else {
+			echo '<p>' . esc_html__('No linked course found', 'lesson-options') . '</p>';
 		}
-		$output .= '</select>';
-		$output .= ($selectedCourse && $selectedCourse > 0) ? '<input type="hidden" name="tl_course_id" value="'.$selectedCourse.'" />' : '';
-		echo $output;
+		echo '<input type="hidden" name="tl_course_id" value="' . esc_attr($resolved_course_id) . '" />';
 		?>
 		<h4>Tiny LXP Deep Linking</h4>
 		<div style="width: 100%;margin-top:-10px">
@@ -93,6 +103,7 @@ class TL_LearnPress_Lesson_Extension {
 	public function save_tl_post($post_id = null) {
 		if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['post_type']) && TL_LESSON_CPT == $_POST['post_type']) {
 			$posted_course_id = isset($_POST['tl_course_id']) ? intval(trim(wp_unslash($_POST['tl_course_id']))) : 0;
+			$resolved_course_id = $this->resolve_course_id_for_lesson($post_id, $posted_course_id);
 			$metadata_values = array(
 				'lti_tool_url' => isset($_POST['lti_tool_url']) ? wp_unslash($_POST['lti_tool_url']) : '',
 				'lti_tool_code' => isset($_POST['lti_tool_code']) ? wp_unslash($_POST['lti_tool_code']) : '',
@@ -101,17 +112,18 @@ class TL_LearnPress_Lesson_Extension {
 				'lti_post_attr_id' => isset($_POST['lti_post_attr_id']) ? wp_unslash($_POST['lti_post_attr_id']) : '',
 			);
 			$this->metadata_repository()->update_from_array($post_id, $metadata_values);
-			if ($posted_course_id != get_post_meta($post_id, 'tl_course_id', true)) {
+			if ($resolved_course_id != get_post_meta($post_id, 'tl_course_id', true)) {
 				$this->metadata_repository()->update_from_array($post_id, array('lti_course_id' => ''));
 			}
-			update_post_meta($post_id, 'tl_course_id', $posted_course_id);
+			update_post_meta($post_id, 'tl_course_id', $resolved_course_id);
 		}
 	}
 
 	public function insert_post_api($post, $request) {
 		if (isset($request['meta'])) {
 			if (isset($request['meta']['lti_content_id'])) {
-				$course_id = isset($request['meta']['tl_course_id']) ? intval(trim($request['meta']['tl_course_id'])) : 0;
+				$requested_course_id = isset($request['meta']['tl_course_id']) ? intval(trim($request['meta']['tl_course_id'])) : 0;
+				$course_id = $this->resolve_course_id_for_lesson($post->ID, $requested_course_id);
 				update_post_meta($post->ID, 'tl_course_id', $course_id);
 				$this->metadata_repository()->update_from_array($post->ID, array(
 					'lti_content_id' => isset($request['meta']['lti_content_id']) ? $request['meta']['lti_content_id'] : '',

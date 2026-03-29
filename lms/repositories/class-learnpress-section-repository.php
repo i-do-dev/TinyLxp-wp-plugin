@@ -13,6 +13,85 @@ class TL_LearnPress_Section_Repository implements TL_Section_Repository_Interfac
 		$this->section_items_table = $this->wpdb->prefix . 'learnpress_section_items';
 	}
 
+	private function extract_value_from_section($section, $keys = array()) {
+		if (empty($section) || !is_array($keys) || empty($keys)) {
+			return '';
+		}
+
+		foreach ($keys as $key) {
+			if (is_array($section) && isset($section[$key]) && $section[$key] !== '') {
+				return $section[$key];
+			}
+
+			if (is_object($section) && isset($section->{$key}) && $section->{$key} !== '') {
+				return $section->{$key};
+			}
+		}
+
+		return '';
+	}
+
+	private function learnpress_section_by_item($item_id) {
+		$item_id = absint($item_id);
+		if ($item_id <= 0) {
+			return null;
+		}
+
+		if (function_exists('learn_press_get_item_section')) {
+			return learn_press_get_item_section($item_id);
+		}
+
+		if (!class_exists('LP_Section_DB')) {
+			return null;
+		}
+
+		$db_instance = null;
+		if (method_exists('LP_Section_DB', 'getInstance')) {
+			$db_instance = LP_Section_DB::getInstance();
+		} elseif (method_exists('LP_Section_DB', 'instance')) {
+			$db_instance = LP_Section_DB::instance();
+		} elseif (method_exists('LP_Section_DB', 'get_instance')) {
+			$db_instance = LP_Section_DB::get_instance();
+		}
+
+		if (!$db_instance) {
+			return null;
+		}
+
+		if (method_exists($db_instance, 'get_section_by_item_id')) {
+			return $db_instance->get_section_by_item_id($item_id);
+		}
+
+		if (method_exists($db_instance, 'get_section_by_item')) {
+			return $db_instance->get_section_by_item($item_id);
+		}
+
+		return null;
+	}
+
+	private function learnpress_course_id_by_item($item_id) {
+		$item_id = absint($item_id);
+		if ($item_id <= 0) {
+			return 0;
+		}
+
+		if (function_exists('learn_press_get_item_course')) {
+			$course = learn_press_get_item_course($item_id);
+			$course_id = $this->extract_value_from_section($course, array('ID', 'id', 'post_id', 'course_id'));
+			if (!empty($course_id)) {
+				return absint($course_id);
+			}
+		}
+
+		$section = $this->learnpress_section_by_item($item_id);
+		$course_id = $this->extract_value_from_section($section, array('section_course_id', 'course_id'));
+		if (!empty($course_id)) {
+			return absint($course_id);
+		}
+
+		return 0;
+	}
+
 	public function get_sections_by_section_course_id($course_id) {
 		$query = $this->wpdb->prepare(
 			"SELECT section_id, section_name FROM {$this->sections_table} WHERE section_course_id = %d",
@@ -32,6 +111,42 @@ class TL_LearnPress_Section_Repository implements TL_Section_Repository_Interfac
 		);
 
 		return $this->wpdb->get_results($query);
+	}
+
+	public function get_course_id_by_item_id($item_id) {
+		$item_id = intval($item_id);
+
+		$learnpress_course_id = $this->learnpress_course_id_by_item($item_id);
+		if ($learnpress_course_id > 0) {
+			return $learnpress_course_id;
+		}
+
+		$query = $this->wpdb->prepare(
+			"SELECT s.section_course_id
+			 FROM {$this->sections_table} s
+			 INNER JOIN {$this->section_items_table} si ON s.section_id = si.section_id
+			 WHERE si.item_id = %d
+			 LIMIT 1",
+			$item_id
+		);
+
+		$course_id = $this->wpdb->get_var($query);
+		if (!empty($course_id)) {
+			return absint($course_id);
+		}
+
+		$query = $this->wpdb->prepare(
+			"SELECT s.course_id
+			 FROM {$this->sections_table} s
+			 INNER JOIN {$this->section_items_table} si ON s.section_id = si.section_id
+			 WHERE si.item_id = %d
+			 LIMIT 1",
+			$item_id
+		);
+
+		$course_id = $this->wpdb->get_var($query);
+
+		return absint($course_id);
 	}
 
 	public function get_sections_by_course_id($course_id) {
@@ -96,6 +211,12 @@ class TL_LearnPress_Section_Repository implements TL_Section_Repository_Interfac
 	}
 
 	public function get_section_name_by_item_id($item_id) {
+		$section = $this->learnpress_section_by_item($item_id);
+		$section_name = $this->extract_value_from_section($section, array('section_name', 'title', 'name'));
+		if ($section_name !== '') {
+			return $section_name;
+		}
+
 		$query = $this->wpdb->prepare(
 			"SELECT s.section_name
 			 FROM {$this->sections_table} s
