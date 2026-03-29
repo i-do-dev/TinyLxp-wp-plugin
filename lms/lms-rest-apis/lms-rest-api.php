@@ -12,10 +12,16 @@ require_once( LMS__PLUGIN_DIR . 'lms-rest-apis/courses.php' );
 require_once( LMS__PLUGIN_DIR . 'lms-rest-apis/edlink-apis.php' );
 require_once( LMS__PLUGIN_DIR . 'repositories/class-section-repository-interface.php' );
 require_once( LMS__PLUGIN_DIR . 'repositories/class-learnpress-section-repository.php' );
+require_once( LMS__PLUGIN_DIR . 'repositories/class-grades-repository-interface.php' );
+require_once( LMS__PLUGIN_DIR . 'repositories/class-grades-repository.php' );
+require_once( LMS__PLUGIN_DIR . 'repositories/class-trek-event-repository-interface.php' );
+require_once( LMS__PLUGIN_DIR . 'repositories/class-trek-event-repository.php' );
 
 class LMS_REST_API
 {
 	private static $section_repository = null;
+	private static $grades_repository = null;
+	private static $trek_event_repository = null;
 
 	private static function section_repository() {
 		if (!self::$section_repository) {
@@ -23,6 +29,22 @@ class LMS_REST_API
 		}
 
 		return self::$section_repository;
+	}
+
+	private static function grades_repository() {
+		if (!self::$grades_repository) {
+			self::$grades_repository = new TL_Grades_Repository();
+		}
+
+		return self::$grades_repository;
+	}
+
+	private static function trek_event_repository() {
+		if (!self::$trek_event_repository) {
+			self::$trek_event_repository = new TL_Trek_Event_Repository();
+		}
+
+		return self::$trek_event_repository;
 	}
 
 	/**
@@ -327,15 +349,15 @@ class LMS_REST_API
 
 	public static function course_section_assigned_students_store($request = null) {
 		$event_store_response = self::store_course_event($request);
-		$event_store_response['id'];
+		$event_id = isset($event_store_response['id']) ? absint($event_store_response['id']) : 0;
+		if ($event_id <= 0) {
+			return array();
+		}
 		
 		$student_ids = $request->get_param('student_ids');
+		$student_ids = is_array($student_ids) ? $student_ids : array();
 		foreach ($student_ids as  $student_id) {
-			global $wpdb;
-			$table = $wpdb->prefix.'student_assignments';
-			$data = array('student_id' => $student_id, 'assignment_id' => $event_store_response['id']);
-			$format = array('%d','%d');
-			$wpdb->insert($table,$data,$format);
+			self::trek_event_repository()->assign_student_to_event($student_id, $event_id);
 		}
 
 		return self::course_section_assigned_students($request);
@@ -343,51 +365,33 @@ class LMS_REST_API
 
 	public static function course_get_unassigned_students($request = null) {
 		$assigned_users = self::course_section_assigned_students($request);
-		global $wpdb;
 		$user_ids = array();
 		foreach ($assigned_users as $user) {
-			array_push($user_ids, $user->id);
+			if (isset($user->id)) {
+				$user_ids[] = absint($user->id);
+			}
 		}
-		$sql = 'SELECT * FROM ' . $wpdb->prefix . 'students';
-		if (count($user_ids) > 0) {
-			$sql .= ' WHERE id NOT IN (' . implode(', ', $user_ids) . ')';
-		}
-		return $wpdb->get_results($sql);
+
+		return self::trek_event_repository()->get_unassigned_students($user_ids);
 	}
 
 	public static function course_unassign_student($request = null) {
-		$student_assignment_id = $request->get_param('student_assignment_id');
-		
-		global $wpdb;
-		$wpdb->delete(
-			$wpdb->prefix . 'student_assignments', 		// table name with dynamic prefix
-			['id' => $student_assignment_id], 						// which id need to delete
-			['%d'], 							// make sure the id format
-		);
+		$student_assignment_id = absint($request->get_param('student_assignment_id'));
+		self::trek_event_repository()->unassign_student_assignment($student_assignment_id);
 		return self::course_section_assigned_students($request);
 	}
 
 	public static function course_section_assigned_students($request = null) {
-		$course_section_id = $request->get_param('trek_section_id');
-		$teacher_id = $request->get_param('teacher_id');
-		global $wpdb;
-		$query = "SELECT {$wpdb->prefix}students.*, {$wpdb->prefix}student_assignments.id as student_assignment_id FROM {$wpdb->prefix}students
-			  JOIN {$wpdb->prefix}student_assignments ON {$wpdb->prefix}student_assignments.student_id = {$wpdb->prefix}students.id
-			  JOIN {$wpdb->prefix}trek_events ON {$wpdb->prefix}trek_events.id = {$wpdb->prefix}student_assignments.assignment_id
-			  WHERE {$wpdb->prefix}trek_events.trek_section_id = \"{$course_section_id}\" AND {$wpdb->prefix}trek_events.user_id = \"{$teacher_id}\"
-			";
-		return $wpdb->get_results($query);
+		$course_section_id = absint($request->get_param('trek_section_id'));
+		$teacher_id = absint($request->get_param('teacher_id'));
+
+		return self::trek_event_repository()->get_assigned_students_by_section_and_teacher($course_section_id, $teacher_id);
 	}
 
 	public static function course_assigned_students($request = null) {
-		$event_id = $request->get_param('event_id');
-		global $wpdb;
-		$query = "SELECT {$wpdb->prefix}students.* FROM {$wpdb->prefix}students
-					JOIN {$wpdb->prefix}student_assignments ON {$wpdb->prefix}student_assignments.student_id = {$wpdb->prefix}students.id
-					JOIN {$wpdb->prefix}trek_events ON {$wpdb->prefix}trek_events.id = {$wpdb->prefix}student_assignments.assignment_id
-					WHERE {$wpdb->prefix}trek_events.id = {$event_id}
-				";
-		return $wpdb->get_results($query);
+		$event_id = absint($request->get_param('event_id'));
+
+		return self::trek_event_repository()->get_assigned_students_by_event($event_id);
 	}
 
 	public static function return_token($request = null)
@@ -402,27 +406,26 @@ class LMS_REST_API
 
 	public static function store_grade($request = null)
 	{
-		global $wpdb;
 		$json = file_get_contents('php://input');
 		$data = json_decode($json);
-		parse_str($_SERVER['QUERY_STRING'], $queries);
-
-		$respones = $wpdb->get_results("SELECT id FROM " . $wpdb->prefix . "tiny_lms_grades WHERE user_id = " . $data->userId . "
-		AND lesson_id= " . $queries['lesson']);
-		if ($respones) {
-			$wpdb->query("UPDATE " . $wpdb->prefix . "tiny_lms_grades SET score = " . $data->scoreGiven . " where id=" . $respones[0]->id);
-		} else {
-			$wpdb->insert($wpdb->prefix . 'tiny_lms_grades', array(
-				'lesson_id' => $queries['lesson'],
-				'user_id' => $data->userId,
-				'score' => $data->scoreGiven,
-			));
+		if (!is_object($data)) {
+			$data = (object) array();
 		}
+		parse_str($_SERVER['QUERY_STRING'], $queries);
+		$lesson_id = isset($queries['lesson']) ? absint($queries['lesson']) : absint($request->get_param('lesson'));
+		$user_id = isset($data->userId) ? absint($data->userId) : 0;
+		$score = isset($data->scoreGiven) ? floatval($data->scoreGiven) : 0;
+		if ($lesson_id <= 0 || $user_id <= 0) {
+			return;
+		}
+
+		self::grades_repository()->upsert_score($lesson_id, $user_id, $score);
 	}
 
 	public static function get_playlists($request = null)
 	{
-		$playlists = get_post_meta($_GET['course_id'], "lxp_sections", true);
+		$course_id = isset($_GET['course_id']) ? absint($_GET['course_id']) : 0;
+		$playlists = get_post_meta($course_id, "lxp_sections", true);
 		$playlists = json_decode($playlists);
 		if (!is_array($playlists)) {
 			$playlists = array();
@@ -504,28 +507,25 @@ class LMS_REST_API
 	{
 		$start = $request->get_param('start');
 		$end = $request->get_param('end');
-		$course_section_id = $request->get_param('trek_section_id');
-		$user_id = $request->get_param('user_id');
+		$course_section_id = absint($request->get_param('trek_section_id'));
+		$user_id = absint($request->get_param('user_id'));
 		if (intval($user_id) == 0) {
 			$user_id = 1;
 		}
 
-		global $wpdb;
-		$wpdb->insert($wpdb->prefix . 'trek_events', array(
-			'trek_section_id' => $course_section_id,
-			'start' =>  $start,
-			'end' =>  $end,
-			'user_id' => $user_id
-		));
+		$event_id = self::trek_event_repository()->create_event($course_section_id, $start, $end, $user_id);
 
 		$data = self::section_repository()->get_section_by_id($course_section_id);
+		if (!isset($data[0])) {
+			return array();
+		}
 		$data[0]->title;
 		$data[0]->course_id;
 		$coursePost = get_post($data[0]->course_id);
 		$response['title'] = $data[0]->title . " - " .  $coursePost->post_title;
 		$response['start'] = explode(' ', $start)[0];
 		$response['end'] = explode(' ', $end)[0];
-		$response['id'] = $wpdb->insert_id;;
+		$response['id'] = $event_id;
 		$response['textColor'] = 'white';
 		if (strtolower(trim($data[0]->title)) == 'recall') {
 			$response['color'] = '#ca2738';
@@ -644,10 +644,17 @@ class LMS_REST_API
 
 	public static function update_course_event($request = null)
 	{
-		global $wpdb;
-		if (isset($_POST['trek_section_id'])) {
-			$wpdb->query("UPDATE " . $wpdb->prefix . "trek_events SET start = " . $_POST['start'] . ", end=" . $_POST['end'] . ", trek_section_id=" . $_POST['trek_section_id'] . " where id=" . $_POST['id']);
-			$data = self::section_repository()->get_section_by_id($_POST['trek_section_id']);
+		$event_id = isset($_POST['id']) ? absint($_POST['id']) : absint($request->get_param('id'));
+		$start = isset($_POST['start']) ? wp_unslash($_POST['start']) : $request->get_param('start');
+		$end = isset($_POST['end']) ? wp_unslash($_POST['end']) : $request->get_param('end');
+		$trek_section_id = isset($_POST['trek_section_id']) ? absint($_POST['trek_section_id']) : absint($request->get_param('trek_section_id'));
+
+		if ($trek_section_id > 0) {
+			self::trek_event_repository()->update_event($event_id, $start, $end, $trek_section_id);
+			$data = self::section_repository()->get_section_by_id($trek_section_id);
+			if (!isset($data[0])) {
+				return array();
+			}
 			$coursePost = get_post($data[0]->course_id);
 			$response['title'] = $data[0]->title . " - " .  $coursePost->post_title;
 			$response['textColor'] = 'white';
@@ -662,34 +669,44 @@ class LMS_REST_API
 			}
 			return $response;
 		} else {
-			$wpdb->query("UPDATE " . $wpdb->prefix . "trek_events SET start = " . $_POST['start'] . ", end=" . $_POST['end']  . " where id=" . $_POST['id']);
+			self::trek_event_repository()->update_event($event_id, $start, $end, 0);
 			return;
 		}
 	}
 
 	public static function get_course_event($request = null)
 	{
-		global $wpdb;
-		$event = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "trek_events WHERE id = " . $_GET['id']);
-		$data = self::section_repository()->get_section_by_id($event[0]->trek_section_id);
+		$event_id = isset($_GET['id']) ? absint($_GET['id']) : absint($request->get_param('id'));
+		$event = self::trek_event_repository()->get_event_by_id($event_id);
+		if (!$event || !isset($event->trek_section_id)) {
+			return array();
+		}
+
+		$data = self::section_repository()->get_section_by_id($event->trek_section_id);
+		if (!isset($data[0])) {
+			return array();
+		}
 		// $data->title;
 		$coursePost = get_post($data[0]->course_id);
 		// $response['title'] = $data[0]->title ." - ".  $coursePost->post_title ;
-		$response['trek_section_id'] = $event[0]->trek_section_id;
+		$response['trek_section_id'] = $event->trek_section_id;
 		$response['course_id'] = $data[0]->course_id;
 		return $response;
 	}
 
 	public static function delete_course_event($request = null)
 	{
-		global $wpdb;
-		$wpdb->query("DELETE FROM " . $wpdb->prefix . "trek_events WHERE id =" . $_POST['id']);
+		$event_id = isset($_POST['id']) ? absint($_POST['id']) : absint($request->get_param('id'));
+		self::trek_event_repository()->delete_event($event_id);
 		return [];
 	}
 
 	public static function delete_school_lxp_user($request = null)
 	{
-		delete_user_meta($_POST['user_id'], 'lxp_school_id');
+		$user_id = isset($_POST['user_id']) ? absint($_POST['user_id']) : absint($request->get_param('user_id'));
+		if ($user_id > 0) {
+			delete_user_meta($user_id, 'lxp_school_id');
+		}
 		return [];
 	}
 }

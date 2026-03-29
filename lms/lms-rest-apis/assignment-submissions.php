@@ -267,32 +267,11 @@ class Rest_Lxp_Assignment_Submission
     }
 
     public static function grades_score_video_activity($assignment_id, $student_id, $score) {
-        global $wpdb;
         $lesson_id = absint(get_post_meta($assignment_id, 'lxp_lesson_id', true));
         $student_id = absint($student_id);
         $score = floatval($score);
 
-        $query = $wpdb->prepare(
-            "SELECT id FROM {$wpdb->prefix}tiny_lms_grades WHERE user_id = %d AND lesson_id = %d LIMIT 1",
-            $student_id,
-            $lesson_id
-        );
-        $response = $wpdb->get_row($query);
-
-        if ($response && isset($response->id)) {
-            $wpdb->update(
-                $wpdb->prefix . 'tiny_lms_grades',
-                array('score' => $score),
-                array('id' => absint($response->id)),
-                array('%f'),
-                array('%d')
-            );
-        } else {
-            $wpdb->insert($wpdb->prefix . 'tiny_lms_grades', array(
-                'lesson_id' => $lesson_id,
-                'user_id' => $student_id,
-                'score' => $score,
-            ), array('%d', '%d', '%f'));
-        }
+        $grades_repository = new TL_Grades_Repository();
+        $grades_repository->upsert_score($lesson_id, $student_id, $score);
     }
 }

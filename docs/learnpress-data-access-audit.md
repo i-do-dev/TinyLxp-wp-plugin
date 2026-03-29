@@ -1,7 +1,7 @@
 # LearnPress Data Access Audit
 
-Date: 2026-03-29
-Status: Phase 1 started, first API-first migration applied in repository lookup methods.
+Date: 2026-03-30
+Status: Phase 2 in progress. Repositoryization started for grades and trek events, with first REST migrations applied.
 
 ## Classification Rules
 
@@ -20,22 +20,40 @@ Status: Phase 1 started, first API-first migration applied in repository lookup 
 | lms/lms-rest-apis/lms-rest-api.php | course section CRUD helpers | repository calls on custom section table shape | B | Keep repository, evaluate LP DB class parity later | High coupling to existing UI payloads |
 | lms/templates/tinyLxpTheme/page-learner-lesson.php | section_name resolution | repository call from template | B | Keep callsite, repository now API-first | Template expects string only |
 | includes/widgets/lxp-student-grade-summary-widget.php | section_title resolution | repository call from widget | B | Keep callsite, repository now API-first | Cached response should remain string |
-| lms/lms-rest-apis/lms-rest-api.php | score and trek event queries | direct SQL on plugin custom tables | C | Move to dedicated repository classes + prepared queries | Not LearnPress data but has SQL safety risk |
-| lms/lms-rest-apis/assignment-submissions.php | tiny_lms_grades update query | direct SQL string concatenation | C | Replace with prepare and repository wrapper | Write path, SQL injection risk |
+| lms/repositories/class-grades-repository.php | get_grade_id/upsert_score | dedicated repository with prepare + wpdb update/insert | B | Keep centralized for plugin grade table access | Endpoint payload parity must be preserved |
+| lms/repositories/class-trek-event-repository.php | event + student assignment query helpers | dedicated repository with prepare + wpdb update/insert/delete | B | Keep centralized for plugin trek tables | Join query behavior must stay compatible |
+| lms/lms-rest-apis/lms-rest-api.php | store_grade, trek event CRUD, assigned-student endpoints | now routed through repositories | B (migrated from C) | Keep repository owner model | Validate unchanged response keys |
+| lms/lms-rest-apis/assignment-submissions.php | tiny_lms_grades video activity scoring | now routed through grades repository | B (migrated from C) | Keep shared upsert logic | Ensure same score semantics |
 
 ## Implemented In This Pass
 
 1. Repository now attempts LearnPress API or DB class resolution before SQL fallback in:
    - get_course_id_by_item_id
    - get_section_name_by_item_id
-2. Fallback SQL behavior remains unchanged to preserve compatibility.
+2. Added dedicated plugin-table repositories:
+   - class-grades-repository-interface.php
+   - class-grades-repository.php
+   - class-trek-event-repository-interface.php
+   - class-trek-event-repository.php
+3. Migrated lms-rest-api methods to repositories for:
+   - store_grade
+   - store_course_event
+   - update_course_event
+   - get_course_event
+   - delete_course_event
+   - course_section_assigned_students
+   - course_assigned_students
+   - course_get_unassigned_students
+   - course_unassign_student
+   - course_section_assigned_students_store
+4. Migrated assignment-submissions grade upsert to shared grades repository.
+5. Fallback SQL behavior for LearnPress section mapping remains unchanged to preserve compatibility.
 
 ## Next Implementation Steps
 
-1. Convert C paths in assignment-submissions and lms-rest-api grade or event methods to prepared queries.
-2. Add a dedicated tiny_lms_grades repository for read and write helpers.
-3. Add a trek events repository to isolate query construction from REST callbacks.
-4. Add quick regression checks for:
+1. Add quick regression checks for:
    - lesson admin save of LTI metadata
    - REST lesson insert with LTI metadata
    - learner lesson embed launch
+2. Review remaining direct SQL in lms-rest-api.php outside migrated methods and decide repository ownership.
+3. Add small guards for malformed request payloads where route contract permits.
