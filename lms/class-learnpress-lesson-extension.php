@@ -85,6 +85,7 @@ class TL_LearnPress_Lesson_Extension {
 			echo '<p>' . esc_html__('No linked course found', 'lesson-options') . '</p>';
 		}
 		echo '<input type="hidden" name="tl_course_id" value="' . esc_attr($resolved_course_id) . '" />';
+		wp_nonce_field( 'save_lesson_lti_options', 'lesson_lti_nonce' );
 		?>
 		<h4>Tiny LXP Deep Linking</h4>
 		<div style="width: 100%;margin-top:-10px">
@@ -100,42 +101,53 @@ class TL_LearnPress_Lesson_Extension {
 		<?php
 	}
 
-	public function save_tl_post($post_id = null) {
-		if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['post_type']) && TL_LESSON_CPT == $_POST['post_type']) {
-			$posted_course_id = isset($_POST['tl_course_id']) ? intval(trim(wp_unslash($_POST['tl_course_id']))) : 0;
-			$resolved_course_id = $this->resolve_course_id_for_lesson($post_id, $posted_course_id);
-			$metadata_values = array(
-				'lti_tool_url' => isset($_POST['lti_tool_url']) ? wp_unslash($_POST['lti_tool_url']) : '',
-				'lti_tool_code' => isset($_POST['lti_tool_code']) ? wp_unslash($_POST['lti_tool_code']) : '',
-				'lti_content_title' => (isset($_POST['lti_content_title']) && $_POST['lti_content_title'] != '') ? trim(wp_unslash($_POST['lti_content_title'])) : 'Section',
-				'lti_custom_attr' => isset($_POST['lti_custom_attr']) ? wp_unslash($_POST['lti_custom_attr']) : '',
-				'lti_post_attr_id' => isset($_POST['lti_post_attr_id']) ? wp_unslash($_POST['lti_post_attr_id']) : '',
-			);
-			$this->metadata_repository()->update_from_array($post_id, $metadata_values);
-			if ($resolved_course_id != get_post_meta($post_id, 'tl_course_id', true)) {
-				$this->metadata_repository()->update_from_array($post_id, array('lti_course_id' => ''));
-			}
-			update_post_meta($post_id, 'tl_course_id', $resolved_course_id);
+	public function save_tl_post( $post_id = null, $post = null ) {
+		$post_id = absint( $post_id );
+		if ( $post_id <= 0 ) {
+			return;
 		}
+		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
+			return;
+		}
+		if ( empty( $post ) || ! isset( $post->post_type ) || $post->post_type !== TL_LESSON_CPT ) {
+			return;
+		}
+		if ( ! isset( $_POST['lesson_lti_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['lesson_lti_nonce'] ) ), 'save_lesson_lti_options' ) ) {
+			return;
+		}
+		$posted_course_id = isset( $_POST['tl_course_id'] ) ? absint( wp_unslash( $_POST['tl_course_id'] ) ) : 0;
+		$resolved_course_id = $this->resolve_course_id_for_lesson( $post_id, $posted_course_id );
+		$metadata_values = array(
+			'lti_tool_url'      => isset( $_POST['lti_tool_url'] )      ? sanitize_text_field( wp_unslash( $_POST['lti_tool_url'] ) )      : '',
+			'lti_tool_code'     => isset( $_POST['lti_tool_code'] )     ? sanitize_text_field( wp_unslash( $_POST['lti_tool_code'] ) )     : '',
+			'lti_content_title' => ( isset( $_POST['lti_content_title'] ) && $_POST['lti_content_title'] !== '' ) ? sanitize_text_field( trim( wp_unslash( $_POST['lti_content_title'] ) ) ) : 'Section',
+			'lti_custom_attr'   => isset( $_POST['lti_custom_attr'] )   ? sanitize_text_field( wp_unslash( $_POST['lti_custom_attr'] ) )   : '',
+			'lti_post_attr_id'  => isset( $_POST['lti_post_attr_id'] )  ? sanitize_text_field( wp_unslash( $_POST['lti_post_attr_id'] ) )  : '',
+		);
+		$this->metadata_repository()->update_from_array( $post_id, $metadata_values );
+		if ( $resolved_course_id != get_post_meta( $post_id, 'tl_course_id', true ) ) {
+			$this->metadata_repository()->update_from_array( $post_id, array( 'lti_course_id' => '' ) );
+		}
+		update_post_meta( $post_id, 'tl_course_id', $resolved_course_id );
 	}
 
-	public function insert_post_api($post, $request) {
-		if (isset($request['meta'])) {
-			if (isset($request['meta']['lti_content_id'])) {
-				$requested_course_id = isset($request['meta']['tl_course_id']) ? intval(trim($request['meta']['tl_course_id'])) : 0;
-				$course_id = $this->resolve_course_id_for_lesson($post->ID, $requested_course_id);
-				update_post_meta($post->ID, 'tl_course_id', $course_id);
-				$this->metadata_repository()->update_from_array($post->ID, array(
-					'lti_content_id' => isset($request['meta']['lti_content_id']) ? $request['meta']['lti_content_id'] : '',
-					'lti_tool_url' => isset($request['meta']['lti_tool_url']) ? $request['meta']['lti_tool_url'] : '',
-					'lti_tool_code' => isset($request['meta']['lti_tool_code']) ? $request['meta']['lti_tool_code'] : '',
-					'lti_custom_attr' => isset($request['meta']['lti_custom_attr']) ? $request['meta']['lti_custom_attr'] : '',
-					'lti_content_title' => isset($request['meta']['lti_content_title']) ? $request['meta']['lti_content_title'] : '',
-					'lti_post_attr_id' => isset($request['meta']['lti_post_attr_id']) ? $request['meta']['lti_post_attr_id'] : '',
-					'lti_course_id' => isset($request['meta']['lti_course_id']) ? $request['meta']['lti_course_id'] : '',
-				));
-			}
+	public function insert_post_api( $post, $request ) {
+		if ( ! isset( $request['meta'] ) || ! is_array( $request['meta'] ) ) {
+			return;
 		}
+		$meta = $request['meta'];
+		$requested_course_id = isset( $meta['tl_course_id'] ) ? absint( $meta['tl_course_id'] ) : 0;
+		$course_id = $this->resolve_course_id_for_lesson( $post->ID, $requested_course_id );
+		update_post_meta( $post->ID, 'tl_course_id', $course_id );
+		$this->metadata_repository()->update_from_array( $post->ID, array(
+			'lti_content_id'    => isset( $meta['lti_content_id'] )    ? sanitize_text_field( $meta['lti_content_id'] )    : '',
+			'lti_tool_url'      => isset( $meta['lti_tool_url'] )      ? sanitize_text_field( $meta['lti_tool_url'] )      : '',
+			'lti_tool_code'     => isset( $meta['lti_tool_code'] )     ? sanitize_text_field( $meta['lti_tool_code'] )     : '',
+			'lti_custom_attr'   => isset( $meta['lti_custom_attr'] )   ? sanitize_text_field( $meta['lti_custom_attr'] )   : '',
+			'lti_content_title' => isset( $meta['lti_content_title'] ) ? sanitize_text_field( $meta['lti_content_title'] ) : '',
+			'lti_post_attr_id'  => isset( $meta['lti_post_attr_id'] )  ? sanitize_text_field( $meta['lti_post_attr_id'] )  : '',
+			'lti_course_id'     => isset( $meta['lti_course_id'] )     ? sanitize_text_field( $meta['lti_course_id'] )     : '',
+		) );
 	}
 
 	public function provide_lti_launch_metadata($launch_metadata, $post, $deeplink, $ok, $reason) {
