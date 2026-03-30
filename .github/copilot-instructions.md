@@ -42,7 +42,8 @@ The plugin follows the **WordPress Plugin Boilerplate (WPPB)** pattern with a ho
 - **Hook registry** (`Tiny_LXP_Platform_Loader`) — collects `add_action`/`add_filter` registrations and defers them until `run()` is called; do not call `add_action()` directly for admin or public hooks — route through the loader.
 - **Admin layer** (`Tiny_LXP_Platform_Admin`) — all admin menu registration, settings pages, LTI tool management, Edlink admin UI, and asset enqueuing.
 - **Public layer** (`Tiny_LXP_Platform_Public`) — handles all LTI 1.3 request flows on `parse_request`.
-- **LMS CPT layer** (`TL_Post_Type` and subclasses) — each custom post type is a singleton class extending `TL_Post_Type`; they register their own hooks directly (bypass the loader).
+- **LMS CPT layer** (`TL_Post_Type` and subclasses) — TinyLxp-owned CPTs are singleton classes extending `TL_Post_Type`; they register their own hooks directly (bypass the loader).
+- **LearnPress extension layer** (`TL_LearnPress_Course_Extension`, `TL_LearnPress_Lesson_Extension`) — extends LearnPress-managed `lp_course` and `lp_lesson` behavior through hooks, metaboxes, and repository-backed metadata.
 - **REST API layer** (`LMS_REST_API` + `Rest_Lxp_*` classes) — all endpoints under namespace `lms/v1`; registered on `rest_api_init` → `LMS_REST_API::init()`.
 - **Elementor widgets** (`Tiny_LXP_Widget` registry + `Edudeme\Elementor\*` widget classes) — registered via `elementor/widgets/register` hook.
 - **LTI library layer** (`Tiny_LXP_Platform_Platform`, `Tiny_LXP_Platform_Tool`, `DataConnector_wp`) — thin WordPress-specific subclasses of the `celtic/lti` library.
@@ -51,7 +52,10 @@ The plugin follows the **WordPress Plugin Boilerplate (WPPB)** pattern with a ho
 
 ```
 New CPT entity           →  lms/class-{entity}-post-type.php  (extend TL_Post_Type)
+LearnPress lesson work   →  lms/class-learnpress-lesson-extension.php (save_post_lp_lesson, rest_insert_lp_lesson)
+LearnPress course work   →  lms/class-learnpress-course-extension.php
 New REST endpoint        →  lms/lms-rest-apis/{entity}.php    (extend or add to Rest_Lxp_* class)
+Repository data access   →  lms/repositories/class-{domain}-repository.php (prefer over inline SQL)
 REST wiring              →  LMS_REST_API::init() in lms/lms-rest-apis/lms-rest-api.php
 New admin page           →  admin/class-tiny-lxp-platform-admin.php + admin/partials/
 New page template        →  lms/templates/tinyLxpTheme/page-{slug}.php
@@ -68,7 +72,7 @@ New constants            →  lms/tl-constants.php or lms/xapi-constants.php
 - **REST auth**: All REST endpoints currently use `'permission_callback' => '__return_true'`. Do not weaken this further; when adding sensitive endpoints, implement proper capability or nonce checks inside the callback.
 - **No credentials in code**: Never hardcode API tokens, secrets, or bearer tokens. Use WordPress options (`get_option()`) — follow the `edlink_options` pattern.
 - **LearnPress dependency**: When querying LearnPress tables (`learnpress_sections`, `learnpress_section_items`) always use `$wpdb->prefix` — never hardcode table prefixes.
-- **Template override**: Single-post template overrides use `single_template` filter (see `TL_Lesson_Post_Type`). Page templates reside in `lms/templates/tinyLxpTheme/`and are loaded conditionally by slug.
+- **Template override**: Lesson and course rendering is extended through LearnPress extension hooks (see `TL_LearnPress_Lesson_Extension` and `TL_LearnPress_Course_Extension`). Page templates reside in `lms/templates/tinyLxpTheme/` and are loaded conditionally by slug.
 - **Autoloader**: PHP class autoloading is Composer PSR-4. Do not manually `require` files already covered by `vendor/autoload.php`.
 
 ---
@@ -79,8 +83,8 @@ All CPT slugs and their constants are defined in [lms/tl-constants.php](lms/tl-c
 
 | Constant | CPT Slug | Class | Notes |
 |---|---|---|---|
-| `TL_COURSE_CPT` | `lp_course` | `TL_Course_Post_Type` | Triggers `tiny_lms_grades` table creation; REST base `lp_courses` |
-| `TL_LESSON_CPT` | `lp_lesson` | `TL_Lesson_Post_Type` | Custom URL `tl/courses/{course}/lessons/{lesson}`; single template override |
+| `TL_COURSE_CPT` | `lp_course` | `TL_LearnPress_Course_Extension` | LearnPress-managed course type; TinyLxp extends behavior via hooks and REST handlers |
+| `TL_LESSON_CPT` | `lp_lesson` | `TL_LearnPress_Lesson_Extension` | LearnPress-managed lesson type; custom URL and LTI metadata/launch behavior come from extension hooks |
 | `TL_ASSIGNMENT_CPT` | `tl_assignment` | `TL_Assingment_Post_Type` *(typo in class name)* | |
 | `TL_ASSIGNMENT_SUBMISSION_CPT` | `tl_submission` | `TL_Assignment_Submission_Post_Type` | |
 | `TL_STUDENT_CPT` | `tl_student` | `TL_Student_Post_Type` | |
@@ -139,13 +143,14 @@ All endpoints use namespace `lms/v1` → base URL `/wp-json/lms/v1/`. Entry poin
 Use this sequence before editing:
 
 1. Check constants in [lms/tl-constants.php](lms/tl-constants.php) for CPT slugs and [lms/xapi-constants.php](lms/xapi-constants.php) for external service URLs.
-2. For CPT behavior: open the matching `lms/class-{entity}-post-type.php` and its parent `lms/class-abstract-tl-post-type.php`.
-3. For REST endpoints: open `lms/lms-rest-apis/{entity}.php` and trace registration in `LMS_REST_API::init()`.
-4. For admin UI: trace `admin/class-tiny-lxp-platform-admin.php` → `admin/partials/`.
-5. For page rendering: check `lms/templates/tinyLxpTheme/page-{slug}.php`, then partials under `lms/templates/tinyLxpTheme/lxp/`.
-6. For LTI flows: trace `public/class-tiny-lxp-platform-public.php::parse_request()` → `includes/class-tiny-lxp-platform-platform.php`.
-7. For Elementor widgets: `includes/class-tiny-lxp-platform-widget.php` (registry) → `includes/widgets/lxp-{name}-widget.php`.
-8. For hook registration: `includes/class-tiny-lxp-platform.php::define_admin_hooks()` / `define_public_hooks()` → `includes/class-tiny-lxp-platform-loader.php::run()`.
+2. For CPT behavior: open the matching `lms/class-{entity}-post-type.php` and its parent `lms/class-abstract-tl-post-type.php`. For `lp_course`/`lp_lesson`, inspect `lms/class-learnpress-course-extension.php` and `lms/class-learnpress-lesson-extension.php`.
+3. For repository-backed data access: inspect `lms/repositories/` (`class-grades-repository.php`, `class-trek-event-repository.php`, `class-learnpress-section-repository.php`, `class-lti-metadata-repository.php`) and prefer these over adding inline SQL in REST handlers.
+4. For REST endpoints: open `lms/lms-rest-apis/{entity}.php` and trace registration in `LMS_REST_API::init()`.
+5. For admin UI: trace `admin/class-tiny-lxp-platform-admin.php` → `admin/partials/`.
+6. For page rendering: check `lms/templates/tinyLxpTheme/page-{slug}.php`, then partials under `lms/templates/tinyLxpTheme/lxp/`.
+7. For LTI flows: trace `public/class-tiny-lxp-platform-public.php::parse_request()` → `includes/class-tiny-lxp-platform-platform.php`.
+8. For Elementor widgets: `includes/class-tiny-lxp-platform-widget.php` (registry) → `includes/widgets/lxp-{name}-widget.php`.
+9. For hook registration: `includes/class-tiny-lxp-platform.php::define_admin_hooks()` / `define_public_hooks()` → `includes/class-tiny-lxp-platform-loader.php::run()`.
 
 **Search strategy**:
 - Use semantic search for concept-level discovery (e.g., "student grade assignment REST").
@@ -222,6 +227,9 @@ wp hook list
 ### WordPress Hook Guidelines
 - **Admin/public hooks** (enqueue scripts, admin menus, settings): register through `Tiny_LXP_Platform_Loader` in `Tiny_LXP_Platform::define_admin_hooks()` / `define_public_hooks()`.
 - **CPT-specific hooks** (init, save_post, add_meta_boxes, rest_api_init): register directly in the CPT constructor following the `TL_Post_Type::__construct()` pattern.
+- **LearnPress lesson save hooks**: use post-type-specific `save_post_lp_lesson` for lesson metabox persistence (registered in `Tiny_LXP_Platform::define_public_hooks()`), not generic `save_post`.
+- **LearnPress lesson REST save**: use `rest_insert_lp_lesson` mapped to `TL_LearnPress_Lesson_Extension::insert_post_api()`.
+- **Lesson metabox nonce**: lesson admin LTI save requires `lesson_lti_nonce` generated by `wp_nonce_field( 'save_lesson_lti_options', 'lesson_lti_nonce' )`.
 - **REST routes**: register inside a static `init()` method called from `add_action('rest_api_init', ...)` in `LMS_REST_API::init()`.
 - Never call `add_action()` or `add_filter()` at the global file scope in new files.
 
@@ -271,12 +279,13 @@ When changing external service hosts, update constants in [lms/xapi-constants.ph
 
 ## Known Issues / Watch-outs
 
-1. **CPT slug ambiguity**: `TL_COURSE_CPT = 'lp_course'` (LearnPress-style) vs `TL_Course_Post_Type` which registers `tl_course`. Verify which slug a given query is targeting.
+1. **CPT slug ambiguity**: `TL_COURSE_CPT = 'lp_course'` and `TL_LESSON_CPT = 'lp_lesson'` are LearnPress-managed types extended by TinyLxp hooks, while most `tl_*` entities are plugin-owned CPT registrations. Verify which slug family a query targets.
 2. **Typo in class name**: `TL_Assingment_Post_Type` (double-s). Do not "fix" this spelling without updating all references.
 3. **Typo in REST route**: `/shools/save` (missing 'c'). Do not change without a migration plan for existing API consumers.
 4. **Duplicate main file**: `TinyLxp-wp-plugin.php` and `tiny-lxp-platform.php` are identical. WordPress uses the file matching the directory name as plugin entry. Do not delete either without testing.
 5. **LearnPress dependency**: Code in `Rest_Lxp_Course` directly queries `{prefix}learnpress_sections` — LearnPress must be active or those queries will fail silently.
 6. **REST auth**: `'permission_callback' => '__return_true'` on all routes. Every new endpoint must implement its own authorization logic inside the callback.
+7. **Lesson extension path**: `lp_lesson` behavior is handled through `TL_LearnPress_Lesson_Extension` hooks; do not add a new `class-lesson-post-type.php` registration path unless explicitly doing an architecture migration.
 
 ---
 
@@ -298,12 +307,13 @@ Before finalizing any task:
 - [ ] Request scope is fully implemented and nothing extra was added.
 - [ ] Diff is minimal; unrelated files are untouched.
 - [ ] New PHP class files follow the `class-{kebab-name}.php` naming convention.
-- [ ] New CPT classes extend `TL_Post_Type` and use the singleton pattern.
+- [ ] New TinyLxp-owned CPT classes extend `TL_Post_Type` and use the singleton pattern; LearnPress-managed `lp_course`/`lp_lesson` changes should use extension hooks.
 - [ ] New REST callbacks implement proper capability/nonce checks.
 - [ ] No credentials, tokens, or secrets are hardcoded.
 - [ ] All DB queries use `$wpdb->prepare()`.
 - [ ] All output is escaped; all input is sanitized.
 - [ ] New REST routes are registered in `LMS_REST_API::init()`.
+- [ ] If lesson admin save logic changed, verify `save_post_lp_lesson` and `lesson_lti_nonce` checks are still correct.
 - [ ] Template files follow the `page-{slug}.php` / `{role}-{feature}.php` naming convention.
 - [ ] If a new CPT was registered, flush rewrite rules was noted as required.
 - [ ] PHP syntax was verified (`php -l`).
