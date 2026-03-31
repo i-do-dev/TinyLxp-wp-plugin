@@ -278,6 +278,10 @@ class TL_LearnPress_Lesson_Extension {
 		global $wp_scripts;
 
 		$queue = isset( $wp_scripts->queue ) ? (array) $wp_scripts->queue : array();
+		$queue = array_filter( $queue, function( $handle ) use ( $wp_scripts ) {
+			$src = isset( $wp_scripts->registered[ $handle ] ) ? $wp_scripts->registered[ $handle ]->src : '';
+			return $src && strpos( $src, 'TinyLxp-wp-plugin' ) !== false;
+		} );
 		sort( $queue );
 		$count = count( $queue );
 		?>
@@ -393,7 +397,7 @@ class TL_LearnPress_Lesson_Extension {
 </style>
 <div id="tinylxp-js-debug">
 	<h2>&#x1F527; TinyLxp JS Debug Panel &mdash; <?php echo esc_html( $count ); ?> enqueued script<?php echo $count !== 1 ? 's' : ''; ?></h2>
-	<div class="tlxp-notice">&#9888; Only scripts registered via <code>wp_enqueue_script()</code> are listed here. Hardcoded <code>&lt;script src=...&gt;</code> tags inside tinyLxpTheme templates are NOT shown &mdash; check browser DevTools &rsaquo; Sources or View Page Source for those.</div>
+	<div class="tlxp-notice">&#9888; Only scripts enqueued by <strong>TinyLxp-wp-plugin</strong> are listed here. WordPress core, theme, and other plugin scripts are excluded. Hardcoded <code>&lt;script src=...&gt;</code> tags inside tinyLxpTheme templates are NOT shown &mdash; check browser DevTools &rsaquo; Sources or View Page Source for those.</div>
 	<?php foreach ( $queue as $handle ) :
 		$registered = isset( $wp_scripts->registered[ $handle ] ) ? $wp_scripts->registered[ $handle ] : null;
 		$src         = $registered ? $registered->src : '';
