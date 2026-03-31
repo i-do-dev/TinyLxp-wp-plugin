@@ -266,4 +266,186 @@ class TL_LearnPress_Lesson_Extension {
 		echo '<iframe style="border:none;width:100%;height:706px;" src="' . esc_url($launch_url) . '" allowfullscreen></iframe>';
 		echo '</div>';
 	}
+
+	public function render_js_debug_panel() {
+		if ( ! is_singular( 'lp_lesson' ) ) {
+			return;
+		}
+		if ( sanitize_key( isset( $_GET['debug'] ) ? $_GET['debug'] : '' ) !== '1' ) {
+			return;
+		}
+
+		global $wp_scripts;
+
+		$queue = isset( $wp_scripts->queue ) ? (array) $wp_scripts->queue : array();
+		sort( $queue );
+		$count = count( $queue );
+		?>
+<style id="tinylxp-js-debug-styles">
+#tinylxp-js-debug {
+	box-sizing: border-box;
+	width: 100%;
+	margin: 0;
+	padding: 20px 24px;
+	background: #1a1a2e;
+	color: #e0e0e0;
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 13px;
+	line-height: 1.5;
+	border-top: 4px solid #e94560;
+	position: relative;
+	z-index: 99999;
+}
+#tinylxp-js-debug h2 {
+	margin: 0 0 16px;
+	color: #e94560;
+	font-size: 16px;
+	letter-spacing: 0.05em;
+	border-bottom: 1px solid #333;
+	padding-bottom: 8px;
+}
+#tinylxp-js-debug .tlxp-notice {
+	background: #2a2a40;
+	border-left: 3px solid #f5a623;
+	padding: 8px 12px;
+	margin-bottom: 16px;
+	color: #f5a623;
+	font-size: 12px;
+}
+#tinylxp-js-debug details {
+	background: #16213e;
+	border: 1px solid #2d2d4a;
+	border-radius: 4px;
+	margin-bottom: 8px;
+	overflow: hidden;
+}
+#tinylxp-js-debug details summary {
+	padding: 10px 14px;
+	cursor: pointer;
+	user-select: none;
+	outline: none;
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	list-style: none;
+}
+#tinylxp-js-debug details summary::-webkit-details-marker { display: none; }
+#tinylxp-js-debug details summary::before {
+	content: '▶';
+	color: #e94560;
+	font-size: 10px;
+	transition: transform 0.15s;
+	flex-shrink: 0;
+}
+#tinylxp-js-debug details[open] summary::before { transform: rotate(90deg); }
+#tinylxp-js-debug .tlxp-handle {
+	color: #7fdbff;
+	font-weight: bold;
+}
+#tinylxp-js-debug .tlxp-src-short {
+	color: #aaa;
+	font-size: 11px;
+}
+#tinylxp-js-debug .tlxp-body {
+	padding: 10px 14px 14px;
+	border-top: 1px solid #2d2d4a;
+}
+#tinylxp-js-debug .tlxp-row {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 6px;
+	align-items: flex-start;
+}
+#tinylxp-js-debug .tlxp-label {
+	min-width: 90px;
+	color: #f5a623;
+	flex-shrink: 0;
+}
+#tinylxp-js-debug .tlxp-val {
+	color: #e0e0e0;
+	word-break: break-all;
+}
+#tinylxp-js-debug .tlxp-val a {
+	color: #7fdbff;
+}
+#tinylxp-js-debug .tlxp-code {
+	background: #0f0f1a;
+	border: 1px solid #2d2d4a;
+	border-radius: 3px;
+	padding: 6px 10px;
+	margin-top: 4px;
+	max-height: 200px;
+	overflow-y: auto;
+	white-space: pre-wrap;
+	word-break: break-all;
+	font-size: 12px;
+	color: #b8f5b0;
+}
+#tinylxp-js-debug .tlxp-deps span {
+	display: inline-block;
+	background: #2d2d4a;
+	color: #ccc;
+	border-radius: 3px;
+	padding: 1px 6px;
+	margin: 2px 2px 2px 0;
+	font-size: 11px;
+}
+</style>
+<div id="tinylxp-js-debug">
+	<h2>&#x1F527; TinyLxp JS Debug Panel &mdash; <?php echo esc_html( $count ); ?> enqueued script<?php echo $count !== 1 ? 's' : ''; ?></h2>
+	<div class="tlxp-notice">&#9888; Only scripts registered via <code>wp_enqueue_script()</code> are listed here. Hardcoded <code>&lt;script src=...&gt;</code> tags inside tinyLxpTheme templates are NOT shown &mdash; check browser DevTools &rsaquo; Sources or View Page Source for those.</div>
+	<?php foreach ( $queue as $handle ) :
+		$registered = isset( $wp_scripts->registered[ $handle ] ) ? $wp_scripts->registered[ $handle ] : null;
+		$src         = $registered ? $registered->src : '';
+		$deps        = ( $registered && ! empty( $registered->deps ) ) ? (array) $registered->deps : array();
+		$ver         = $registered ? $registered->ver : '';
+		$data_inline = $wp_scripts->get_data( $handle, 'data' );
+		$before      = $wp_scripts->get_data( $handle, 'before' );
+		$after       = $wp_scripts->get_data( $handle, 'after' );
+		$src_short   = $src ? basename( parse_url( $src, PHP_URL_PATH ) ) : '(dynamic/no src)';
+	?>
+	<details>
+		<summary>
+			<span class="tlxp-handle"><?php echo esc_html( $handle ); ?></span>
+			<span class="tlxp-src-short"><?php echo esc_html( $src_short ); ?></span>
+		</summary>
+		<div class="tlxp-body">
+			<div class="tlxp-row">
+				<span class="tlxp-label">src:</span>
+				<span class="tlxp-val"><?php if ( $src ) : ?><a href="<?php echo esc_url( $src ); ?>" target="_blank" rel="noreferrer"><?php echo esc_html( $src ); ?></a><?php else : ?><em>(inline / no src)</em><?php endif; ?></span>
+			</div>
+			<div class="tlxp-row">
+				<span class="tlxp-label">version:</span>
+				<span class="tlxp-val"><?php echo esc_html( $ver ? $ver : '—' ); ?></span>
+			</div>
+			<?php if ( ! empty( $deps ) ) : ?>
+			<div class="tlxp-row">
+				<span class="tlxp-label">deps:</span>
+				<span class="tlxp-val tlxp-deps"><?php foreach ( $deps as $dep ) : ?><span><?php echo esc_html( $dep ); ?></span><?php endforeach; ?></span>
+			</div>
+			<?php endif; ?>
+			<?php if ( $data_inline ) : ?>
+			<div class="tlxp-row">
+				<span class="tlxp-label">localized:</span>
+				<span class="tlxp-val"><div class="tlxp-code"><?php echo esc_html( $data_inline ); ?></div></span>
+			</div>
+			<?php endif; ?>
+			<?php if ( ! empty( $before ) ) : ?>
+			<div class="tlxp-row">
+				<span class="tlxp-label">before:</span>
+				<span class="tlxp-val"><div class="tlxp-code"><?php echo esc_html( implode( "\n", (array) $before ) ); ?></div></span>
+			</div>
+			<?php endif; ?>
+			<?php if ( ! empty( $after ) ) : ?>
+			<div class="tlxp-row">
+				<span class="tlxp-label">after:</span>
+				<span class="tlxp-val"><div class="tlxp-code"><?php echo esc_html( implode( "\n", (array) $after ) ); ?></div></span>
+			</div>
+			<?php endif; ?>
+		</div>
+	</details>
+	<?php endforeach; ?>
+</div>
+		<?php
+	}
 }
