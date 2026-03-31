@@ -3,13 +3,6 @@
 class TL_LearnPress_Lesson_Extension {
 	private $lti_metadata_repository = null;
 	private $section_repository = null;
-	private $lesson_template_path = '';
-	private $learner_assignment_template_path = '';
-
-	public function __construct() {
-		$this->lesson_template_path = dirname(__FILE__) . '/templates/tinyLxpTheme/single-tl_lesson.php';
-		$this->learner_assignment_template_path = dirname(__FILE__) . '/templates/tinyLxpTheme/page-learner-lesson.php';
-	}
 
 	private function metadata_repository() {
 		if (is_null($this->lti_metadata_repository)) {
@@ -170,26 +163,89 @@ class TL_LearnPress_Lesson_Extension {
 		), is_array($launch_metadata) ? $launch_metadata : array());
 	}
 
-	public function filter_template_include($template, $request_uri, $has_assignment, $userdata) {
-		$user_roles = isset($userdata->roles) && is_array($userdata->roles) ? $userdata->roles : array();
-		$is_student = in_array('lxp_student', $user_roles, true);
-		$handles_lesson_request = strpos($request_uri, '/lessons/') !== false || strpos($request_uri, '/quizzes/') !== false;
+	private function assignment_context_for_lesson($lesson_id = 0) {
+		$lesson_id = absint($lesson_id);
+		$assignment_id = isset($_GET['assignment_id']) ? absint(wp_unslash($_GET['assignment_id'])) : 0;
+		$text_domain = Tiny_LXP_Platform::get_plugin_name();
 
-		if ($handles_lesson_request && $has_assignment && $is_student) {
-			return $this->learner_assignment_template_path;
+		if ($lesson_id <= 0 || $assignment_id <= 0 || !function_exists('lxp_get_assignment')) {
+			return null;
 		}
 
-		return $template;
+		$assignment = lxp_get_assignment($assignment_id);
+		if (empty($assignment) || empty($assignment->ID)) {
+			return null;
+		}
+
+		$assignment_lesson_id = absint(get_post_meta($assignment->ID, 'lxp_lesson_id', true));
+		if ($assignment_lesson_id !== $lesson_id) {
+			return null;
+		}
+
+		$course_id = absint(get_post_meta($assignment->ID, 'course_id', true));
+		$course = $course_id > 0 ? get_post($course_id) : null;
+		$section_name = $this->section_repository()->get_section_name_by_item_id($lesson_id);
+		$assets_src = content_url() . '/plugins/TinyLxp-wp-plugin/lms/templates/tinyLxpTheme/treks-src/';
+
+		return array(
+			'assignment' => $assignment,
+			'course' => $course,
+			'section_name' => $section_name ? $section_name : esc_html__('Uncategorized', $text_domain),
+			'assets_src' => $assets_src,
+		);
+	}
+
+	private function render_assignment_lesson_context($context, $lesson_post) {
+		if (!is_array($context) || empty($context['assignment']) || empty($lesson_post) || !isset($lesson_post->post_title)) {
+			return;
+		}
+
+		$assignment = $context['assignment'];
+		$text_domain = Tiny_LXP_Platform::get_plugin_name();
+		$course = isset($context['course']) ? $context['course'] : null;
+		$course_title = !empty($course) && isset($course->post_title) ? $course->post_title : esc_html__('Course', $text_domain);
+		$section_name = isset($context['section_name']) ? $context['section_name'] : esc_html__('Uncategorized', $text_domain);
+		$assets_src = isset($context['assets_src']) ? $context['assets_src'] : '';
+		$start_date = get_post_meta($assignment->ID, 'start_date', true);
+		$start_time = get_post_meta($assignment->ID, 'start_time', true);
+		$end_date = get_post_meta($assignment->ID, 'end_date', true);
+		$end_time = get_post_meta($assignment->ID, 'end_time', true);
+
+		echo '<style>';
+		echo '.tinylxp-assignment-lesson-context{margin:0 0 16px;}.tinylxp-assignment-lesson-context .course_nav_path{display:flex;align-items:center;flex-wrap:wrap;gap:10px;}.tinylxp-assignment-lesson-context .practice_flx{display:flex;gap:16px;color:#979797;align-items:center;}.tinylxp-assignment-lesson-context .practice_flx img{width:23px;height:20px;}.tinylxp-assignment-lesson-context .time-date-box{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}.tinylxp-assignment-lesson-context .date-time{font-family:Arial,sans-serif;font-style:normal;font-weight:400;font-size:16px;padding:4px 8px;line-height:24px;background:rgba(31,165,212,0.16);border-radius:8px;color:#0b5d7a;margin:0;}.tinylxp-assignment-lesson-context .to-text{color:#757575;background:none;}';
+		echo '</style>';
+		echo '<div class="tinylxp-assignment-lesson-context">';
+		echo '<div class="course_nav_path">';
+		echo '<div class="practice_flx"><img src="' . esc_url($assets_src . '/assets/img/nav_Treks.svg') . '" alt="" /><p class="practice_text">' . esc_html__('My Course', $text_domain) . '</p></div>';
+		echo '<div class="practice_flx"><img src="' . esc_url($assets_src . '/assets/img/bc_arrow_right.svg') . '" alt="" /><p class="practice_text">' . esc_html($course_title) . '</p></div>';
+		echo '<div class="practice_flx"><img src="' . esc_url($assets_src . '/assets/img/bc_arrow_right.svg') . '" alt="" /><p class="practice_text">' . esc_html($section_name) . '</p></div>';
+		echo '<div class="practice_flx"><img src="' . esc_url($assets_src . '/assets/img/bc_arrow_right.svg') . '" alt="" /><p class="practice_text">' . esc_html($lesson_post->post_title) . '</p></div>';
+		echo '</div>';
+
+		if (!empty($start_date) && !empty($start_time) && !empty($end_date) && !empty($end_time)) {
+			echo '<div class="time-date-box">';
+			echo '<p class="date-time">' . esc_html(date_i18n('l, M d, Y h:i A', strtotime($start_date . ' ' . $start_time))) . '</p>';
+			echo '<p class="date-time to-text">' . esc_html__('To', $text_domain) . '</p>';
+			echo '<p class="date-time">' . esc_html(date_i18n('l, M d, Y h:i A', strtotime($end_date . ' ' . $end_time))) . '</p>';
+			echo '</div>';
+		}
+
+		echo '</div>';
 	}
 
 	public function render_lti_lesson_embed() {
-		if (!is_singular(LP_LESSON_CPT) || isset($_GET['assignment_id'])) {
+		if (!is_singular(LP_LESSON_CPT)) {
 			return;
 		}
 
 		$post = get_post();
 		if (empty($post) || !isset($post->ID)) {
 			return;
+		}
+
+		$assignment_context = $this->assignment_context_for_lesson($post->ID);
+		if (!empty($assignment_context)) {
+			$this->render_assignment_lesson_context($assignment_context, $post);
 		}
 
 		$metadata = $this->metadata_repository()->get($post->ID);

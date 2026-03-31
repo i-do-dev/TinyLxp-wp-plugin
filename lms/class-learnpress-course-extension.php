@@ -1,6 +1,20 @@
 <?php
 
 class TL_LearnPress_Course_Extension {
+	public function enqueue_student_course_styles() {
+		if (!is_singular(LP_COURSE_CPT) || !is_user_logged_in()) {
+			return;
+		}
+
+		$userdata = get_userdata(get_current_user_id());
+		if (!$userdata || !in_array('lxp_student', (array) $userdata->roles, true)) {
+			return;
+		}
+
+		$style_url = plugin_dir_url(dirname(__FILE__) . '/../TinyLxp-wp-plugin.php') . 'public/css/lxp-student-course.css';
+		wp_enqueue_style('tinylxp-student-course', $style_url, array(), null);
+	}
+
 	public static function create_grades_table() {
 		global $wpdb;
 
