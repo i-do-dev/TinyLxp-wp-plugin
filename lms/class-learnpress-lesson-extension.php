@@ -268,7 +268,7 @@ class TL_LearnPress_Lesson_Extension {
 	}
 
 	public function render_js_debug_panel() {
-		if ( ! is_singular( 'lp_lesson' ) ) {
+		if ( ! is_singular( 'lp_course' ) ) {
 			return;
 		}
 		if ( sanitize_key( isset( $_GET['debug'] ) ? $_GET['debug'] : '' ) !== '1' ) {
