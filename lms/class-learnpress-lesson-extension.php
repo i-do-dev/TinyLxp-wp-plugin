@@ -234,7 +234,7 @@ class TL_LearnPress_Lesson_Extension {
 	}
 
 	public function render_lti_lesson_embed() {
-		if (!is_singular(LP_LESSON_CPT)) {
+		if (!is_singular(LP_COURSE_CPT)) {
 			return;
 		}
 
