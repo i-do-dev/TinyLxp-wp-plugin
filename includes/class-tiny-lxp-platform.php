@@ -238,7 +238,7 @@ class Tiny_LXP_Platform
         $this->loader->add_action('save_post_lp_lesson', $lesson_extension, 'save_tl_post', 10, 2);
         $this->loader->add_action('rest_lp_lesson_query', $lesson_extension, 'post_meta_request_params', 10, 2);
         $this->loader->add_action('rest_insert_lp_lesson', $lesson_extension, 'insert_post_api', 10, 2);
-        $this->loader->add_action('wp_footer', $lesson_extension, 'render_js_debug_panel', 9999);
+        // $this->loader->add_action('wp_footer', $lesson_extension, 'render_js_debug_panel', 9999);
 
         $widget_path = new Tiny_LXP_Widget(self::get_plugin_name(), $this->get_version());
 
