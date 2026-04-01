@@ -330,7 +330,7 @@ class TL_LearnPress_Lesson_Extension {
 			site_url()
 		);
 
-		echo '<div class="tinylxp-lp-lesson-embed" style="margin-top:16px;">';
+		echo '<div class="tinylxp-lp-lesson-embed" style="margin-top:16px;margin-bottom:16px;">';
 		echo '<iframe style="border:none;width:100%;height:706px;" src="' . esc_url($launch_url) . '" allowfullscreen></iframe>';
 		echo '</div>';
 	}
