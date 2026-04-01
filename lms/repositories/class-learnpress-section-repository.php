@@ -113,6 +113,46 @@ class TL_LearnPress_Section_Repository implements TL_Section_Repository_Interfac
 		return $this->wpdb->get_results($query);
 	}
 
+	public function get_lesson_id_by_course_and_lti_attr($course_id, $attr_id) {
+		$course_id = absint($course_id);
+		$attr_id = sanitize_text_field((string) $attr_id);
+
+		if ($course_id <= 0 || $attr_id === '') {
+			return 0;
+		}
+
+		$sections = $this->get_sections_by_section_course_id($course_id);
+		if (empty($sections)) {
+			$sections = $this->get_sections_by_course_id($course_id);
+		}
+
+		foreach ((array) $sections as $section) {
+			$section_id = absint($this->extract_value_from_section($section, array('section_id', 'id')));
+			if ($section_id <= 0) {
+				continue;
+			}
+
+			$items = $this->get_lessons_by_section_id($section_id);
+			foreach ((array) $items as $item) {
+				$item_id = absint($this->extract_value_from_section($item, array('ID', 'id', 'item_id')));
+				if ($item_id <= 0) {
+					continue;
+				}
+
+				$item_post = get_post($item_id);
+				if (empty($item_post) || !isset($item_post->post_type) || $item_post->post_type !== TL_LESSON_CPT) {
+					continue;
+				}
+
+				if ((string) get_post_meta($item_id, 'lti_post_attr_id', true) === $attr_id) {
+					return $item_id;
+				}
+			}
+		}
+
+		return 0;
+	}
+
 	public function get_course_id_by_item_id($item_id) {
 		$item_id = intval($item_id);
 

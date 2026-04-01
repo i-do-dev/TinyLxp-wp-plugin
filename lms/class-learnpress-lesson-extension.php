@@ -249,7 +249,7 @@ class TL_LearnPress_Lesson_Extension {
 		}
 
 		$metadata = $this->metadata_repository()->get($post->ID);
-		if (empty($metadata->lti_post_attr_id)) {
+		if (empty($metadata->lti_tool_code) || empty($metadata->lti_post_attr_id)) {
 			return;
 		}
 

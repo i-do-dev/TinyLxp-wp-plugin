@@ -125,7 +125,7 @@ class Tiny_LXP_Platform_Public
         get_header();
         echo('		<div id="primary" class="content-area">' . "\n");
         echo('          <div id="content" class="site-content" role="main">' . "\n");
-        $post = $this->get_post(intval(sanitize_text_field($_GET['post'])));
+        $post = $this->resolve_requested_lti_post();
         $ok = !empty($post);
         if (!$ok) {
             $reason = 'Missing or invalid post attribute in link';
@@ -196,7 +196,7 @@ class Tiny_LXP_Platform_Public
     {
         $debug = false;
         $reason = null;
-        $post = get_post(intval(sanitize_text_field($_GET['post'])));
+        $post = $this->resolve_requested_lti_post();
         $ok = !empty($post);
         if (!$ok) {
            $post =new \stdClass();
@@ -430,6 +430,64 @@ class Tiny_LXP_Platform_Public
         $post = null;
         if (current_user_can('read_post', $post_id)) {
             $post = get_post($post_id);
+        }
+
+        return $post;
+    }
+
+    private function resolve_requested_lti_post()
+    {
+        $requested_post_id = isset($_GET['post']) ? absint(wp_unslash($_GET['post'])) : 0;
+        $post = $this->get_post($requested_post_id);
+
+        if (!empty($post) && isset($post->post_type) && $post->post_type === LP_LESSON_CPT) {
+            return $post;
+        }
+
+        $attr_id = isset($_GET['id']) ? sanitize_text_field(wp_unslash($_GET['id'])) : '';
+        if (empty($attr_id)) {
+            return $post;
+        }
+
+        if (!empty($post) && isset($post->post_type) && $post->post_type === LP_COURSE_CPT && class_exists('TL_LearnPress_Section_Repository')) {
+            $section_repository = new TL_LearnPress_Section_Repository();
+            $lesson_id = $section_repository->get_lesson_id_by_course_and_lti_attr($post->ID, $attr_id);
+
+            if ($lesson_id > 0) {
+                $resolved_lesson = $this->get_post($lesson_id);
+                if (!empty($resolved_lesson)) {
+                    return $resolved_lesson;
+                }
+            }
+        }
+
+        $meta_query = array(
+            array(
+                'key' => 'lti_post_attr_id',
+                'value' => $attr_id,
+            ),
+        );
+
+        if (!empty($post) && isset($post->post_type) && $post->post_type === LP_COURSE_CPT) {
+            $meta_query[] = array(
+                'key' => 'tl_course_id',
+                'value' => $post->ID,
+            );
+        }
+
+        $lesson_ids = get_posts(array(
+            'post_type' => LP_LESSON_CPT,
+            'post_status' => array('publish', 'private', 'draft'),
+            'posts_per_page' => 1,
+            'fields' => 'ids',
+            'meta_query' => $meta_query,
+        ));
+
+        if (!empty($lesson_ids)) {
+            $resolved_lesson = $this->get_post((int) $lesson_ids[0]);
+            if (!empty($resolved_lesson)) {
+                return $resolved_lesson;
+            }
         }
 
         return $post;
