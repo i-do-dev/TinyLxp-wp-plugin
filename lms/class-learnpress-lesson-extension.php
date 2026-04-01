@@ -233,6 +233,66 @@ class TL_LearnPress_Lesson_Extension {
 		echo '</div>';
 	}
 
+	/**
+	 * Resolve the lp_lesson post currently being viewed inside a course context.
+	 *
+	 * On LearnPress lesson URLs the main WP query resolves to the parent lp_course
+	 * post, not the lesson. This helper extracts the lesson being viewed so that
+	 * metadata lookups and the LTI launch URL use the correct post ID.
+	 *
+	 * Resolution order:
+	 *  1. $course_post is already LP_LESSON_CPT – pass straight through.
+	 *  2. LP_Global::course_item() – the authoritative LP way to get the active item.
+	 *  3. URL-path parsing – find the segment after 'lessons/' and look up by slug.
+	 *
+	 * @param WP_Post $course_post The post returned by get_post() (usually the course).
+	 * @return WP_Post|null The lp_lesson post, or null when none can be determined.
+	 */
+	private function resolve_current_lesson_post( $course_post ) {
+		// 1. Already a lesson (e.g. direct post preview).
+		if ( ! empty( $course_post ) && isset( $course_post->post_type ) && $course_post->post_type === LP_LESSON_CPT ) {
+			return $course_post;
+		}
+
+		// 2. LP_Global::course_item() (LearnPress ≥ 4.x, class_exists guard).
+		if ( class_exists( 'LP_Global' ) ) {
+			$item = LP_Global::course_item();
+			if ( ! empty( $item ) && is_object( $item ) && method_exists( $item, 'get_id' ) ) {
+				$lesson_id = absint( $item->get_id() );
+				if ( $lesson_id > 0 ) {
+					$lesson = get_post( $lesson_id );
+					if ( ! empty( $lesson ) && $lesson->post_type === LP_LESSON_CPT ) {
+						return $lesson;
+					}
+				}
+			}
+		}
+
+		// 3. Parse the current request URL for the lesson slug.
+		//    LearnPress lesson permalinks are /{course-base}/{course-slug}/lessons/{lesson-slug}/
+		$url        = home_url( add_query_arg( array() ) );
+		$url_path   = parse_url( $url, PHP_URL_PATH );
+		$path       = ( null !== $url_path ) ? $url_path : '';
+		$segments   = explode( '/', trim( $path, '/' ) );
+		$lessons_idx = array_search( 'lessons', $segments, true );
+		if ( $lessons_idx !== false && isset( $segments[ $lessons_idx + 1 ] ) ) {
+			$lesson_slug = sanitize_title( $segments[ $lessons_idx + 1 ] );
+			if ( ! empty( $lesson_slug ) ) {
+				$matches = get_posts( array(
+					'name'        => $lesson_slug,
+					'post_type'   => LP_LESSON_CPT,
+					'post_status' => array( 'publish', 'private', 'draft' ),
+					'numberposts' => 1,
+				) );
+				if ( ! empty( $matches ) && $matches[0]->post_type === LP_LESSON_CPT ) {
+					return $matches[0];
+				}
+			}
+		}
+
+		return null;
+	}
+
 	public function render_lti_lesson_embed() {
 		if (!is_singular(LP_COURSE_CPT)) {
 			return;
@@ -243,12 +303,20 @@ class TL_LearnPress_Lesson_Extension {
 			return;
 		}
 
-		$assignment_context = $this->assignment_context_for_lesson($post->ID);
-		if (!empty($assignment_context)) {
-			$this->render_assignment_lesson_context($assignment_context, $post);
+		// Resolve the actual lp_lesson being viewed – get_post() returns the course
+		// post on all LearnPress lesson URLs because the main WP query runs on lp_course.
+		$lesson_post = $this->resolve_current_lesson_post( $post );
+		if ( empty( $lesson_post ) ) {
+			// Visiting the course overview page (no active lesson) – nothing to embed.
+			return;
 		}
 
-		$metadata = $this->metadata_repository()->get($post->ID);
+		$assignment_context = $this->assignment_context_for_lesson($lesson_post->ID);
+		if (!empty($assignment_context)) {
+			$this->render_assignment_lesson_context($assignment_context, $lesson_post);
+		}
+
+		$metadata = $this->metadata_repository()->get($lesson_post->ID);
 		if (empty($metadata->lti_tool_code) || empty($metadata->lti_post_attr_id)) {
 			return;
 		}
@@ -256,7 +324,7 @@ class TL_LearnPress_Lesson_Extension {
 		$launch_url = add_query_arg(
 			array(
 				Tiny_LXP_Platform::get_plugin_name() => '',
-				'post' => $post->ID,
+				'post' => $lesson_post->ID,
 				'id' => $metadata->lti_post_attr_id,
 			),
 			site_url()
