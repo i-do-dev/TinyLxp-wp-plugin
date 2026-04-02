@@ -3,6 +3,59 @@ var TinyLXPPlatformProps = null;
 var currentSectionState = "create";
 var currentsectionId = 0;
 
+function tinyLxpCopyText(value, callback) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(value).then(function () {
+      callback(true);
+    }).catch(function () {
+      callback(false);
+    });
+    return;
+  }
+
+  var temp = document.createElement('textarea');
+  temp.value = value;
+  temp.setAttribute('readonly', 'readonly');
+  temp.style.position = 'absolute';
+  temp.style.left = '-9999px';
+  document.body.appendChild(temp);
+  temp.select();
+  var ok = false;
+  try {
+    ok = document.execCommand('copy');
+  } catch (e) {
+    ok = false;
+  }
+  document.body.removeChild(temp);
+  callback(ok);
+}
+
+function tinyLxpSetCurrikiStatus(text, isError) {
+  var statusNode = document.getElementById('currikistudio-copy-status');
+  if (!statusNode) {
+    return;
+  }
+  statusNode.textContent = text;
+  statusNode.className = isError ? 'currikistudio-copy-status-error' : 'currikistudio-copy-status-ok';
+}
+
+function tinyLxpRenderCurrikiPreview(payload) {
+  var title = payload && payload.title ? payload.title : '';
+  var shortcode = payload && payload.shortcode ? payload.shortcode : '';
+
+  var titleNode = document.getElementById('currikistudio-selected-title');
+  var shortcodeNode = document.getElementById('currikistudio-shortcode-preview');
+  if (titleNode) {
+    titleNode.textContent = title;
+  }
+  if (shortcodeNode) {
+    shortcodeNode.value = shortcode;
+  }
+  tinyLxpSetCurrikiStatus('', false);
+}
+
+window.tinyLxpHandleCurrikiSelection = tinyLxpRenderCurrikiPreview;
+
 (function (wp) {
   var TinyLXPPlatformIcon = wp.element.createElement(wp.primitives.SVG, {
     xmlns: "http://www.w3.org/2000/svg",
@@ -44,6 +97,37 @@ var currentsectionId = 0;
 (function ($) {
   $(document).ready(function () {
     var totalChips = $("#option-chips").attr('tota-chips');
+
+    var existingUrl = $('#lti_tool_url').val();
+    var existingTitle = $('#lti_content_title').val();
+    if (existingUrl) {
+      tinyLxpRenderCurrikiPreview({
+        title: existingTitle || '',
+        shortcode: '[currikistudio url=' + existingUrl + ']'
+      });
+    }
+
+    $('body').on('click', '#currikistudio-copy-title', function () {
+      var title = $('#currikistudio-selected-title').text();
+      if (!title) {
+        tinyLxpSetCurrikiStatus('No title to copy yet.', true);
+        return;
+      }
+      tinyLxpCopyText(title, function (ok) {
+        tinyLxpSetCurrikiStatus(ok ? 'Title copied.' : 'Unable to copy title.', !ok);
+      });
+    });
+
+    $('body').on('click', '#currikistudio-copy-shortcode', function () {
+      var shortcode = $('#currikistudio-shortcode-preview').val();
+      if (!shortcode) {
+        tinyLxpSetCurrikiStatus('No shortcode to copy yet.', true);
+        return;
+      }
+      tinyLxpCopyText(shortcode, function (ok) {
+        tinyLxpSetCurrikiStatus(ok ? 'Shortcode copied.' : 'Unable to copy shortcode.', !ok);
+      });
+    });
 
     function deeplink() {
       var urlParams = new URLSearchParams(window.location.search);

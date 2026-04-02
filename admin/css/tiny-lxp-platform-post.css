@@ -123,4 +123,12 @@
   background-color: #2271b1;
 } 
 
+.currikistudio-copy-status-ok {
+  color: #1d6f42;
+}
+
+.currikistudio-copy-status-error {
+  color: #b32d2e;
+}
+
 

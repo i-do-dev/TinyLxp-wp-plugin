@@ -47,7 +47,7 @@ class TL_LearnPress_Lesson_Extension {
 	public function options_metabox() {
 		$this->add_meta_box(array(
 			'lesson-options-class',
-			esc_html__('Lesson Options', 'lesson-options'),
+			esc_html__('CurrikiStudio Content', 'lesson-options'),
 			array($this, 'options_metabox_html'),
 			TL_LESSON_CPT,
 			'side',
@@ -70,6 +70,10 @@ class TL_LearnPress_Lesson_Extension {
 		$fallback_course_id = isset($_GET['courseid']) ? absint(wp_unslash($_GET['courseid'])) : absint(get_post_meta($post->ID, 'tl_course_id', true));
 		$resolved_course_id = $this->resolve_course_id_for_lesson($post->ID, $fallback_course_id);
 		$resolved_course = $resolved_course_id > 0 ? get_post($resolved_course_id) : null;
+		$shortcode_preview = '';
+		if (!empty($metadata->lti_tool_url)) {
+			$shortcode_preview = '[currikistudio url=' . esc_url_raw($metadata->lti_tool_url) . ']';
+		}
 
 		echo '<h4>Course</h4>';
 		if (!empty($resolved_course) && isset($resolved_course->post_title)) {
@@ -80,13 +84,23 @@ class TL_LearnPress_Lesson_Extension {
 		echo '<input type="hidden" name="tl_course_id" value="' . esc_attr($resolved_course_id) . '" />';
 		wp_nonce_field( 'save_lesson_lti_options', 'lesson_lti_nonce' );
 		?>
-		<h4>Tiny LXP Deep Linking</h4>
+		<h4>CurrikiStudio Content</h4>
 		<div style="width: 100%;margin-top:-10px">
-		 <input type="text" id="lti_tool_url" name="lti_tool_url" value="<?php echo esc_attr($metadata->lti_tool_url); ?>" style="width: 100%;" />
+		 <input type="hidden" id="lti_tool_url" name="lti_tool_url" value="<?php echo esc_attr($metadata->lti_tool_url); ?>" style="width: 100%;" />
 		 <input type="hidden" id="lti_tool_code" name="lti_tool_code" value="<?php echo esc_attr($metadata->lti_tool_code); ?>" style="width: 100%;" />
 		 <input type="hidden" id="lti_content_title" name="lti_content_title" value="<?php echo esc_attr($metadata->lti_content_title); ?>" style="width: 100%;" />
 		 <input type="hidden" id="lti_custom_attr" name="lti_custom_attr" value="<?php echo esc_attr($metadata->lti_custom_attr); ?>" style="width: 100%;" />
 		 <input type="hidden" id="lti_post_attr_id" name="lti_post_attr_id" value="<?php echo esc_attr($metadata->lti_post_attr_id); ?>" style="width: 100%;" />
+		</div>
+		<div id="currikistudio-selection-preview" style="width:100%;margin-top:8px;">
+			<p><strong><?php echo esc_html__('Selected title', 'lesson-options'); ?>:</strong> <span id="currikistudio-selected-title"><?php echo esc_html($metadata->lti_content_title); ?></span></p>
+			<p><strong><?php echo esc_html__('Shortcode', 'lesson-options'); ?>:</strong></p>
+			<textarea id="currikistudio-shortcode-preview" readonly style="width:100%;min-height:56px;"><?php echo esc_textarea($shortcode_preview); ?></textarea>
+			<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+				<button type="button" class="button" id="currikistudio-copy-title"><?php echo esc_html__('Copy Title', 'lesson-options'); ?></button>
+				<button type="button" class="button" id="currikistudio-copy-shortcode"><?php echo esc_html__('Copy Shortcode', 'lesson-options'); ?></button>
+			</div>
+			<p id="currikistudio-copy-status" style="margin:8px 0 0;font-size:12px;"></p>
 		</div>
 		<div id="preview_lit_connections" style="width: 100%;display: inline-block;margin-top: 10px;">
 			<div class="preview button" href="#">Select Content<span class="screen-reader-text"> (opens in a new tab)</span></div>

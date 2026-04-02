@@ -244,12 +244,132 @@ class Tiny_LXP_Platform_Tool extends Tool
         );
         self::lxp_add_user_roles();
         add_shortcode(Tiny_LXP_Platform::get_plugin_name(), array('Tiny_LXP_Platform_Tool', 'shortcode'));
+        add_shortcode('currikistudio', array('Tiny_LXP_Platform_Tool', 'currikistudio_shortcode'));
         add_shortcode('Schools-Short-Code', array('Tiny_LXP_Platform_Tool', 'schools_short_code'));
         add_shortcode('Teachers-Short-Code', array('Tiny_LXP_Platform_Tool', 'teachers_short_code'));
         add_shortcode('Students-Short-Code', array('Tiny_LXP_Platform_Tool', 'students_short_code'));
         add_shortcode('Dashboard-Short-Code', array('Tiny_LXP_Platform_Tool', 'dashboard_counts'));
     }
 
+
+
+    private static function resolve_currikistudio_lesson_post($global_post = null)
+    {
+        if (!empty($global_post) && isset($global_post->post_type) && $global_post->post_type === TL_LESSON_CPT) {
+            return $global_post;
+        }
+
+        if (class_exists('LP_Global')) {
+            $item = LP_Global::course_item();
+            if (!empty($item) && is_object($item) && method_exists($item, 'get_id')) {
+                $lesson_id = absint($item->get_id());
+                if ($lesson_id > 0) {
+                    $lesson = get_post($lesson_id);
+                    if (!empty($lesson) && isset($lesson->post_type) && $lesson->post_type === TL_LESSON_CPT) {
+                        return $lesson;
+                    }
+                }
+            }
+        }
+
+        if (!empty($_GET['post'])) {
+            $requested_post_id = absint(wp_unslash($_GET['post']));
+            if ($requested_post_id > 0) {
+                $requested_post = get_post($requested_post_id);
+                if (!empty($requested_post) && isset($requested_post->post_type) && $requested_post->post_type === TL_LESSON_CPT) {
+                    return $requested_post;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static function get_currikistudio_metadata_by_url($url = '', $lesson_post = null)
+    {
+        $url = esc_url_raw($url);
+        if (empty($url)) {
+            return null;
+        }
+
+        if (!empty($lesson_post) && isset($lesson_post->ID)) {
+            $lesson_url = (string) get_post_meta($lesson_post->ID, 'lti_tool_url', true);
+            $lesson_tool = (string) get_post_meta($lesson_post->ID, 'lti_tool_code', true);
+            $lesson_attr_id = (string) get_post_meta($lesson_post->ID, 'lti_post_attr_id', true);
+            if ($lesson_url === $url && !empty($lesson_tool) && !empty($lesson_attr_id)) {
+                return array(
+                    'lesson_id' => (int) $lesson_post->ID,
+                    'tool' => $lesson_tool,
+                    'id' => $lesson_attr_id,
+                );
+            }
+        }
+
+        $lesson_ids = get_posts(array(
+            'post_type' => TL_LESSON_CPT,
+            'post_status' => array('publish', 'private', 'draft'),
+            'posts_per_page' => 1,
+            'fields' => 'ids',
+            'meta_query' => array(
+                array(
+                    'key' => 'lti_tool_url',
+                    'value' => $url,
+                ),
+            ),
+        ));
+
+        if (!empty($lesson_ids)) {
+            $lesson_id = (int) $lesson_ids[0];
+            $tool = (string) get_post_meta($lesson_id, 'lti_tool_code', true);
+            $attr_id = (string) get_post_meta($lesson_id, 'lti_post_attr_id', true);
+            if (!empty($tool) && !empty($attr_id)) {
+                return array(
+                    'lesson_id' => $lesson_id,
+                    'tool' => $tool,
+                    'id' => $attr_id,
+                );
+            }
+        }
+
+        return null;
+    }
+
+    public static function currikistudio_shortcode($atts, $content, $tag)
+    {
+        global $post;
+
+        $atts = shortcode_atts(array(
+            'url' => '',
+            'height' => '706px',
+        ), $atts);
+
+        $url = esc_url_raw($atts['url']);
+        if (empty($url)) {
+            return '<strong>Missing attribute(s): url</strong>';
+        }
+
+        $lesson_post = self::resolve_currikistudio_lesson_post($post);
+        $metadata = self::get_currikistudio_metadata_by_url($url, $lesson_post);
+        if (empty($metadata) || empty($metadata['lesson_id']) || empty($metadata['tool']) || empty($metadata['id'])) {
+            return '<strong>Unable to resolve CurrikiStudio metadata for this URL.</strong>';
+        }
+
+        $height = sanitize_text_field($atts['height']);
+        if (empty($height)) {
+            $height = '706px';
+        }
+
+        $launch_url = add_query_arg(
+            array(
+                Tiny_LXP_Platform::get_plugin_name() => '',
+                'post' => (int) $metadata['lesson_id'],
+                'id' => $metadata['id'],
+            ),
+            get_site_url()
+        );
+
+        return '<div class="currikistudio-embed" style="margin-top:16px;margin-bottom:16px;"><iframe style="border:none;width:100%;height:' . esc_attr($height) . ';" src="' . esc_url($launch_url) . '" allowfullscreen></iframe></div>';
+    }
 
     public static function dashboard_counts()
     {

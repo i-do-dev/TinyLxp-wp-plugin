@@ -233,7 +233,6 @@ class Tiny_LXP_Platform
 		$this->loader->add_filter('post_row_actions', $course_extension, 'modify_list_row_actions', 10, 2);
         $this->loader->add_action('wp_enqueue_scripts', $course_extension, 'enqueue_student_course_styles');
         $this->loader->add_filter('tinylxp_lti_launch_metadata', $lesson_extension, 'provide_lti_launch_metadata', 10, 5);
-        $this->loader->add_action('learn-press/after-content-item-summary/lp_lesson', $lesson_extension, 'render_lti_lesson_embed');
         $this->loader->add_action('add_meta_boxes', $lesson_extension, 'add_meta_boxes');
         $this->loader->add_action('save_post_lp_lesson', $lesson_extension, 'save_tl_post', 10, 2);
         $this->loader->add_action('rest_lp_lesson_query', $lesson_extension, 'post_meta_request_params', 10, 2);

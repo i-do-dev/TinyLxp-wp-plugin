@@ -650,6 +650,8 @@ class Tiny_LXP_Platform_Public
             }
             $activity = isset($item->custom['activity']) ? $item->custom['activity'] : "";
             $plugin_name = Tiny_LXP_Platform::get_plugin_name();
+            $curriki_shortcode = !empty($item->url) ? '[currikistudio url=' . esc_url_raw($item->url) . ']' : '';
+            $curriki_title = !empty($item->title) ? $item->title : '';
             
             $html .= "<script type=\"text/javascript\">
                 if (!wdw.LtiPlatformText) {
@@ -661,19 +663,29 @@ class Tiny_LXP_Platform_Public
                 var tinyLxpContetntTitle =  wdw.document.getElementById('lti_content_title');
                 var tinyLxpCustomAttr =  wdw.document.getElementById('lti_custom_attr');
                 var tinyLxpPostAttrId =  wdw.document.getElementById('lti_post_attr_id');
+                var currikiShortcode = " . wp_json_encode($curriki_shortcode) . ";
+                var currikiTitle = " . wp_json_encode($curriki_title) . ";
                 if(tinyLxpToolUrl){
                     tinyLxpToolUrl.value= '{$item->url}';
                     tinyLxpToolCode.value= '{$code}';
                     tinyLxpContetntTitle.value= '{$item->title}';
                     tinyLxpCustomAttr.value= 'custom=activity={$activity}';
                     tinyLxpPostAttrId.value= '{$randomId}';
-                   var title =  wdw.document.getElementById('title');
-                   if(title){
-                    title.value = '{$item->title}';
-                    wdw.document.getElementById('title-prompt-text').classList.add('screen-reader-text');
-                   }else{
-                    wdw.document.getElementsByClassName('wp-block wp-block-post-title')[0].innerHTML='{$item->title}';
-                   }     
+                    if (typeof wdw.tinyLxpHandleCurrikiSelection === 'function') {
+                        wdw.tinyLxpHandleCurrikiSelection({
+                            title: currikiTitle,
+                            shortcode: currikiShortcode
+                        });
+                    } else {
+                        var currikiTitleNode = wdw.document.getElementById('currikistudio-selected-title');
+                        var currikiShortcodeNode = wdw.document.getElementById('currikistudio-shortcode-preview');
+                        if (currikiTitleNode) {
+                            currikiTitleNode.textContent = currikiTitle;
+                        }
+                        if (currikiShortcodeNode) {
+                            currikiShortcodeNode.value = currikiShortcode;
+                        }
+                    }
                 }else{
                     wdw.LtiPlatformProps.onChange(wdw.wp.richText.insert(wdw.LtiPlatformProps.value, '[{$plugin_name} {$attr}]' + wdw.LtiPlatformText + '[/{$plugin_name}]'));
                     wdw.LtiPlatformProps.onFocus();
