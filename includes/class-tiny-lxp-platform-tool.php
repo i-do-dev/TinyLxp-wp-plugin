@@ -340,7 +340,7 @@ class Tiny_LXP_Platform_Tool extends Tool
 
         $atts = shortcode_atts(array(
             'url' => '',
-            'height' => '706px',
+            'height' => '475px',
         ), $atts);
 
         $url = esc_url_raw($atts['url']);
