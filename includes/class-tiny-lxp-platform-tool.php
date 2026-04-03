@@ -356,7 +356,7 @@ class Tiny_LXP_Platform_Tool extends Tool
 
         $height = sanitize_text_field($atts['height']);
         if (empty($height)) {
-            $height = '706px';
+            $height = '475px';
         }
 
         $launch_url = add_query_arg(
