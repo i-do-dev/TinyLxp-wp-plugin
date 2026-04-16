@@ -239,6 +239,9 @@ class Tiny_LXP_Platform
         $this->loader->add_action('rest_insert_lp_lesson', $lesson_extension, 'insert_post_api', 10, 2);
         // $this->loader->add_action('wp_footer', $lesson_extension, 'render_js_debug_panel', 9999);
 
+        $this->loader->add_action('init', $course_extension, 'register_course_shortcodes');
+        $this->loader->add_filter('elementor/widget/render_content', $course_extension, 'process_html_widget_shortcodes', 10, 2);
+
         $widget_path = new Tiny_LXP_Widget(self::get_plugin_name(), $this->get_version());
 
         $this->loader->add_action('elementor/widgets/register', $widget_path, 'register_elementor_widgets');
