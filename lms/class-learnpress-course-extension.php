@@ -41,6 +41,11 @@ class TL_LearnPress_Course_Extension {
 	 * These only resolve correctly on a single lp_course page where $post is set.
 	 */
 	public function register_course_shortcodes() {
+		// DEBUG: remove after confirming shortcodes work in Elementor HTML widget.
+		add_shortcode( 'tinylxp_test', function() {
+			return 'TINYLXP_SHORTCODE_OK__post_id=' . get_the_ID() . '__post_type=' . get_post_type();
+		} );
+
 		add_shortcode( 'lp_course_title', function() {
 			return esc_html( get_the_title() );
 		} );
@@ -107,7 +112,20 @@ class TL_LearnPress_Course_Extension {
 	 */
 	public function process_html_widget_shortcodes( $content, $widget ) {
 		if ( $widget->get_name() === 'html' ) {
-			return do_shortcode( $content );
+			$processed = do_shortcode( $content );
+
+			// DEBUG: prepend a visible diagnostic panel. Remove once shortcodes resolve correctly.
+			$changed   = $content !== $processed ? 'YES' : 'NO';
+			$debug     = '<div style="background:#1d264e;color:#fff;font-family:monospace;font-size:12px;padding:10px 14px;margin-bottom:8px;border-left:4px solid #EE2A35;border-radius:4px;">'
+				. '<strong>[TinyLxp Debug]</strong><br>'
+				. 'Filter fired: <strong>YES</strong><br>'
+				. 'Widget name: <strong>' . esc_html( $widget->get_name() ) . '</strong><br>'
+				. 'Post ID: <strong>' . esc_html( get_the_ID() ) . '</strong><br>'
+				. 'Post type: <strong>' . esc_html( get_post_type() ) . '</strong><br>'
+				. 'Shortcodes resolved: <strong>' . $changed . '</strong>'
+				. '</div>';
+
+			return $debug . $processed;
 		}
 		return $content;
 	}
