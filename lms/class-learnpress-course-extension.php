@@ -9,8 +9,6 @@ class TL_LearnPress_Course_Extension {
 	public function __construct() {
 		add_action( 'init', [ $this, 'register_course_shortcodes' ], 5 );
 		add_filter( 'elementor/widget/render_content', [ $this, 'process_html_widget_shortcodes' ], 10, 2 );
-		// DEBUG: show footer diagnostic. Remove once shortcodes are confirmed working.
-		add_action( 'wp_footer', [ $this, '_debug_footer' ] );
 	}
 	public function enqueue_student_course_styles() {
 		if (!is_singular(LP_COURSE_CPT) || !is_user_logged_in()) {
@@ -52,11 +50,6 @@ class TL_LearnPress_Course_Extension {
 	 * These only resolve correctly on a single lp_course page where $post is set.
 	 */
 	public function register_course_shortcodes() {
-		// DEBUG: remove after confirming shortcodes work in Elementor HTML widget.
-		add_shortcode( 'tinylxp_test', function() {
-			return 'TINYLXP_SHORTCODE_OK__post_id=' . get_the_ID() . '__post_type=' . get_post_type();
-		} );
-
 		add_shortcode( 'lp_course_title', function() {
 			return esc_html( get_the_title() );
 		} );
@@ -122,39 +115,10 @@ class TL_LearnPress_Course_Extension {
 	 * @return string
 	 */
 	public function process_html_widget_shortcodes( $content, $widget ) {
-		$widget_name = $widget->get_name();
-
-		// DEBUG: prepend a visible diagnostic panel on EVERY widget so we know if the filter fires at all.
-		$debug = '<div style="background:#1d264e;color:#fff;font-family:monospace;font-size:11px;padding:6px 10px;margin-bottom:4px;border-left:4px solid #EE2A35;">'
-			. '[TinyLxp] filter fired | widget=<strong>' . esc_html( $widget_name ) . '</strong>'
-			. ' | post_id=' . esc_html( get_the_ID() )
-			. ' | post_type=' . esc_html( get_post_type() )
-			. '</div>';
-
-		if ( $widget_name === 'html' ) {
-			$processed = do_shortcode( $content );
-			$changed   = $content !== $processed ? 'YES' : 'NO';
-			$debug    .= '<div style="background:#2a1d1e;color:#fff;font-family:monospace;font-size:11px;padding:6px 10px;margin-bottom:8px;border-left:4px solid #EE2A35;">'
-				. 'HTML widget do_shortcode ran | resolved=<strong>' . $changed . '</strong>'
-				. '</div>';
-			return $debug . $processed;
+		if ( $widget->get_name() === 'html' ) {
+			return do_shortcode( $content );
 		}
 
-		return $debug . $content;
-	}
-
-	/**
-	 * DEBUG: footer diagnostic. Remove after confirming the filter and shortcodes work.
-	 */
-	public function _debug_footer() {
-		$filter_registered  = has_filter( 'elementor/widget/render_content' ) ? 'YES' : 'NO';
-		$shortcode_exists   = shortcode_exists( 'tinylxp_test' ) ? 'YES' : 'NO';
-		$elementor_loaded   = did_action( 'elementor/loaded' ) ? 'YES' : 'NO';
-		echo '<div style="position:fixed;bottom:0;left:0;right:0;background:#1d264e;color:#fff;font-family:monospace;font-size:12px;padding:8px 16px;z-index:99999;border-top:3px solid #EE2A35;">'
-			. '<strong>[TinyLxp Footer Diag]</strong> '
-			. 'elementor/widget/render_content filter registered: <strong>' . $filter_registered . '</strong> | '
-			. 'tinylxp_test shortcode exists: <strong>' . $shortcode_exists . '</strong> | '
-			. 'elementor/loaded fired: <strong>' . $elementor_loaded . '</strong>'
-			. '</div>';
+		return $content;
 	}
 }
