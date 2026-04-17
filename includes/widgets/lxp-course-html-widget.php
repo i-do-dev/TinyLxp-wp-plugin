@@ -179,8 +179,13 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 		$map    = $this->build_token_map( $course );
 		$output = str_replace( array_keys( $map ), array_values( $map ), $html );
 
-		// wp_kses_post strips unsafe tags; enroll button HTML passes because it
-		// uses standard anchor/form/button elements already escaped by LP.
-		echo wp_kses_post( $output );
+		// Allow normal post HTML plus embedded <style> blocks for hero/widget CSS.
+		$allowed_html = wp_kses_allowed_html( 'post' );
+		$allowed_html['style'] = [
+			'type'  => true,
+			'media' => true,
+		];
+
+		echo wp_kses( $output, $allowed_html );
 	}
 }
