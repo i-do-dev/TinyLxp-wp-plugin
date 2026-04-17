@@ -238,9 +238,8 @@ class Tiny_LXP_Platform
         $this->loader->add_action('rest_lp_lesson_query', $lesson_extension, 'post_meta_request_params', 10, 2);
         $this->loader->add_action('rest_insert_lp_lesson', $lesson_extension, 'insert_post_api', 10, 2);
         // $this->loader->add_action('wp_footer', $lesson_extension, 'render_js_debug_panel', 9999);
-
-        $this->loader->add_action('init', $course_extension, 'register_course_shortcodes');
-        $this->loader->add_filter('elementor/widget/render_content', $course_extension, 'process_html_widget_shortcodes', 10, 2);
+        // register_course_shortcodes and elementor/widget/render_content are registered
+        // directly in TL_LearnPress_Course_Extension::__construct() to bypass the isOK() guard.
 
         $widget_path = new Tiny_LXP_Widget(self::get_plugin_name(), $this->get_version());
 
