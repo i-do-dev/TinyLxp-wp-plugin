@@ -136,8 +136,8 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 			$parts  = explode( ' ', trim( $raw_duration ) );
 			$number = floatval( $parts[0] ?? 0 );
 			$type   = $parts[1] ?? '';
-			if ( $number && $type && class_exists( 'LP_Datetime' ) && method_exists( 'LP_Datetime', 'get_string_plural_duration' ) ) {
-				$duration = LP_Datetime::get_string_plural_duration( $number, $type );
+			if ( $number && $type && class_exists( '\\LP_Datetime' ) && method_exists( '\\LP_Datetime', 'get_string_plural_duration' ) ) {
+				$duration = \LP_Datetime::get_string_plural_duration( $number, $type );
 			} else {
 				$duration = $raw_duration;
 			}
