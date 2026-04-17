@@ -40,6 +40,7 @@ class Tiny_LXP_Widget
 
         require_once plugin_dir_path(dirname( __FILE__ )). 'lms/templates/tinyLxpTheme/lxp/functions.php';
         require_once( __DIR__ . '/widgets/lxp-course-widget.php' );
+        require_once( __DIR__ . '/widgets/lxp-course-html-widget.php' );
         require_once( __DIR__ . '/widgets/lxp-reports-widget.php' );
         require_once( __DIR__ . '/widgets/lxp-student-assignment-calandar.php' );
         require_once( __DIR__ . '/widgets/lxp-student-progress-widget.php' );
@@ -47,6 +48,7 @@ class Tiny_LXP_Widget
         require_once( __DIR__ . '/widgets/lxp-student-grade-summary-widget.php' );
         
         $widgets_manager->register( new \Edudeme\Elementor\LXP_Course_Widget() );
+        $widgets_manager->register( new \Edudeme\Elementor\LXP_Course_HTML_Widget() );
         // assignments list pending, submitted
         $widgets_manager->register( new \Edudeme\Elementor\LXP_Reports_Widget() );
         $widgets_manager->register( new \Edudeme\Elementor\Assignment_Calander_Widget() );
