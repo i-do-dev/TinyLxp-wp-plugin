@@ -9,7 +9,30 @@ class TL_LearnPress_Course_Extension {
 	public function __construct() {
 		add_action( 'init', [ $this, 'register_course_shortcodes' ], 5 );
 		add_filter( 'elementor/widget/render_content', [ $this, 'process_html_widget_shortcodes' ], 10, 2 );
+		// Course pages must never be served from a page cache — Elementor Theme Builder
+		// uses one shared template for all lp_course posts, so a cached render of
+		// Course A gets served for Course B, C, etc. (our shortcodes won't re-fire).
+		add_action( 'template_redirect', [ $this, 'disable_page_cache_on_course' ] );
 	}
+
+	/**
+	 * Tell page cache plugins not to cache lp_course pages.
+	 *
+	 * DONOTCACHEPAGE is respected by WP Super Cache, W3 Total Cache, WP Rocket,
+	 * Autoptimize, and most other cache plugins. LiteSpeed Cache requires its own
+	 * action hook. Both are no-ops if the respective plugin is not active.
+	 */
+	public function disable_page_cache_on_course() {
+		if ( ! is_singular( LP_COURSE_CPT ) ) {
+			return;
+		}
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+		// LiteSpeed Cache specific — safe no-op if plugin is absent.
+		do_action( 'litespeed_control_set_nocache', 'lp_course: dynamic shortcodes per course' );
+	}
+
 	public function enqueue_student_course_styles() {
 		if (!is_singular(LP_COURSE_CPT) || !is_user_logged_in()) {
 			return;
