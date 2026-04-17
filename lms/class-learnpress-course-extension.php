@@ -45,34 +45,79 @@ class TL_LearnPress_Course_Extension {
 	}
 
 	/**
+	 * Return the LP_Course object for the course currently being viewed.
+	 *
+	 * LP_Global::course() and learn_press_get_course() (called with no args) both
+	 * fall back to get_the_ID(), which returns the Elementor template post ID when
+	 * rendering a Theme Builder template — not the actual course being visited.
+	 *
+	 * get_queried_object_id() reads directly from WP_Query::$queried_object_id,
+	 * which is set once at query time to the URL-level post and cannot be
+	 * overridden by Elementor. We pass that ID explicitly to learn_press_get_course()
+	 * so LP builds its cached LP_Course object for the correct course.
+	 *
+	 * @return LP_Course|null LP_Course object, or null if not on a course page.
+	 */
+	private function get_current_course() {
+		$id = absint( get_queried_object_id() );
+		if ( $id > 0 && get_post_type( $id ) === LP_COURSE_CPT && function_exists( 'learn_press_get_course' ) ) {
+			return learn_press_get_course( $id ) ?: null;
+		}
+		return null;
+	}
+
+	/**
 	 * Register per-field LP course shortcodes for use in Elementor HTML widgets.
 	 * LearnPress v4 removed these shortcodes; we re-implement them using LP v4 APIs.
-	 * These only resolve correctly on a single lp_course page where $post is set.
+	 *
+	 * All shortcodes use LP_Course object methods wherever available:
+	 *  - get_title()        — LP_Course native
+	 *  - get_image_url()    — LP_Course native (returns URL or LP placeholder)
+	 *  - count_students()   — LP_Course native (real + fake enrolled count)
+	 *  - count_items()      — LP_Course native, filtered by post type
+	 *  - _lp_level meta     — no LP_Course method; post meta is the canonical store
+	 *  - _lp_duration meta  — LP_Course::get_duration() returns seconds; the raw
+	 *                         meta string is the human-readable source of truth
 	 */
 	public function register_course_shortcodes() {
 		add_shortcode( 'lp_course_title', function() {
-			return esc_html( get_the_title() );
+			$course = $this->get_current_course();
+			return $course ? esc_html( $course->get_title() ) : '';
 		} );
 
 		add_shortcode( 'lp_course_excerpt', function() {
-			return wp_kses_post( get_the_excerpt() );
+			$course = $this->get_current_course();
+			// LP_Course has no get_excerpt(); use WP's function with the course ID.
+			return $course ? wp_kses_post( get_the_excerpt( $course->get_id() ) ) : '';
 		} );
 
 		add_shortcode( 'lp_course_featured_image_url', function() {
-			return esc_url( (string) get_the_post_thumbnail_url( get_the_ID(), 'full' ) );
+			$course = $this->get_current_course();
+			// LP_Course::get_image_url() returns the featured image URL or LP's placeholder.
+			return $course ? esc_url( $course->get_image_url( 'full' ) ) : '';
 		} );
 
 		add_shortcode( 'lp_course_level', function() {
-			$level = get_post_meta( get_the_ID(), '_lp_level', true );
+			$course = $this->get_current_course();
+			if ( ! $course ) {
+				return '';
+			}
+			// LP_Course has no get_level() method; level is stored in post meta.
+			$level = get_post_meta( $course->get_id(), '_lp_level', true );
 			return esc_html( $level ?: '' );
 		} );
 
 		add_shortcode( 'lp_course_duration', function() {
-			$raw = get_post_meta( get_the_ID(), '_lp_duration', true );
+			$course = $this->get_current_course();
+			if ( ! $course ) {
+				return '';
+			}
+			// LP_Course::get_duration() returns seconds; use raw meta for the display string.
+			$raw = get_post_meta( $course->get_id(), '_lp_duration', true );
 			if ( ! $raw ) {
 				return '';
 			}
-			// LP stores duration as e.g. "4 week"; use LP_Datetime to pluralize if available.
+			// Meta is stored as e.g. "4 week"; LP_Datetime handles correct pluralization.
 			$parts  = explode( ' ', trim( $raw ) );
 			$number = floatval( $parts[0] ?? 0 );
 			$type   = $parts[1] ?? '';
@@ -83,20 +128,14 @@ class TL_LearnPress_Course_Extension {
 		} );
 
 		add_shortcode( 'lp_course_students', function() {
-			$count = (int) get_post_meta( get_the_ID(), '_lp_enrolled', true );
-			return $count > 0 ? $count : 0;
+			$course = $this->get_current_course();
+			// LP_Course::count_students() returns real + fake enrolled count.
+			return $course ? absint( $course->count_students() ) : 0;
 		} );
 
 		add_shortcode( 'lp_course_lessons', function() {
-			if ( ! function_exists( 'learn_press_get_course' ) ) {
-				return '';
-			}
-			$course = learn_press_get_course( get_the_ID() );
-			if ( ! $course ) {
-				return '';
-			}
-			$count = $course->count_items( LP_LESSON_CPT );
-			return absint( $count );
+			$course = $this->get_current_course();
+			return $course ? absint( $course->count_items( LP_LESSON_CPT ) ) : '';
 		} );
 
 		add_shortcode( 'learn_press_button_course', function() {
