@@ -24,14 +24,20 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Elementor setting a different global $post for its template.
  *
  * Supported tokens:
- *  {{lp_title}}         — Course title
- *  {{lp_excerpt}}       — Course excerpt / short description
- *  {{lp_image_url}}     — Featured image URL (full size) or LP placeholder
- *  {{lp_level}}         — Course level (Beginner / Intermediate / Advanced)
- *  {{lp_duration}}      — Human-readable duration, e.g. "4 Weeks"
- *  {{lp_lesson_count}}  — Number of lessons in the course
- *  {{lp_student_count}} — Number of enrolled students (real + fake)
- *  {{lp_enroll_button}} — LearnPress enroll / purchase button HTML
+ *  {{lp_course_title}}         — Course title
+ *  {{lp_course_excerpt}}       — Course excerpt / short description
+ *  {{lp_course_image_url}}     — Featured image URL (full size) or LP placeholder
+ *  {{lp_course_level}}         — Course level (Beginner / Intermediate / Advanced)
+ *  {{lp_course_duration}}      — Human-readable duration, e.g. "4 Weeks"
+ *  {{lp_course_lesson_count}}  — Number of lessons in the course
+ *  {{lp_course_student_count}} — Number of enrolled students (real + fake)
+ *  {{lp_course_button}}        — LearnPress enroll / start / resume / continue button HTML
+ *  {{lp_course_tags}}          — Comma-separated list of course tags
+ *  {{lp_course_outcome}}       — Course outcome (from lxp_course_outcome post meta)
+ *
+ * Backwards-compatible aliases (old names still work):
+ *  {{lp_title}}, {{lp_excerpt}}, {{lp_image_url}}, {{lp_level}},
+ *  {{lp_duration}}, {{lp_lesson_count}}, {{lp_student_count}}, {{lp_enroll_button}}
  */
 class LXP_Course_HTML_Widget extends Widget_Base {
 
@@ -76,14 +82,16 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 				'default'     => '',
 				'placeholder' => implode( "\n", [
 					'Available tokens:',
-					'  {{lp_title}}         — Course title',
-					'  {{lp_excerpt}}       — Course excerpt',
-					'  {{lp_image_url}}     — Featured image URL',
-					'  {{lp_level}}         — Course level',
-					'  {{lp_duration}}      — Course duration',
-					'  {{lp_lesson_count}}  — Number of lessons',
-					'  {{lp_student_count}} — Enrolled students',
-					'  {{lp_enroll_button}} — Enroll / purchase button',
+					'  {{lp_course_title}}         — Course title',
+					'  {{lp_course_excerpt}}       — Course excerpt',
+					'  {{lp_course_image_url}}     — Featured image URL',
+					'  {{lp_course_level}}         — Course level',
+					'  {{lp_course_duration}}      — Course duration',
+					'  {{lp_course_lesson_count}}  — Number of lessons',
+					'  {{lp_course_student_count}} — Enrolled students',
+					'  {{lp_course_button}}        — Enroll / start / resume button',
+					'  {{lp_course_tags}}          — Course tags (comma-separated)',
+					'  {{lp_course_outcome}}       — Course outcome',
 				] ),
 				'dynamic'     => [ 'active' => false ],
 			]
@@ -143,12 +151,33 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 			}
 		}
 
-		// Enroll / purchase button.
+		// Enroll / start / resume / continue button.
 		ob_start();
 		do_action( 'learn-press/course/buttons' );
 		$button_html = ob_get_clean();
 
+		// Course tags: comma-separated names from the 'course_tag' taxonomy.
+		$tags_raw    = wp_get_post_terms( $course_id, 'course_tag', [ 'fields' => 'names' ] );
+		$tags_string = ( is_array( $tags_raw ) && ! is_wp_error( $tags_raw ) )
+			? implode( ', ', array_map( 'esc_html', $tags_raw ) )
+			: '';
+
+		// Course outcome: stored in post meta under 'lxp_course_outcome'.
+		$outcome = esc_html( get_post_meta( $course_id, 'lxp_course_outcome', true ) ?: '' );
+
 		return [
+			// New lp_course_* tokens.
+			'{{lp_course_title}}'         => esc_html( $course->get_title() ),
+			'{{lp_course_excerpt}}'       => wp_kses_post( get_the_excerpt( $course_id ) ),
+			'{{lp_course_image_url}}'     => esc_url( $course->get_image_url( 'full' ) ),
+			'{{lp_course_level}}'         => esc_html( get_post_meta( $course_id, '_lp_level', true ) ?: '' ),
+			'{{lp_course_duration}}'      => esc_html( $duration ),
+			'{{lp_course_lesson_count}}'  => absint( $course->count_items( LP_LESSON_CPT ) ),
+			'{{lp_course_student_count}}' => absint( $course->count_students() ),
+			'{{lp_course_button}}'        => $button_html,
+			'{{lp_course_tags}}'          => $tags_string,
+			'{{lp_course_outcome}}'       => $outcome,
+			// Backwards-compatible aliases — old token names still resolve.
 			'{{lp_title}}'         => esc_html( $course->get_title() ),
 			'{{lp_excerpt}}'       => wp_kses_post( get_the_excerpt( $course_id ) ),
 			'{{lp_image_url}}'     => esc_url( $course->get_image_url( 'full' ) ),
