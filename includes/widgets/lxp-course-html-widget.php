@@ -33,6 +33,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *  {{lp_course_student_count}} — Number of enrolled students (real + fake)
  *  {{lp_course_button}}        — LearnPress enroll / start / resume / continue button HTML
  *  {{lp_course_tags}}          — Comma-separated list of course tags
+ *  {{#lp_course_tags}}...{{lp_course_tag}}...{{/lp_course_tags}} — Repeat inner HTML once per tag
+ *  {{lp_course_tags_loop}}...{{tag}}...{{/lp_course_tags_loop}} — Alternate tag loop syntax
  *  {{lp_course_outcome}}       — Course outcome (from lxp_course_outcome post meta)
  *
  * Backwards-compatible aliases (old names still work):
@@ -91,6 +93,8 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 					'  {{lp_course_student_count}} — Enrolled students',
 					'  {{lp_course_button}}        — Enroll / start / resume button',
 					'  {{lp_course_tags}}          — Course tags (comma-separated)',
+					'  {{#lp_course_tags}}<span>{{lp_course_tag}}</span>{{/lp_course_tags}}',
+					'  {{lp_course_tags_loop}}<span>{{tag}}</span>{{/lp_course_tags_loop}}',
 					'  {{lp_course_outcome}}       — Course outcome',
 				] ),
 				'dynamic'     => [ 'active' => false ],
@@ -129,13 +133,78 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 	}
 
 	/**
+	 * Fetch course tags for the current course.
+	 *
+	 * @param int $course_id Course post ID.
+	 * @return array<int,\WP_Term>
+	 */
+	private function get_course_tags( $course_id ) {
+		$course_tags = wp_get_post_terms( $course_id, 'course_tag' );
+
+		if ( is_wp_error( $course_tags ) || ! is_array( $course_tags ) ) {
+			return [];
+		}
+
+		return $course_tags;
+	}
+
+	/**
+	 * Replace repeated course-tag HTML blocks before scalar token replacement.
+	 *
+	 * @param string               $html        Raw widget HTML.
+	 * @param array<int,\WP_Term> $course_tags Course tag terms.
+	 * @return string
+	 */
+	private function replace_course_tag_loops( $html, $course_tags ) {
+		$patterns = [
+			'/\{\{#lp_course_tags\}\}(.*?)\{\{\/lp_course_tags\}\}/s',
+			'/\{\{lp_course_tags_loop\}\}(.*?)\{\{\/lp_course_tags_loop\}\}/s',
+		];
+
+		foreach ( $patterns as $pattern ) {
+			$html = preg_replace_callback(
+				$pattern,
+				static function ( $matches ) use ( $course_tags ) {
+					$tag_template = $matches[1] ?? '';
+
+					if ( empty( $course_tags ) ) {
+						return '';
+					}
+
+					$tag_output = '';
+
+					foreach ( $course_tags as $course_tag ) {
+						$tag_name = isset( $course_tag->name ) ? esc_html( $course_tag->name ) : '';
+
+						$tag_output .= str_replace(
+							[ '{{lp_course_tag}}', '{{lp_course_tag_name}}', '{{tag}}' ],
+							[ $tag_name, $tag_name, $tag_name ],
+							$tag_template
+						);
+					}
+
+					return $tag_output;
+				},
+				$html
+			);
+		}
+
+		return $html;
+	}
+
+	/**
 	 * Build the token → value map for the current course.
 	 *
-	 * @param \LP_Course $course
+	 * @param \LP_Course               $course
+	 * @param array<int,\WP_Term>|null $course_tags
 	 * @return array<string,string>
 	 */
-	private function build_token_map( $course ) {
+	private function build_token_map( $course, $course_tags = null ) {
 		$course_id = $course->get_id();
+
+		if ( null === $course_tags ) {
+			$course_tags = $this->get_course_tags( $course_id );
+		}
 
 		// Duration: LP_Course::get_duration() returns seconds; raw meta is the display string.
 		$raw_duration = get_post_meta( $course_id, '_lp_duration', true );
@@ -157,10 +226,13 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 		$button_html = ob_get_clean();
 
 		// Course tags: comma-separated names from the 'course_tag' taxonomy.
-		$tags_raw    = wp_get_post_terms( $course_id, 'course_tag', [ 'fields' => 'names' ] );
-		$tags_string = ( is_array( $tags_raw ) && ! is_wp_error( $tags_raw ) )
-			? implode( ', ', array_map( 'esc_html', $tags_raw ) )
-			: '';
+		$tag_names = [];
+		foreach ( $course_tags as $course_tag ) {
+			if ( isset( $course_tag->name ) ) {
+				$tag_names[] = esc_html( $course_tag->name );
+			}
+		}
+		$tags_string = implode( ', ', $tag_names );
 
 		// Course outcome: stored in post meta under 'lxp_course_outcome'.
 		$outcome = esc_html( get_post_meta( $course_id, 'lxp_course_outcome', true ) ?: '' );
@@ -205,8 +277,10 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 			return;
 		}
 
-		$map    = $this->build_token_map( $course );
-		$output = str_replace( array_keys( $map ), array_values( $map ), $html );
+		$course_tags = $this->get_course_tags( $course->get_id() );
+		$html        = $this->replace_course_tag_loops( $html, $course_tags );
+		$map         = $this->build_token_map( $course, $course_tags );
+		$output      = str_replace( array_keys( $map ), array_values( $map ), $html );
 
 		// Allow normal post HTML plus embedded <style> blocks for hero/widget CSS.
 		$allowed_html = wp_kses_allowed_html( 'post' );
