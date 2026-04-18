@@ -221,9 +221,17 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 		}
 
 		// Enroll / start / resume / continue button.
+		// setup_postdata() is required so that get_the_ID() inside the LP callback
+		// resolves the actual course, not the Elementor template post.
+		$course_post = get_post( $course_id );
+		if ( $course_post ) {
+			$GLOBALS['post'] = $course_post; // phpcs:ignore WordPress.WP.GlobalVariablesOverride
+			setup_postdata( $course_post );
+		}
 		ob_start();
-		do_action( 'learn-press/course/buttons' );
+		do_action( 'learn-press/course-buttons' );
 		$button_html = ob_get_clean();
+		wp_reset_postdata();
 
 		// Course tags: comma-separated names from the 'course_tag' taxonomy.
 		$tag_names = [];
@@ -283,11 +291,12 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 		$output      = str_replace( array_keys( $map ), array_values( $map ), $html );
 
 		// Allow normal post HTML plus embedded <style> blocks for hero/widget CSS.
+		// Also allow <form>, <input>, <button> so LP enroll/purchase button forms survive.
 		$allowed_html = wp_kses_allowed_html( 'post' );
-		$allowed_html['style'] = [
-			'type'  => true,
-			'media' => true,
-		];
+		$allowed_html['style']  = [ 'type' => true, 'media' => true ];
+		$allowed_html['form']   = [ 'name' => true, 'class' => true, 'method' => true, 'action' => true, 'enctype' => true, 'style' => true, 'id' => true ];
+		$allowed_html['input']  = [ 'type' => true, 'name' => true, 'value' => true, 'class' => true, 'id' => true, 'style' => true ];
+		$allowed_html['button'] = [ 'type' => true, 'class' => true, 'id' => true, 'name' => true, 'value' => true, 'style' => true, 'data-course-id' => true, 'data-id' => true ];
 
 		echo wp_kses( $output, $allowed_html );
 	}
