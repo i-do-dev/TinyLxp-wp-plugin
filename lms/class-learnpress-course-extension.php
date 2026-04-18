@@ -59,6 +59,75 @@ class TL_LearnPress_Course_Extension {
 		)");
 	}
 
+	private function add_meta_box( $args = array() ) {
+		if ( is_array( $args ) && ! empty( $args ) ) {
+			call_user_func_array( 'add_meta_box', $args );
+		}
+	}
+
+	public function add_meta_boxes() {
+		$this->course_outcome_metabox();
+	}
+
+	public function course_outcome_metabox() {
+		$this->add_meta_box( array(
+			'lxp-course-outcome',
+			esc_html__( 'Course Outcome', 'tiny-lxp-platform' ),
+			array( $this, 'course_outcome_metabox_html' ),
+			TL_COURSE_CPT,
+			'side',
+			'default',
+		) );
+	}
+
+	public function course_outcome_metabox_html( $post = null ) {
+		$outcome = '';
+		if ( $post && isset( $post->ID ) ) {
+			$outcome = get_post_meta( $post->ID, 'lxp_course_outcome', true );
+		}
+
+		wp_nonce_field( 'save_lxp_course_outcome', 'lxp_course_outcome_nonce' );
+		?>
+		<p>
+			<label for="lxp_course_outcome"><strong><?php echo esc_html__( 'Outcome text', 'tiny-lxp-platform' ); ?></strong></label>
+		</p>
+		<textarea id="lxp_course_outcome" name="lxp_course_outcome" rows="4" style="width:100%;" placeholder="<?php echo esc_attr__( 'e.g. Professional Certificate', 'tiny-lxp-platform' ); ?>"><?php echo esc_textarea( $outcome ); ?></textarea>
+		<p style="margin-top:8px;color:#666;">
+			<?php echo esc_html__( 'Used by the lp_course_outcome token in the Course HTML widget.', 'tiny-lxp-platform' ); ?>
+		</p>
+		<?php
+	}
+
+	public function save_course_outcome_meta( $post_id = null, $post = null ) {
+		$post_id = absint( $post_id );
+		if ( $post_id <= 0 ) {
+			return;
+		}
+		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
+			return;
+		}
+		if ( empty( $post ) || ! isset( $post->post_type ) || $post->post_type !== TL_COURSE_CPT ) {
+			return;
+		}
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+		if ( ! isset( $_POST['lxp_course_outcome_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['lxp_course_outcome_nonce'] ) ), 'save_lxp_course_outcome' ) ) {
+			return;
+		}
+
+		$outcome = isset( $_POST['lxp_course_outcome'] )
+			? sanitize_textarea_field( wp_unslash( $_POST['lxp_course_outcome'] ) )
+			: '';
+
+		if ( '' === $outcome ) {
+			delete_post_meta( $post_id, 'lxp_course_outcome' );
+			return;
+		}
+
+		update_post_meta( $post_id, 'lxp_course_outcome', $outcome );
+	}
+
 	public function modify_list_row_actions($actions, $post) {
 		if ($post->post_type == TL_COURSE_CPT && current_user_can('grades_lxp_course')) {
 			$actions['duplicate'] = '<a href="' . site_url() . '/wp-admin/admin.php?page=grades&course_id=' . $post->ID . '" title="" rel="permalink">GradeBook</a>';
