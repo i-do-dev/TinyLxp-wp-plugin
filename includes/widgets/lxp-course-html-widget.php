@@ -38,6 +38,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  *  {{lp_course_outcome}}       — Course outcome (from lxp_course_outcome post meta)
  *  {{lp_course_description}}    — Full course description (WYSIWYG post_content, rendered)
  *
+ * Section loop (iterates LP course sections ordered by section_order ASC):
+ *  {{#lp_course_sections}}...{{/lp_course_sections}}
+ *    Inner tokens per iteration:
+ *      {{lp_section_number}}              — Zero-padded ordinal: 01, 02, 03…
+ *      {{lp_section_index}}               — Plain 1-based index: 1, 2, 3…
+ *      {{lp_section_title}}               — LP section name
+ *      {{lp_section_first_lesson_title}}  — First lesson post title
+ *      {{lp_section_first_lesson_excerpt}}— First lesson post excerpt
+ *      {{lp_section_first_lesson_url}}    — First lesson permalink
+ *    Conditional blocks (keep/strip per iteration):
+ *      {{#lp_section_is_last}}...{{/lp_section_is_last}}         — last section only
+ *      {{#lp_section_is_not_last}}...{{/lp_section_is_not_last}} — all except last
+ *
  * Backwards-compatible aliases (old names still work):
  *  {{lp_title}}, {{lp_excerpt}}, {{lp_image_url}}, {{lp_level}},
  *  {{lp_duration}}, {{lp_lesson_count}}, {{lp_student_count}}, {{lp_enroll_button}}
@@ -97,6 +110,8 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 					'  {{#lp_course_tags}}<span>{{lp_course_tag}}</span>{{/lp_course_tags}}',
 					'  {{lp_course_tags_loop}}<span>{{tag}}</span>{{/lp_course_tags_loop}}',
 					'  {{lp_course_outcome}}       — Course outcome',
+					'  {{lp_course_description}}   u{2014} Course description (full)',
+					'  {{#lp_course_sections}}<div>{{lp_section_number}} {{lp_section_title}} {{lp_section_first_lesson_title}} <a href="{{lp_section_first_lesson_url}}">Preview</a></div>{{/lp_course_sections}}',
 				] ),
 				'dynamic'     => [ 'active' => false ],
 			]
@@ -191,6 +206,127 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 		}
 
 		return $html;
+	}
+
+	/**
+	 * Fetch and structure LP course sections data for the section loop.
+	 *
+	 * @param int $course_id Course post ID.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function get_course_sections_data( $course_id ) {
+		if ( ! class_exists( 'LP_Section_DB' ) || ! class_exists( 'LP_Section_Filter' ) ) {
+			return [];
+		}
+
+		$filter                    = new \LP_Section_Filter();
+		$filter->section_course_id = absint( $course_id );
+		$filter->limit             = -1;
+
+		$result   = \LP_Section_DB::getInstance()->get_sections_by_course_id( $filter );
+		$sections = ( ! is_wp_error( $result ) && isset( $result['results'] ) ) ? $result['results'] : [];
+
+		if ( empty( $sections ) ) {
+			return [];
+		}
+
+		$total = count( $sections );
+		$data  = [];
+
+		foreach ( $sections as $i => $section ) {
+			$index      = $i + 1;
+			$section_id = absint( $section['section_id'] ?? 0 );
+
+			$first_item = null;
+			if ( $section_id && class_exists( 'LP_Section_Items_Filter' ) ) {
+				$items_filter             = new \LP_Section_Items_Filter();
+				$items_filter->section_id = $section_id;
+				$items_filter->limit      = 1;
+				$items_result = \LP_Section_DB::getInstance()->get_section_items_by_section_id( $items_filter );
+				if ( ! is_wp_error( $items_result ) && ! empty( $items_result['results'] ) ) {
+					$first_item = $items_result['results'][0];
+				}
+			}
+
+			$data[] = [
+				'index'                => $index,
+				'number'               => str_pad( $index, 2, '0', STR_PAD_LEFT ),
+				'is_last'              => ( $index === $total ),
+				'title'                => esc_html( $section['section_name'] ?? '' ),
+				'first_lesson_title'   => $first_item ? esc_html( $first_item['post_title'] ?? '' ) : '',
+				'first_lesson_excerpt' => $first_item ? wp_kses_post( $first_item['post_excerpt'] ?? '' ) : '',
+				'first_lesson_url'     => $first_item ? esc_url( get_permalink( absint( $first_item['ID'] ) ) ) : '',
+			];
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Replace {{#lp_course_sections}}...{{/lp_course_sections}} loops.
+	 *
+	 * @param string $html      Raw widget HTML.
+	 * @param int    $course_id Course post ID.
+	 * @return string
+	 */
+	private function replace_course_section_loops( $html, $course_id ) {
+		if ( strpos( $html, '{{#lp_course_sections}}' ) === false ) {
+			return $html;
+		}
+
+		$sections = $this->get_course_sections_data( $course_id );
+
+		return preg_replace_callback(
+			'/\{\{#lp_course_sections\}\}(.*?)\{\{\/lp_course_sections\}\}/s',
+			static function ( $matches ) use ( $sections ) {
+				$template = $matches[1];
+
+				if ( empty( $sections ) ) {
+					return '';
+				}
+
+				$output = '';
+
+				foreach ( $sections as $section ) {
+					$chunk = $template;
+
+					// Resolve conditional blocks.
+					if ( $section['is_last'] ) {
+						$chunk = preg_replace( '/\{\{#lp_section_is_not_last\}\}.*?\{\{\/lp_section_is_not_last\}\}/s', '', $chunk );
+						$chunk = preg_replace( '/\{\{#lp_section_is_last\}\}(.*?)\{\{\/lp_section_is_last\}\}/s', '$1', $chunk );
+					} else {
+						$chunk = preg_replace( '/\{\{#lp_section_is_last\}\}.*?\{\{\/lp_section_is_last\}\}/s', '', $chunk );
+						$chunk = preg_replace( '/\{\{#lp_section_is_not_last\}\}(.*?)\{\{\/lp_section_is_not_last\}\}/s', '$1', $chunk );
+					}
+
+					// Resolve scalar tokens.
+					$chunk = str_replace(
+						[
+							'{{lp_section_number}}',
+							'{{lp_section_index}}',
+							'{{lp_section_title}}',
+							'{{lp_section_first_lesson_title}}',
+							'{{lp_section_first_lesson_excerpt}}',
+							'{{lp_section_first_lesson_url}}',
+						],
+						[
+							$section['number'],
+							(string) $section['index'],
+							$section['title'],
+							$section['first_lesson_title'],
+							$section['first_lesson_excerpt'],
+							$section['first_lesson_url'],
+						],
+						$chunk
+					);
+
+					$output .= $chunk;
+				}
+
+				return $output;
+			},
+			$html
+		);
 	}
 
 	/**
@@ -311,6 +447,7 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 
 		$course_tags = $this->get_course_tags( $course->get_id() );
 		$html        = $this->replace_course_tag_loops( $html, $course_tags );
+		$html        = $this->replace_course_section_loops( $html, $course->get_id() );
 		$map         = $this->build_token_map( $course, $course_tags );
 		$output      = str_replace( array_keys( $map ), array_values( $map ), $html );
 
@@ -320,7 +457,9 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 		$allowed_html['style']  = [ 'type' => true, 'media' => true ];
 		$allowed_html['form']   = [ 'name' => true, 'class' => true, 'method' => true, 'action' => true, 'enctype' => true, 'style' => true, 'id' => true ];
 		$allowed_html['input']  = [ 'type' => true, 'name' => true, 'value' => true, 'class' => true, 'id' => true, 'style' => true ];
-		$allowed_html['button'] = [ 'type' => true, 'class' => true, 'id' => true, 'name' => true, 'value' => true, 'style' => true, 'data-course-id' => true, 'data-id' => true ];
+		$allowed_html['button']  = [ 'type' => true, 'class' => true, 'id' => true, 'name' => true, 'value' => true, 'style' => true, 'data-course-id' => true, 'data-id' => true ];
+		$allowed_html['section'] = [ 'id' => true, 'class' => true, 'style' => true ];
+		$allowed_html['hr']      = [ 'class' => true, 'style' => true ];
 
 		echo wp_kses( $output, $allowed_html );
 	}
