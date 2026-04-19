@@ -36,6 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *  {{#lp_course_tags}}...{{lp_course_tag}}...{{/lp_course_tags}} — Repeat inner HTML once per tag
  *  {{lp_course_tags_loop}}...{{tag}}...{{/lp_course_tags_loop}} — Alternate tag loop syntax
  *  {{lp_course_outcome}}       — Course outcome (from lxp_course_outcome post meta)
+ *  {{lp_course_description}}    — Full course description (WYSIWYG post_content, rendered)
  *
  * Backwards-compatible aliases (old names still work):
  *  {{lp_title}}, {{lp_excerpt}}, {{lp_image_url}}, {{lp_level}},
@@ -245,6 +246,10 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 		// Course outcome: stored in post meta under 'lxp_course_outcome'.
 		$outcome = esc_html( get_post_meta( $course_id, 'lxp_course_outcome', true ) ?: '' );
 
+		// Course description: full WYSIWYG post_content, run through the_content filters
+		// so Gutenberg blocks and shortcodes inside the description are rendered.
+		$description = wp_kses_post( apply_filters( 'the_content', get_post_field( 'post_content', $course_id ) ) );
+
 		return [
 			// New lp_course_* tokens.
 			'{{lp_course_title}}'         => esc_html( $course->get_title() ),
@@ -257,6 +262,7 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 			'{{lp_course_button}}'        => $button_html,
 			'{{lp_course_tags}}'          => $tags_string,
 			'{{lp_course_outcome}}'       => $outcome,
+			'{{lp_course_description}}'   => $description,
 			// Backwards-compatible aliases — old token names still resolve.
 			'{{lp_title}}'         => esc_html( $course->get_title() ),
 			'{{lp_excerpt}}'       => wp_kses_post( get_the_excerpt( $course_id ) ),
