@@ -248,7 +248,25 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 
 		// Course description: full WYSIWYG post_content, run through the_content filters
 		// so Gutenberg blocks and shortcodes inside the description are rendered.
-		$description = wp_kses_post( apply_filters( 'the_content', get_post_field( 'post_content', $course_id ) ) );
+		//
+		// Two issues to guard against:
+		// 1. wpautop (priority 10 on the_content) injects <br>/<p> inside <style> blocks,
+		//    breaking CSS. Extract style blocks before the filter runs, restore after.
+		// 2. wp_kses_post() strips <style> entirely (not in wp_kses_allowed_html('post')).
+		//    Skip the inner kses — the outer wp_kses() in render() allows <style>.
+		$style_blocks  = [];
+		$raw_desc      = get_post_field( 'post_content', $course_id );
+		$raw_protected = preg_replace_callback(
+			'/<style\b[^>]*>[\s\S]*?<\/style>/i',
+			static function ( $m ) use ( &$style_blocks ) {
+				$placeholder                  = "\x02STYLE_BLOCK_" . count( $style_blocks ) . "\x03";
+				$style_blocks[ $placeholder ] = $m[0];
+				return $placeholder;
+			},
+			$raw_desc
+		);
+		$processed   = apply_filters( 'the_content', $raw_protected );
+		$description = str_replace( array_keys( $style_blocks ), array_values( $style_blocks ), $processed );
 
 		return [
 			// New lp_course_* tokens.
