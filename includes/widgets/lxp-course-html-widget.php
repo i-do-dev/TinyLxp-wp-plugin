@@ -219,6 +219,11 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 			return [];
 		}
 
+		// LP lesson URLs are nested under the course: /{course-slug}/lessons/{lesson-slug}/
+		// get_permalink( $lesson_id ) returns the bare WP post URL — wrong for LP4.
+		// Load the LP_Course object once here so get_item_link() is available in the loop.
+		$course_obj = function_exists( 'learn_press_get_course' ) ? learn_press_get_course( absint( $course_id ) ) : null;
+
 		$filter                    = new \LP_Section_Filter();
 		$filter->section_course_id = absint( $course_id );
 		$filter->limit             = -1;
@@ -248,6 +253,19 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 				}
 			}
 
+			$first_lesson_id  = $first_item ? absint( $first_item['ID'] ) : 0;
+			$first_lesson_url = '';
+			if ( $first_lesson_id ) {
+				// Prefer LP4's get_item_link() which builds the correct nested URL:
+				// /{course-slug}/lessons/{lesson-slug}/
+				// Fall back to get_permalink() if the course object isn't available.
+				if ( $course_obj && method_exists( $course_obj, 'get_item_link' ) ) {
+					$first_lesson_url = esc_url( $course_obj->get_item_link( $first_lesson_id ) );
+				} else {
+					$first_lesson_url = esc_url( get_permalink( $first_lesson_id ) );
+				}
+			}
+
 			$data[] = [
 				'index'                => $index,
 				'number'               => str_pad( $index, 2, '0', STR_PAD_LEFT ),
@@ -255,7 +273,7 @@ class LXP_Course_HTML_Widget extends Widget_Base {
 				'title'                => esc_html( $section['section_name'] ?? '' ),
 				'first_lesson_title'   => $first_item ? esc_html( $first_item['post_title'] ?? '' ) : '',
 				'first_lesson_excerpt' => $first_item ? wp_kses_post( $first_item['post_excerpt'] ?? '' ) : '',
-				'first_lesson_url'     => $first_item ? esc_url( get_permalink( absint( $first_item['ID'] ) ) ) : '',
+				'first_lesson_url'     => $first_lesson_url,
 			];
 		}
 
