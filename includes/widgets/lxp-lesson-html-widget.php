@@ -168,6 +168,32 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 
 		$debug[] = 'final: lesson_id=' . $lesson_id . ' course_id=' . $course_id;
 
+		// Strategy 4: lesson slug from URL path — used when Elementor renders before
+		// LP_Global is populated. LP4 lesson URLs are /{course}/lessons/{lesson-slug}/
+		// The course IS the queried object; lesson slug is the last path segment.
+		if ( $lesson_id <= 0 && defined( 'LP_LESSON_CPT' ) ) {
+			$qo_id = absint( get_queried_object_id() );
+			if ( $qo_id > 0 && get_post_type( $qo_id ) === 'lp_course' ) {
+				$uri          = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+				$path         = parse_url( $uri, PHP_URL_PATH );
+				$path         = rtrim( $path, '/' );
+				$lesson_slug  = $path ? basename( $path ) : '';
+				$debug[]      = 'S4: course_id=' . $qo_id . ' uri=' . $uri . ' slug=' . $lesson_slug;
+				if ( $lesson_slug ) {
+					$lesson_post_candidate = get_page_by_path( $lesson_slug, OBJECT, LP_LESSON_CPT );
+					if ( $lesson_post_candidate ) {
+						$lesson_id = absint( $lesson_post_candidate->ID );
+						$course_id = $qo_id;
+						$debug[]   = 'S4: matched lesson_id=' . $lesson_id;
+					} else {
+						$debug[] = 'S4: get_page_by_path returned null for slug=' . $lesson_slug;
+					}
+				}
+			}
+		}
+
+		$debug[] = 'final after S4: lesson_id=' . $lesson_id . ' course_id=' . $course_id;
+
 		if ( $lesson_id <= 0 ) {
 			return [ 'debug' => $debug ];
 		}
