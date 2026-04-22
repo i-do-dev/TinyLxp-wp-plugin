@@ -118,39 +118,49 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 
 		// Strategy 1: LP_Global — authoritative inside LP lesson template rendering.
 		if ( class_exists( 'LP_Global' ) && method_exists( 'LP_Global', 'course_item' ) ) {
-			$lp_item = LP_Global::course_item();
-			if (
-				$lp_item
-				&& method_exists( $lp_item, 'get_id' )
-				&& method_exists( $lp_item, 'get_type' )
-				&& $lp_item->get_type() === LP_LESSON_CPT
-			) {
-				$lesson_id = absint( $lp_item->get_id() );
-			}
-			// Grab course from LP_Global at the same time.
-			if ( $lesson_id > 0 && method_exists( 'LP_Global', 'course' ) ) {
-				$lp_course_global = LP_Global::course();
-				if ( $lp_course_global && method_exists( $lp_course_global, 'get_id' ) ) {
-					$course_id = absint( $lp_course_global->get_id() );
+			try {
+				$lp_item = LP_Global::course_item();
+				error_log( '[LXP_Lesson_Widget] LP_Global::course_item() type=' . ( $lp_item && method_exists( $lp_item, 'get_type' ) ? $lp_item->get_type() : 'null' ) );
+				if (
+					$lp_item
+					&& method_exists( $lp_item, 'get_id' )
+					&& method_exists( $lp_item, 'get_type' )
+					&& defined( 'LP_LESSON_CPT' )
+					&& $lp_item->get_type() === LP_LESSON_CPT
+				) {
+					$lesson_id = absint( $lp_item->get_id() );
 				}
+				// Grab course from LP_Global at the same time.
+				if ( $lesson_id > 0 && method_exists( 'LP_Global', 'course' ) ) {
+					$lp_course_global = LP_Global::course();
+					if ( $lp_course_global && method_exists( $lp_course_global, 'get_id' ) ) {
+						$course_id = absint( $lp_course_global->get_id() );
+					}
+				}
+			} catch ( \Throwable $e ) {
+				error_log( '[LXP_Lesson_Widget] LP_Global strategy failed: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
 			}
 		}
 
 		// Strategy 2: queried object (true singular lp_lesson page).
-		if ( $lesson_id <= 0 ) {
+		if ( $lesson_id <= 0 && defined( 'LP_LESSON_CPT' ) ) {
 			$qo_id = absint( get_queried_object_id() );
+			error_log( '[LXP_Lesson_Widget] Strategy2: qo_id=' . $qo_id . ' type=' . get_post_type( $qo_id ) );
 			if ( $qo_id > 0 && get_post_type( $qo_id ) === LP_LESSON_CPT ) {
 				$lesson_id = $qo_id;
 			}
 		}
 
 		// Strategy 3: global $post.
-		if ( $lesson_id <= 0 ) {
+		if ( $lesson_id <= 0 && defined( 'LP_LESSON_CPT' ) ) {
 			$post_id = absint( get_the_ID() );
+			error_log( '[LXP_Lesson_Widget] Strategy3: post_id=' . $post_id . ' type=' . get_post_type( $post_id ) );
 			if ( $post_id > 0 && get_post_type( $post_id ) === LP_LESSON_CPT ) {
 				$lesson_id = $post_id;
 			}
 		}
+
+		error_log( '[LXP_Lesson_Widget] final: lesson_id=' . $lesson_id . ' course_id=' . $course_id );
 
 		if ( $lesson_id <= 0 ) {
 			return null;
@@ -346,6 +356,17 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 	}
 
 	protected function render() {
+		try {
+			$this->render_lesson_html();
+		} catch ( \Throwable $e ) {
+			error_log( '[LXP_Lesson_Widget] render() fatal: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() . "\n" . $e->getTraceAsString() );
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				echo '<p style="color:red;border:1px solid red;padding:8px;"><strong>LXP Lesson Widget error:</strong> ' . esc_html( $e->getMessage() ) . ' in ' . esc_html( basename( $e->getFile() ) ) . ':' . esc_html( $e->getLine() ) . '</p>';
+			}
+		}
+	}
+
+	private function render_lesson_html() {
 		$settings = $this->get_settings_for_display();
 		$html     = $settings['html_content'] ?? '';
 
