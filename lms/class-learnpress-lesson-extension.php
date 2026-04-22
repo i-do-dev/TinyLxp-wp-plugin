@@ -42,6 +42,60 @@ class TL_LearnPress_Lesson_Extension {
 
 	public function add_meta_boxes() {
 		$this->options_metabox();
+		$this->lesson_tagline_metabox();
+	}
+
+	public function lesson_tagline_metabox() {
+		$this->add_meta_box( array(
+			'lxp-lesson-tagline',
+			esc_html__( 'Lesson Tagline', 'tiny-lxp-platform' ),
+			array( $this, 'lesson_tagline_metabox_html' ),
+			TL_LESSON_CPT,
+			'side',
+			'default',
+		) );
+	}
+
+	public function lesson_tagline_metabox_html( $post = null ) {
+		if ( empty( $post ) || ! isset( $post->ID ) ) {
+			return;
+		}
+		$tagline = get_post_meta( $post->ID, 'lxp_lesson_tagline', true );
+		wp_nonce_field( 'save_lxp_lesson_tagline', 'lxp_lesson_tagline_nonce' );
+		?>
+		<p>
+			<label for="lxp_lesson_tagline_field" style="display:block;margin-bottom:4px;">
+				<?php echo esc_html__( 'Short tagline or subtitle shown in lesson hero sections.', 'tiny-lxp-platform' ); ?>
+			</label>
+			<textarea id="lxp_lesson_tagline_field" name="lxp_lesson_tagline"
+				rows="3" style="width:100%;"><?php echo esc_textarea( $tagline ?: '' ); ?></textarea>
+		</p>
+		<?php
+	}
+
+	public function save_lesson_tagline_meta( $post_id = null, $post = null ) {
+		$post_id = absint( $post_id );
+		if ( $post_id <= 0 ) {
+			return;
+		}
+		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
+			return;
+		}
+		if ( empty( $post ) || ! isset( $post->post_type ) || $post->post_type !== TL_LESSON_CPT ) {
+			return;
+		}
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+		if ( ! isset( $_POST['lxp_lesson_tagline_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['lxp_lesson_tagline_nonce'] ) ), 'save_lxp_lesson_tagline' ) ) {
+			return;
+		}
+		$value = isset( $_POST['lxp_lesson_tagline'] ) ? sanitize_textarea_field( wp_unslash( $_POST['lxp_lesson_tagline'] ) ) : '';
+		if ( $value !== '' ) {
+			update_post_meta( $post_id, 'lxp_lesson_tagline', $value );
+		} else {
+			delete_post_meta( $post_id, 'lxp_lesson_tagline' );
+		}
 	}
 
 	public function options_metabox() {

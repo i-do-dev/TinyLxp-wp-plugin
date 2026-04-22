@@ -237,6 +237,7 @@ class Tiny_LXP_Platform
         $this->loader->add_filter('tinylxp_lti_launch_metadata', $lesson_extension, 'provide_lti_launch_metadata', 10, 5);
         $this->loader->add_action('add_meta_boxes', $lesson_extension, 'add_meta_boxes');
         $this->loader->add_action('save_post_lp_lesson', $lesson_extension, 'save_tl_post', 10, 2);
+        $this->loader->add_action('save_post_lp_lesson', $lesson_extension, 'save_lesson_tagline_meta', 20, 2);
         $this->loader->add_action('rest_lp_lesson_query', $lesson_extension, 'post_meta_request_params', 10, 2);
         $this->loader->add_action('rest_insert_lp_lesson', $lesson_extension, 'insert_post_api', 10, 2);
         // $this->loader->add_action('wp_footer', $lesson_extension, 'render_js_debug_panel', 9999);
