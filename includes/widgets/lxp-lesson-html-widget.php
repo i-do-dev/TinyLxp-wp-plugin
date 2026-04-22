@@ -364,8 +364,8 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 		$lesson_number = $this->get_lesson_number( $lesson_id, $course_id );
 		$lesson_total  = absint( $course->count_items( LP_LESSON_CPT ) );
 		$module_label  = sprintf(
-			/* translators: 1: lesson number, 2: total lessons */
-			esc_html__( 'Lesson %1$d of %2$d', 'tiny-lxp-platform' ),
+			/* translators: 1: module number, 2: total modules */
+			esc_html__( 'Module %1$d of %2$d', 'tiny-lxp-platform' ),
 			$lesson_number > 0 ? $lesson_number : 1,
 			$lesson_total
 		);
@@ -396,14 +396,7 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 		try {
 			$this->render_lesson_html();
 		} catch ( \Throwable $e ) {
-			echo '<pre style="color:red;background:#fff0f0;padding:12px;border:2px solid red;">';
-			echo '<strong>LXP Lesson Widget — Exception</strong>' . "\n";
-			var_dump( [
-				'message' => $e->getMessage(),
-				'file'    => $e->getFile(),
-				'line'    => $e->getLine(),
-			] );
-			echo '</pre>';
+			// var_dump( [ 'message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine() ] );
 		}
 	}
 
@@ -419,11 +412,8 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 		$has_lesson = is_array( $result ) && isset( $result['lesson'] );
 
 		if ( ! $has_lesson ) {
-			$debug_lines = is_array( $result ) ? ( $result['debug'] ?? [] ) : [];
-			echo '<pre style="font-family:monospace;font-size:12px;background:#111;color:#0f0;padding:12px;border-radius:4px;">';
-			echo '<strong style="color:#ff6;">LXP Lesson Widget — context resolution failed</strong>' . "\n";
-			var_dump( $debug_lines );
-			echo '</pre>';
+			// $debug_lines = is_array( $result ) ? ( $result['debug'] ?? [] ) : [];
+			// var_dump( $debug_lines );
 			return;
 		}
 
