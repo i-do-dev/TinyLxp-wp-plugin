@@ -120,9 +120,9 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 		// Strategy 1: LP_Global — authoritative inside LP lesson template rendering.
 		if ( class_exists( 'LP_Global' ) && method_exists( 'LP_Global', 'course_item' ) ) {
 			try {
-				$lp_item = LP_Global::course_item();
+				$lp_item   = \LP_Global::course_item();
 				$item_type = ( $lp_item && method_exists( $lp_item, 'get_type' ) ) ? $lp_item->get_type() : 'null';
-				$debug[] = 'S1: LP_Global::course_item() type=' . $item_type . ' LP_LESSON_CPT=' . ( defined( 'LP_LESSON_CPT' ) ? LP_LESSON_CPT : 'UNDEFINED' );
+				$debug[]   = 'S1: LP_Global::course_item() type=' . $item_type;
 				if (
 					$lp_item
 					&& method_exists( $lp_item, 'get_id' )
@@ -134,7 +134,7 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 				}
 				// Grab course from LP_Global at the same time.
 				if ( $lesson_id > 0 && method_exists( 'LP_Global', 'course' ) ) {
-					$lp_course_global = LP_Global::course();
+					$lp_course_global = \LP_Global::course();
 					if ( $lp_course_global && method_exists( $lp_course_global, 'get_id' ) ) {
 						$course_id = absint( $lp_course_global->get_id() );
 					}
@@ -376,40 +376,28 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 				'message' => $e->getMessage(),
 				'file'    => $e->getFile(),
 				'line'    => $e->getLine(),
-				'trace'   => $e->getTraceAsString(),
 			] );
 			echo '</pre>';
 		}
 	}
 
 	private function render_lesson_html() {
-		// Always resolve context first so diagnostic runs even with empty html_content.
-		$result     = $this->get_current_lesson_and_course();
-		$has_lesson = is_array( $result ) && isset( $result['lesson'] );
-
-		// Always show diagnostic panel so we can see what resolved.
-		echo '<pre style="font-family:monospace;font-size:12px;background:#111;color:#0f0;padding:12px;margin:8px 0;border-radius:4px;">';
-		echo '<strong style="color:#ff6;">LXP Lesson Widget — resolution dump</strong>' . "\n";
-		var_dump( [
-			'LP_LESSON_CPT_defined' => defined( 'LP_LESSON_CPT' ) ? LP_LESSON_CPT : 'UNDEFINED',
-			'LP_Global_exists'      => class_exists( 'LP_Global' ),
-			'queried_object_id'     => get_queried_object_id(),
-			'queried_object_type'   => get_post_type( get_queried_object_id() ),
-			'global_post_id'        => get_the_ID(),
-			'global_post_type'      => get_post_type( get_the_ID() ),
-			'has_lesson'            => $has_lesson,
-			'debug'                 => is_array( $result ) ? ( $result['debug'] ?? [] ) : [],
-		] );
-		echo '</pre>';
-
-		if ( ! $has_lesson ) {
-			return;
-		}
-
 		$settings = $this->get_settings_for_display();
 		$html     = $settings['html_content'] ?? '';
 
 		if ( empty( trim( $html ) ) ) {
+			return;
+		}
+
+		$result     = $this->get_current_lesson_and_course();
+		$has_lesson = is_array( $result ) && isset( $result['lesson'] );
+
+		if ( ! $has_lesson ) {
+			$debug_lines = is_array( $result ) ? ( $result['debug'] ?? [] ) : [];
+			echo '<pre style="font-family:monospace;font-size:12px;background:#111;color:#0f0;padding:12px;border-radius:4px;">';
+			echo '<strong style="color:#ff6;">LXP Lesson Widget — context resolution failed</strong>' . "\n";
+			var_dump( $debug_lines );
+			echo '</pre>';
 			return;
 		}
 
