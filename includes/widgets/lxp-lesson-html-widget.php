@@ -115,12 +115,14 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 
 		$lesson_id = 0;
 		$course_id = 0;
+		$debug     = [];
 
 		// Strategy 1: LP_Global — authoritative inside LP lesson template rendering.
 		if ( class_exists( 'LP_Global' ) && method_exists( 'LP_Global', 'course_item' ) ) {
 			try {
 				$lp_item = LP_Global::course_item();
-				error_log( '[LXP_Lesson_Widget] LP_Global::course_item() type=' . ( $lp_item && method_exists( $lp_item, 'get_type' ) ? $lp_item->get_type() : 'null' ) );
+				$item_type = ( $lp_item && method_exists( $lp_item, 'get_type' ) ) ? $lp_item->get_type() : 'null';
+				$debug[] = 'S1: LP_Global::course_item() type=' . $item_type . ' LP_LESSON_CPT=' . ( defined( 'LP_LESSON_CPT' ) ? LP_LESSON_CPT : 'UNDEFINED' );
 				if (
 					$lp_item
 					&& method_exists( $lp_item, 'get_id' )
@@ -138,42 +140,48 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 					}
 				}
 			} catch ( \Throwable $e ) {
-				error_log( '[LXP_Lesson_Widget] LP_Global strategy failed: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
+				$debug[] = 'S1 exception: ' . $e->getMessage() . ' in ' . basename( $e->getFile() ) . ':' . $e->getLine();
 			}
+		} else {
+			$debug[] = 'S1: LP_Global not available (class_exists=' . (int) class_exists( 'LP_Global' ) . ')';
 		}
 
 		// Strategy 2: queried object (true singular lp_lesson page).
-		if ( $lesson_id <= 0 && defined( 'LP_LESSON_CPT' ) ) {
+		if ( $lesson_id <= 0 ) {
 			$qo_id = absint( get_queried_object_id() );
-			error_log( '[LXP_Lesson_Widget] Strategy2: qo_id=' . $qo_id . ' type=' . get_post_type( $qo_id ) );
-			if ( $qo_id > 0 && get_post_type( $qo_id ) === LP_LESSON_CPT ) {
+			$qo_type = get_post_type( $qo_id );
+			$debug[] = 'S2: qo_id=' . $qo_id . ' type=' . $qo_type . ' LP_LESSON_CPT=' . ( defined( 'LP_LESSON_CPT' ) ? LP_LESSON_CPT : 'UNDEFINED' );
+			if ( $qo_id > 0 && defined( 'LP_LESSON_CPT' ) && $qo_type === LP_LESSON_CPT ) {
 				$lesson_id = $qo_id;
 			}
 		}
 
 		// Strategy 3: global $post.
-		if ( $lesson_id <= 0 && defined( 'LP_LESSON_CPT' ) ) {
+		if ( $lesson_id <= 0 ) {
 			$post_id = absint( get_the_ID() );
-			error_log( '[LXP_Lesson_Widget] Strategy3: post_id=' . $post_id . ' type=' . get_post_type( $post_id ) );
-			if ( $post_id > 0 && get_post_type( $post_id ) === LP_LESSON_CPT ) {
+			$post_type = get_post_type( $post_id );
+			$debug[] = 'S3: post_id=' . $post_id . ' type=' . $post_type;
+			if ( $post_id > 0 && defined( 'LP_LESSON_CPT' ) && $post_type === LP_LESSON_CPT ) {
 				$lesson_id = $post_id;
 			}
 		}
 
-		error_log( '[LXP_Lesson_Widget] final: lesson_id=' . $lesson_id . ' course_id=' . $course_id );
+		$debug[] = 'final: lesson_id=' . $lesson_id . ' course_id=' . $course_id;
 
 		if ( $lesson_id <= 0 ) {
-			return null;
+			return [ 'debug' => $debug ];
 		}
 
 		$lesson_post = get_post( $lesson_id );
 		if ( ! $lesson_post ) {
-			return null;
+			$debug[] = 'get_post(' . $lesson_id . ') returned null';
+			return [ 'debug' => $debug ];
 		}
 
 		// Resolve course ID if LP_Global didn't provide it.
 		if ( $course_id <= 0 ) {
 			$course_id = absint( get_post_meta( $lesson_id, 'tl_course_id', true ) );
+			$debug[] = 'tl_course_id meta=' . $course_id;
 		}
 
 		if ( $course_id <= 0 ) {
@@ -190,18 +198,21 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 					$lesson_id
 				)
 			) );
+			$debug[] = 'SQL course_id=' . $course_id;
 		}
 
 		if ( $course_id <= 0 ) {
-			return null;
+			$debug[] = 'course_id still 0, giving up';
+			return [ 'debug' => $debug ];
 		}
 
 		$course = learn_press_get_course( $course_id );
 		if ( ! $course ) {
-			return null;
+			$debug[] = 'learn_press_get_course(' . $course_id . ') returned null';
+			return [ 'debug' => $debug ];
 		}
 
-		return [ $lesson_post, $course ];
+		return [ 'lesson' => $lesson_post, 'course' => $course, 'debug' => $debug ];
 	}
 
 	/**
@@ -359,14 +370,42 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 		try {
 			$this->render_lesson_html();
 		} catch ( \Throwable $e ) {
-			error_log( '[LXP_Lesson_Widget] render() fatal: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() . "\n" . $e->getTraceAsString() );
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				echo '<p style="color:red;border:1px solid red;padding:8px;"><strong>LXP Lesson Widget error:</strong> ' . esc_html( $e->getMessage() ) . ' in ' . esc_html( basename( $e->getFile() ) ) . ':' . esc_html( $e->getLine() ) . '</p>';
-			}
+			echo '<pre style="color:red;background:#fff0f0;padding:12px;border:2px solid red;">';
+			echo '<strong>LXP Lesson Widget — Exception</strong>' . "\n";
+			var_dump( [
+				'message' => $e->getMessage(),
+				'file'    => $e->getFile(),
+				'line'    => $e->getLine(),
+				'trace'   => $e->getTraceAsString(),
+			] );
+			echo '</pre>';
 		}
 	}
 
 	private function render_lesson_html() {
+		// Always resolve context first so diagnostic runs even with empty html_content.
+		$result     = $this->get_current_lesson_and_course();
+		$has_lesson = is_array( $result ) && isset( $result['lesson'] );
+
+		// Always show diagnostic panel so we can see what resolved.
+		echo '<pre style="font-family:monospace;font-size:12px;background:#111;color:#0f0;padding:12px;margin:8px 0;border-radius:4px;">';
+		echo '<strong style="color:#ff6;">LXP Lesson Widget — resolution dump</strong>' . "\n";
+		var_dump( [
+			'LP_LESSON_CPT_defined' => defined( 'LP_LESSON_CPT' ) ? LP_LESSON_CPT : 'UNDEFINED',
+			'LP_Global_exists'      => class_exists( 'LP_Global' ),
+			'queried_object_id'     => get_queried_object_id(),
+			'queried_object_type'   => get_post_type( get_queried_object_id() ),
+			'global_post_id'        => get_the_ID(),
+			'global_post_type'      => get_post_type( get_the_ID() ),
+			'has_lesson'            => $has_lesson,
+			'debug'                 => is_array( $result ) ? ( $result['debug'] ?? [] ) : [],
+		] );
+		echo '</pre>';
+
+		if ( ! $has_lesson ) {
+			return;
+		}
+
 		$settings = $this->get_settings_for_display();
 		$html     = $settings['html_content'] ?? '';
 
@@ -374,14 +413,8 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 			return;
 		}
 
-		$context = $this->get_current_lesson_and_course();
-
-		if ( ! $context ) {
-			echo '<p style="color:#888;font-style:italic;">' . esc_html( $settings['editor_message'] ) . '</p>';
-			return;
-		}
-
-		[ $lesson_post, $course ] = $context;
+		$lesson_post = $result['lesson'];
+		$course      = $result['course'];
 
 		$map    = $this->build_lesson_token_map( $lesson_post, $course );
 		$output = str_replace( array_keys( $map ), array_values( $map ), $html );
