@@ -96,14 +96,63 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 	/**
 	 * Resolve the lesson post and parent LP_Course for the page being viewed.
 	 *
-	 * Returns [ WP_Post $lesson, LP_Course $course ] or null on failure.
+	 * LP4 renders lessons inside the course URL context (/{course}/lessons/{lesson}/),
+	 * so get_queried_object_id() returns the course ID, not the lesson ID.
+	 * LP_Global::course_item() is the authoritative source set by LP during its
+	 * own request routing.
+	 *
+	 * Resolution order:
+	 *  1. LP_Global::course_item() — set by LP when processing lesson pages.
+	 *  2. get_queried_object_id()  — works on true singular lp_lesson pages.
+	 *  3. get_the_ID()             — last resort via global $post.
 	 *
 	 * @return array{0:\WP_Post,1:\LP_Course}|null
 	 */
 	private function get_current_lesson_and_course() {
-		$lesson_id = absint( get_queried_object_id() );
+		if ( ! function_exists( 'learn_press_get_course' ) ) {
+			return null;
+		}
 
-		if ( $lesson_id <= 0 || get_post_type( $lesson_id ) !== LP_LESSON_CPT ) {
+		$lesson_id = 0;
+		$course_id = 0;
+
+		// Strategy 1: LP_Global — authoritative inside LP lesson template rendering.
+		if ( class_exists( 'LP_Global' ) && method_exists( 'LP_Global', 'course_item' ) ) {
+			$lp_item = LP_Global::course_item();
+			if (
+				$lp_item
+				&& method_exists( $lp_item, 'get_id' )
+				&& method_exists( $lp_item, 'get_type' )
+				&& $lp_item->get_type() === LP_LESSON_CPT
+			) {
+				$lesson_id = absint( $lp_item->get_id() );
+			}
+			// Grab course from LP_Global at the same time.
+			if ( $lesson_id > 0 && method_exists( 'LP_Global', 'course' ) ) {
+				$lp_course_global = LP_Global::course();
+				if ( $lp_course_global && method_exists( $lp_course_global, 'get_id' ) ) {
+					$course_id = absint( $lp_course_global->get_id() );
+				}
+			}
+		}
+
+		// Strategy 2: queried object (true singular lp_lesson page).
+		if ( $lesson_id <= 0 ) {
+			$qo_id = absint( get_queried_object_id() );
+			if ( $qo_id > 0 && get_post_type( $qo_id ) === LP_LESSON_CPT ) {
+				$lesson_id = $qo_id;
+			}
+		}
+
+		// Strategy 3: global $post.
+		if ( $lesson_id <= 0 ) {
+			$post_id = absint( get_the_ID() );
+			if ( $post_id > 0 && get_post_type( $post_id ) === LP_LESSON_CPT ) {
+				$lesson_id = $post_id;
+			}
+		}
+
+		if ( $lesson_id <= 0 ) {
 			return null;
 		}
 
@@ -112,13 +161,10 @@ class LXP_Lesson_HTML_Widget extends Widget_Base {
 			return null;
 		}
 
-		if ( ! function_exists( 'learn_press_get_course' ) ) {
-			return null;
+		// Resolve course ID if LP_Global didn't provide it.
+		if ( $course_id <= 0 ) {
+			$course_id = absint( get_post_meta( $lesson_id, 'tl_course_id', true ) );
 		}
-
-		// Resolve the parent course via the tl_course_id meta first (cheapest),
-		// then fall back to the section repository SQL look-up.
-		$course_id = absint( get_post_meta( $lesson_id, 'tl_course_id', true ) );
 
 		if ( $course_id <= 0 ) {
 			global $wpdb;
