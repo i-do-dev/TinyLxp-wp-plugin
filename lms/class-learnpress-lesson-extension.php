@@ -43,6 +43,38 @@ class TL_LearnPress_Lesson_Extension {
 	public function add_meta_boxes() {
 		$this->options_metabox();
 		$this->lesson_tagline_metabox();
+		$this->ai_content_metabox();
+	}
+
+	public function ai_content_metabox() {
+		$this->add_meta_box( array(
+			'lxp-ai-content-gen',
+			esc_html__( 'AI Content Gen', 'tiny-lxp-platform' ),
+			array( $this, 'ai_content_metabox_html' ),
+			TL_LESSON_CPT,
+			'side',
+			'high',
+		) );
+	}
+
+	public function ai_content_metabox_html( $post = null ) {
+		if ( empty( $post ) || ! isset( $post->ID ) ) {
+			return;
+		}
+		?>
+		<input type="hidden" id="lxp-ai-gen-post-id" value="<?php echo esc_attr( $post->ID ); ?>" />
+		<p style="margin-bottom: 6px;">
+			<button type="button" id="lxp-ai-content-gen-btn" class="button button-primary" style="width: 100%;">
+				<?php echo esc_html__( 'AI Content Gen', 'tiny-lxp-platform' ); ?>
+			</button>
+		</p>
+		<p style="margin-top: 6px;">
+			<button type="button" id="lxp-ai-content-reset-btn" class="button" style="width: 100%;">
+				<?php echo esc_html__( 'Reset to Original', 'tiny-lxp-platform' ); ?>
+			</button>
+		</p>
+		<div id="lxp-ai-content-status" style="margin-top: 8px; font-size: 12px; line-height: 1.5;"></div>
+		<?php
 	}
 
 	public function lesson_tagline_metabox() {

@@ -378,5 +378,140 @@ window.tinyLxpHandleCurrikiSelection = tinyLxpRenderCurrikiPreview;
       });
     });
 
+    // -----------------------------------------------------------------------
+    // AI Content Gen — Generate button
+    // -----------------------------------------------------------------------
+    $('body').on('click', '#lxp-ai-content-gen-btn', function () {
+      var postId = $('#lxp-ai-gen-post-id').val();
+      if (!postId) {
+        return;
+      }
+
+      // Read lesson content from whichever editor is active.
+      var lessonContent = '';
+      if (typeof wp !== 'undefined' && wp.data && wp.data.select('core/editor')) {
+        try {
+          lessonContent = wp.data.select('core/editor').getEditedPostAttribute('content') || '';
+        } catch (e) {
+          lessonContent = '';
+        }
+      }
+      if (!lessonContent && typeof tinymce !== 'undefined' && tinymce.get('content')) {
+        lessonContent = tinymce.get('content').getContent();
+      }
+      if (!lessonContent) {
+        lessonContent = $('#content').val() || '';
+      }
+
+      if (!lessonContent.trim()) {
+        tinyLxpSetAiStatus('Please add lesson content before generating.', true);
+        return;
+      }
+
+      $('#lxp-ai-content-gen-btn, #lxp-ai-content-reset-btn').prop('disabled', true);
+      tinyLxpSetAiStatus('Generating\u2026 this may take 15\u201330 seconds.', false);
+
+      jQuery.ajax({
+        type: 'post',
+        dataType: 'json',
+        url: window.location.origin + '/wp-json/lms/v1/lesson/ai-content',
+        contentType: 'application/json',
+        data: JSON.stringify({ post_id: parseInt(postId, 10), lesson_content: lessonContent }),
+        success: function (response) {
+          var html = response && response.content ? response.content : '';
+          tinyLxpSetEditorContent(html);
+          tinyLxpSetAiStatus('Content generated. Review and click \u201cUpdate\u201d to save.', false);
+        },
+        error: function (xhr) {
+          var msg = 'Generation failed.';
+          try {
+            var body = JSON.parse(xhr.responseText);
+            if (body && body.message) {
+              msg = body.message;
+            }
+          } catch (e) {}
+          tinyLxpSetAiStatus(msg, true);
+        },
+        complete: function () {
+          $('#lxp-ai-content-gen-btn, #lxp-ai-content-reset-btn').prop('disabled', false);
+        }
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    // AI Content Gen — Reset button
+    // -----------------------------------------------------------------------
+    $('body').on('click', '#lxp-ai-content-reset-btn', function () {
+      var postId = $('#lxp-ai-gen-post-id').val();
+      if (!postId) {
+        return;
+      }
+
+      if (!confirm('Restore the original lesson content? Any unsaved AI-generated content will be replaced.')) {
+        return;
+      }
+
+      $('#lxp-ai-content-gen-btn, #lxp-ai-content-reset-btn').prop('disabled', true);
+      tinyLxpSetAiStatus('Restoring original content\u2026', false);
+
+      jQuery.ajax({
+        type: 'get',
+        dataType: 'json',
+        url: window.location.origin + '/wp-json/lms/v1/lesson/original-content',
+        data: { post_id: parseInt(postId, 10) },
+        success: function (response) {
+          var html = response && response.content ? response.content : '';
+          tinyLxpSetEditorContent(html);
+          tinyLxpSetAiStatus('Original content restored. Click \u201cUpdate\u201d to save.', false);
+        },
+        error: function (xhr) {
+          var msg = 'No original backup found.';
+          try {
+            var body = JSON.parse(xhr.responseText);
+            if (body && body.message) {
+              msg = body.message;
+            }
+          } catch (e) {}
+          tinyLxpSetAiStatus(msg, true);
+        },
+        complete: function () {
+          $('#lxp-ai-content-gen-btn, #lxp-ai-content-reset-btn').prop('disabled', false);
+        }
+      });
+    });
+
   });
 })(jQuery);
+
+// ---------------------------------------------------------------------------
+// AI Content Gen helpers (defined in global scope so they are accessible
+// from the jQuery IIFE and from tinyLxpSetEditorContent which uses tinymce).
+// ---------------------------------------------------------------------------
+function tinyLxpSetAiStatus(text, isError) {
+  var el = document.getElementById('lxp-ai-content-status');
+  if (!el) {
+    return;
+  }
+  el.textContent = text;
+  el.className = isError ? 'lxp-ai-status-error' : 'lxp-ai-status-ok';
+}
+
+function tinyLxpSetEditorContent(html) {
+  // Block editor (Gutenberg)
+  if (typeof wp !== 'undefined' && wp.data && wp.data.dispatch('core/editor')) {
+    try {
+      wp.data.dispatch('core/editor').editPost({ content: html });
+      return;
+    } catch (e) {}
+  }
+  // Classic editor (TinyMCE)
+  if (typeof tinymce !== 'undefined' && tinymce.get('content')) {
+    tinymce.get('content').setContent(html);
+    return;
+  }
+  // Plain textarea fallback
+  var ta = document.getElementById('content');
+  if (ta) {
+    ta.value = html;
+  }
+}

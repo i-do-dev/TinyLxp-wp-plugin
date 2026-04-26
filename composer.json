@@ -1,5 +1,5 @@
 {
-  "name": "Tiny Lxp Platform",
+  "name": "tinylxp/tinylxp-wp-plugin",
   "version": "2.0.3",
   "description": "Plugin to allow WordPress to act as an Tiny LXP platform",
   "keywords": ["wordpress", "plugin", "LTI", "platform", "tool"],
@@ -16,6 +16,7 @@
     "docs": "https://github.com/i-do-dev/TinyLxp-wp-plugin"
   },
   "require": {
-    "celtic/lti": "^4.7.2"
+    "celtic/lti": "^4.7.2",
+    "aws/aws-sdk-php": "^3.337"
   }
 }

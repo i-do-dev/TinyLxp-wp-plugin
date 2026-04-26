@@ -1,3 +1,36 @@
+/* -------------------------------------------------------------------------
+   AI Content Gen metabox
+   ------------------------------------------------------------------------- */
+
+#lxp-ai-content-gen-btn,
+#lxp-ai-content-reset-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+#lxp-ai-content-gen-btn:disabled,
+#lxp-ai-content-reset-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+#lxp-ai-content-status {
+  font-size: 12px;
+  line-height: 1.5;
+  min-height: 18px;
+  word-wrap: break-word;
+}
+
+#lxp-ai-content-status.lxp-ai-status-ok {
+  color: #1a7e1a;
+}
+
+#lxp-ai-content-status.lxp-ai-status-error {
+  color: #cc0000;
+}
+
 .tiny-lxp-platform-modal {
   display: none;
   position: fixed;
