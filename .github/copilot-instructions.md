@@ -95,7 +95,7 @@ All CPT slugs and their constants are defined in [lms/tl-constants.php](lms/tl-c
 | `TL_GROUP_CPT` | `tl_group` | `TL_Group_Post_Type` | |
 | *(no constant)* | `tl_trek` | `TL_Trek_Post_Type` | Trek = course journey |
 
-**Meta key convention**: `lxp_{entity}_{field}` (e.g., `lxp_student_school_id`, `lxp_assignment_teacher_id`).  
+**Meta key convention**: `lxp_{entity}_{field}` (e.g., `lxp_student_school_id`, `lxp_assignment_teacher_id`, `lxp_course_outcome`, `lxp_lesson_tagline`).  
 **User role convention**: `lxp_{role}` (e.g., `lxp_teacher`, `lxp_student`, `lxp_student_admin`, `lxp_teacher_admin`).
 
 ---
@@ -119,6 +119,60 @@ All endpoints use namespace `lms/v1` → base URL `/wp-json/lms/v1/`. Entry poin
 | `edlink-apis.php` | `Rest_Lxp_Edlink` | OAuth token exchange, provider/district/people sync |
 
 **Security note**: All routes use `'permission_callback' => '__return_true'`. Access control is enforced inside callbacks; always verify `current_user_can()` or nonce for write operations.
+
+---
+
+## Elementor Widget Token Reference
+
+All widgets live in `namespace Edudeme\Elementor`, registered via `Tiny_LXP_Widget::register_elementor_widgets()`. **Always prefix global LP class calls with `\`** inside this namespace (e.g., `\LP_Global::course_item()`, `\LP_Datetime::get_string_plural_duration()`) — bare names resolve to `Edudeme\Elementor\ClassName` and will throw a fatal.
+
+### `LXP_Course_HTML_Widget` (`includes/widgets/lxp-course-html-widget.php`)
+
+Designed for Elementor Theme Builder **single `lp_course` templates**. Resolves tokens against `learn_press_get_course( get_queried_object_id() )`.
+
+| Token | Source |
+|---|---|
+| `{{lp_course_title}}` | `LP_Course::get_title()` |
+| `{{lp_course_excerpt}}` | `get_the_excerpt()` |
+| `{{lp_course_image_url}}` | `LP_Course::get_image_url('full')` |
+| `{{lp_course_level}}` | `_lp_level` post meta |
+| `{{lp_course_duration}}` | `_lp_duration` meta → `LP_Datetime::get_string_plural_duration()` |
+| `{{lp_course_lesson_count}}` | `LP_Course::count_items(LP_LESSON_CPT)` |
+| `{{lp_course_student_count}}` | `LP_Course::count_students()` |
+| `{{lp_course_button}}` | `do_action('learn-press/course-buttons')` output |
+| `{{lp_course_tags}}` | Comma-separated `course_tag` taxonomy terms |
+| `{{lp_course_outcome}}` | `lxp_course_outcome` post meta |
+| `{{lp_course_description}}` | `post_content` via `apply_filters('the_content', ...)` with `<style>` block protection |
+| `{{#lp_course_tags}}...{{lp_course_tag}}...{{/lp_course_tags}}` | Per-tag repeat loop |
+| `{{#lp_course_sections}}...{{/lp_course_sections}}` | Per-section repeat loop |
+
+Section loop inner tokens: `{{lp_section_number}}` (zero-padded), `{{lp_section_index}}`, `{{lp_section_title}}`, `{{lp_section_first_lesson_title}}`, `{{lp_section_first_lesson_excerpt}}`, `{{lp_section_first_lesson_url}}`. Conditionals: `{{#lp_section_is_last}}`, `{{#lp_section_is_not_last}}`.
+
+Backwards-compatible aliases: `{{lp_title}}`, `{{lp_excerpt}}`, `{{lp_image_url}}`, `{{lp_level}}`, `{{lp_duration}}`, `{{lp_lesson_count}}`, `{{lp_student_count}}`, `{{lp_enroll_button}}`.
+
+Lesson URLs in section loop use `LP_Course::get_item_link($lesson_id)` — **not** `get_permalink()` — to produce the correct LP4 nested URL `/{course-slug}/lessons/{lesson-slug}/`.
+
+### `LXP_Lesson_HTML_Widget` (`includes/widgets/lxp-lesson-html-widget.php`)
+
+Designed for Elementor Theme Builder **single `lp_lesson` templates**. LP4 lesson URLs are `/{course}/lessons/{lesson-slug}/`; the queried object is the **course**, not the lesson. Resolution cascade:
+
+1. `\LP_Global::course_item()` — LP sets this when processing lesson requests.
+2. `get_queried_object_id()` — fallback if queried object type is `lp_lesson`.
+3. `get_the_ID()` — global `$post` last resort.
+4. Slug extraction from `$_SERVER['REQUEST_URI']` + `get_page_by_path()` against `lp_lesson` — **primary working path** when Elementor renders before LP_Global is set.
+
+| Token | Source |
+|---|---|
+| `{{lp_lesson_title}}` | `WP_Post::post_title` |
+| `{{lp_lesson_tagline}}` | `lxp_lesson_tagline` post meta |
+| `{{lp_lesson_duration}}` | `_lp_duration` meta → `LP_Datetime::get_string_plural_duration()` |
+| `{{lp_lesson_number}}` | SQL COUNT of preceding items (by `section_order` / `item_order`) |
+| `{{lp_lesson_total}}` | `LP_Course::count_items(LP_LESSON_CPT)` |
+| `{{lp_lesson_module_label}}` | Pre-composed `"Module X of Y"` |
+| `{{lp_lesson_section_name}}` | `learnpress_sections.section_name` for this lesson's section |
+| `{{lp_lesson_section_number}}` | `learnpress_sections.section_order` |
+| `{{lp_course_title}}` | `LP_Course::get_title()` |
+| `{{lp_course_image_url}}` | `LP_Course::get_image_url('full')` |
 
 ---
 
@@ -229,7 +283,7 @@ wp hook list
 - **CPT-specific hooks** (init, save_post, add_meta_boxes, rest_api_init): register directly in the CPT constructor following the `TL_Post_Type::__construct()` pattern.
 - **LearnPress lesson save hooks**: use post-type-specific `save_post_lp_lesson` for lesson metabox persistence (registered in `Tiny_LXP_Platform::define_public_hooks()`), not generic `save_post`.
 - **LearnPress lesson REST save**: use `rest_insert_lp_lesson` mapped to `TL_LearnPress_Lesson_Extension::insert_post_api()`.
-- **Lesson metabox nonce**: lesson admin LTI save requires `lesson_lti_nonce` generated by `wp_nonce_field( 'save_lesson_lti_options', 'lesson_lti_nonce' )`.
+- **Lesson metabox nonces**: LTI save uses `lesson_lti_nonce` / `save_lesson_lti_options`; tagline save uses `lxp_lesson_tagline_nonce` / `save_lxp_lesson_tagline`. Both handlers are wired to `save_post_lp_lesson` — LTI at priority 10 (`save_tl_post`), tagline at priority 20 (`save_lesson_tagline_meta`).
 - **REST routes**: register inside a static `init()` method called from `add_action('rest_api_init', ...)` in `LMS_REST_API::init()`.
 - Never call `add_action()` or `add_filter()` at the global file scope in new files.
 
@@ -286,6 +340,8 @@ When changing external service hosts, update constants in [lms/xapi-constants.ph
 5. **LearnPress dependency**: Code in `Rest_Lxp_Course` directly queries `{prefix}learnpress_sections` — LearnPress must be active or those queries will fail silently.
 6. **REST auth**: `'permission_callback' => '__return_true'` on all routes. Every new endpoint must implement its own authorization logic inside the callback.
 7. **Lesson extension path**: `lp_lesson` behavior is handled through `TL_LearnPress_Lesson_Extension` hooks; do not add a new `class-lesson-post-type.php` registration path unless explicitly doing an architecture migration.
+8. **LP4 lesson URL context**: On LP4 lesson pages (`/{course}/lessons/{lesson}/`), `get_queried_object_id()` returns the **course** post ID, not the lesson ID. `LP_Global::course_item()` is also null when Elementor renders before LP processes its routing. Use URL slug extraction as the reliable fallback: `basename(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH))` + `get_page_by_path($slug, OBJECT, LP_LESSON_CPT)`. See `LXP_Lesson_HTML_Widget::get_current_lesson_and_course()`.
+9. **Namespace backslash for LP globals in widgets**: All Elementor widgets live in `namespace Edudeme\Elementor`. Any bare LP class reference (`LP_Global`, `LP_Datetime`, `LP_Section_DB`, etc.) resolves to `Edudeme\Elementor\LP_*` and causes a fatal. Always use the global-namespace prefix: `\LP_Global::course_item()`, `\LP_Datetime::get_string_plural_duration()`, etc.
 
 ---
 
